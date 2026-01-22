@@ -9,6 +9,39 @@ let currentDetailId = null;
 let touchStartX = 0;
 let touchEndX = 0;
 
+// [DB 설정] 데이터가 많을 경우를 대비해 localStorage 대신 IndexedDB를 사용합니다.
+const DB_NAME = 'YT_Insight_DB';
+const STORE_NAME = 'cache';
+
+async function getCache(key) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+    request.onsuccess = (e) => {
+      const db = e.target.result;
+      const getReq = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key);
+      getReq.onsuccess = () => resolve(getReq.result);
+      getReq.onerror = () => resolve(null);
+    };
+    request.onerror = () => resolve(null);
+  });
+}
+
+async function setCache(key, value) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+    request.onsuccess = (e) => {
+      const db = e.target.result;
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    };
+    request.onerror = () => resolve(false);
+  });
+}
+
 // 초기 데이터 로드
 window.addEventListener('DOMContentLoaded', () => {
   if (!GAS_API_URL) {
@@ -20,11 +53,11 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function fetchData() {
-  const cachedData = localStorage.getItem('yt_clipping_cache');
+  const cachedData = await getCache('yt_clipping_cache');
 
   if (cachedData) {
     // 1. 캐시된 데이터가 있으면 즉시 렌더링
-    onDataLoaded(JSON.parse(cachedData), true);
+    onDataLoaded(cachedData, true);
   } else {
     // 2. 캐시가 없으면 로딩 인디케이터 표시
     document.getElementById('loader').style.display = 'block';
@@ -34,10 +67,11 @@ async function fetchData() {
     // 3. 서버에서 데이터 가져오기
     const response = await fetch(GAS_API_URL);
     const data = await response.json();
+    const finalData = typeof data === 'string' ? JSON.parse(data) : data;
 
     // 4. 캐시 업데이트 및 최종 화면 갱신
-    localStorage.setItem('yt_clipping_cache', JSON.stringify(data));
-    onDataLoaded(data);
+    await setCache('yt_clipping_cache', finalData);
+    onDataLoaded(finalData);
   } catch (error) {
     if (!cachedData) {
       onLoadError(error);
@@ -53,7 +87,7 @@ function onDataLoaded(data, isCache = false) {
   renderGrid();
 
   if (isCache) {
-    console.log('초기 데이터를 로컬 캐시에서 불러왔습니다.');
+    console.log('초기 데이터를 캐시(IndexedDB)에서 불러왔습니다.');
   } else {
     console.log('최신 데이터를 서버에서 성공적으로 가져왔습니다.');
   }
