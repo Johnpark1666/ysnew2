@@ -1,7 +1,7 @@
 import './style.css'
 
 // [설정] 복사해둔 Apps Script 웹 앱 URL을 여기에 붙여넣어 주세요
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyyRm-TmdbtWCFW_ZjM569i08WY7Rq7WadKEk5cKbZI0IqgCVfQjij4Y3rY8lQkD0SNEA/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0tixYjtcjX0YRWK8N2tArYNmx5emY67HkCVlvBnXsehh72bi-bbg/exec';
 
 let allData = [];
 let currentTab = 'unread';
