@@ -2,7 +2,7 @@ import './style.css'
 
 // [설정] 서비스 URL들
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0tixYjtcjX0YRWK8N2tArYNmx5emY67HkCVlvBnXsehh72bi-bbg/exec';
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1ou-Nz0NNChhH4HZ3lq-MwnbuRacbY7MF8IzCya5Ndcg/export?format=csv';
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSWLW6USUJv6DnuF9Zv4vmoWWWR7ArdhUXsxbszzg4zON_HuRNJlZYPBs8N7JcszE_imI8dqEHUqdk2/pub?gid=0&single=true&output=csv';
 
 let allData = [];
 let currentTab = 'unread';
