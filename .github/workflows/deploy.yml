@@ -29,6 +29,7 @@ jobs:
       - name: Install and Build
         run: |
           npm ci
+          chmod +x node_modules/.bin/vite
           npm run build
 
       - name: Upload pages artifact
