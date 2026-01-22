@@ -1,8 +1,9 @@
 import './style.css'
 
-// [설정] 서비스 URL들
+// [설정] 서비스 URL 및 시트 정보
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0tixYjtcjX0YRWK8N2tArYNmx5emY67HkCVlvBnXsehh72bi-bbg/exec';
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSWLW6USUJv6DnuF9Zv4vmoWWWR7ArdhUXsxbszzg4zON_HuRNJlZYPBs8N7JcszE_imI8dqEHUqdk2/pub?gid=0&single=true&output=csv';
+const SPREADSHEET_ID = '1ou-Nz0NNChhH4HZ3lq-MwnbuRacbY7MF8IzCya5Ndcg';
+const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
 
 let allData = [];
 let currentTab = 'unread';
@@ -10,127 +11,70 @@ let currentDetailId = null;
 let touchStartX = 0;
 let touchEndX = 0;
 
-// [렌더링 최적화] 한 번에 보이는 카드 개수를 제어합니다.
+// [렌더링 설정]
 let currentPageSize = 20;
 let currentVisibleCount = 20;
 
-// [DB 설정] 데이터가 많을 경우를 대비해 localStorage 대신 IndexedDB를 사용합니다.
-const DB_NAME = 'YT_Insight_DB';
-const STORE_NAME = 'cache';
-
-async function getCache(key) {
-  return new Promise((resolve) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
-    request.onsuccess = (e) => {
-      const db = e.target.result;
-      const getReq = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key);
-      getReq.onsuccess = () => resolve(getReq.result);
-      getReq.onerror = () => resolve(null);
-    };
-    request.onerror = () => resolve(null);
-  });
-}
-
-async function setCache(key, value) {
-  return new Promise((resolve) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
-    request.onsuccess = (e) => {
-      const db = e.target.result;
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(value, key);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => resolve(false);
-    };
-    request.onerror = () => resolve(false);
-  });
-}
-
 // 초기 데이터 로드
 window.addEventListener('DOMContentLoaded', () => {
-  if (!GAS_API_URL) {
-    alert('Apps Script URL이 설정되지 않았습니다. main.js 상단의 GAS_API_URL을 확인해주세요.');
-    return;
-  }
   fetchData();
   setupEventListeners();
 });
 
 async function fetchData() {
-  const cachedData = await getCache('yt_clipping_cache');
-
-  if (cachedData) {
-    onDataLoaded(cachedData, true);
-  } else {
-    document.getElementById('loader').style.display = 'block';
-  }
+  const loader = document.getElementById('loader');
+  loader.style.display = 'block';
+  loader.innerHTML = '<div class="loader-spinner"></div><div class="loader-text">최신 데이터를 실시간으로 가져오는 중...</div>';
+  document.getElementById('card-grid').innerHTML = '';
 
   try {
-    // [속도 최적화] 앱스크립트를 거치지 않고 구글 시트에서 직접 CSV를 가져옵니다.
-    // 브라우저 캐시 방지를 위해 타임스탬프를 추가합니다.
-    const response = await fetch(`${SHEET_CSV_URL}&t=${Date.now()}`);
-    const csvText = await response.text();
-    const data = parseCSV(csvText);
+    // 1. 구글 시트 데이터를 직접 가져옴 (캐시 없이 실시간 연동)
+    const response = await fetch(`${GVIZ_URL}&t=${Date.now()}`);
+    const text = await response.text();
 
-    if (data.length > 0) {
-      await setCache('yt_clipping_cache', data);
-      onDataLoaded(data);
-    } else {
-      throw new Error("가져온 데이터가 비어있습니다. 시트 설정을 확인해주세요.");
-    }
+    // 구글 응답 데이터(JSON)만 추출
+    const jsonStr = text.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
+    if (!jsonStr) throw new Error("구글 시트 연동 실패: 데이터 형식이 올바르지 않습니다.");
+
+    const obj = JSON.parse(jsonStr[1]);
+    const table = obj.table;
+    const rows = table.rows;
+    // 헤더(컬럼 레이블) 추출
+    const cols = table.cols.map(c => c.label || "");
+
+    // 2. 데이터를 앱용 객체 배열로 변환
+    allData = rows.map((row, index) => {
+      let item = { rowIndex: index + 2 };
+      row.c.forEach((cell, i) => {
+        const header = cols[i];
+        if (header) {
+          // 셀이 비어있으면 null이나 빈 값 처리
+          item[header] = cell ? (cell.v ?? "") : "";
+          // 날짜 타입인 경우 가독성 좋게 변환 (Date 객체 형태인 경우 문자열 추출)
+          if (typeof item[header] === 'string' && item[header].startsWith('Date(')) {
+            item[header] = item[header].replace(/Date\(|\)/g, '').split(',').slice(0, 3).join('-');
+          }
+        }
+      });
+      return item;
+    }).filter(d => {
+      // ID 필드명이 대소문자를 가릴 수 있으므로 유연하게 체크합니다.
+      const id = d.ID || d.id || d.Id || d['아이디'];
+      return id && String(id).trim() !== "";
+    });
+
+    console.log('실시간 연동 성공:', allData.length, '개의 행');
+    onDataLoaded();
+
   } catch (error) {
-    if (!cachedData) {
-      onLoadError(error);
-    }
-    console.error('Background Fetch Error (Direct Sheet):', error);
+    onLoadError(error);
   }
 }
 
-// CSV 데이터를 바탕으로 객체 배열 생성
-function parseCSV(csvText) {
-  const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
-  if (lines.length <= 1) return [];
-
-  // 헤더 정규화 (BOM 제거, 따옴표 제거, 공백 제거)
-  const headers = lines[0].replace(/^\uFEFF/, '')
-    .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-    .map(h => h.replace(/^"|"$/g, '').trim());
-
-  console.log('Detected CSV Headers:', headers);
-
-  return lines.slice(1).map((line, index) => {
-    const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
-    let obj = { rowIndex: index + 2 };
-    headers.forEach((header, colIndex) => {
-      if (header) {
-        obj[header] = values[colIndex] || "";
-      }
-    });
-    return obj;
-  }).filter(item => {
-    // ID 필드명이 대소문자를 가릴 수 있으므로 유연하게 체크합니다.
-    const id = item.ID || item.id || item.Id || item['아이디'];
-    return id && String(id).trim() !== "";
-  });
-}
-
-// 불리언 값 판별 헬퍼 (CSV는 "TRUE" 또는 "FALSE" 문자열로 들어옴)
-function isTrue(value) {
-  return value === true || String(value).toUpperCase() === "TRUE";
-}
-
-function onDataLoaded(data, isCache = false) {
-  allData = typeof data === 'string' ? JSON.parse(data) : data;
+function onDataLoaded() {
   document.getElementById('loader').style.display = 'none';
   updateStats();
   renderGrid();
-
-  if (isCache) {
-    console.log('초기 데이터를 캐시(IndexedDB)에서 불러왔습니다.');
-  } else {
-    console.log('최신 데이터를 서버에서 성공적으로 가져왔습니다.');
-  }
 }
 
 function onLoadError(error) {
@@ -139,37 +83,33 @@ function onLoadError(error) {
       <div class="empty-icon">
         <span class="material-icons-round">error_outline</span>
       </div>
-      <div class="empty-title">오류가 발생했습니다</div>
-      <div class="empty-description">${error.message}</div>
+      <div class="empty-title">데이터를 불러오지 못했습니다</div>
+      <div class="empty-description">${error.message}<br>시트의 '웹에 게시' 설정을 다시 확인해주세요.</div>
     `;
 }
 
-// 이미지 에러 핸들러: 고해상도 썸네일이 없으면 표준 해상도로, 그것도 없으면 플레이스홀더로 교체
-window.handleImageError = (img) => {
-  if (img.src.includes('maxresdefault.jpg')) {
-    img.setAttribute('src', img.src.replace('maxresdefault.jpg', 'hqdefault.jpg'));
-    return;
-  }
-  img.setAttribute('src', 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Thumbnail');
-  img.onerror = null; // 무한 루프 방지
-};
+// 불리언 값 판별 헬퍼 (구글 시트는 불리언이나 "TRUE"/"FALSE"로 들어옴)
+function isTrue(value) {
+  if (typeof value === 'boolean') return value;
+  return String(value).toUpperCase() === "TRUE";
+}
 
 function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
   document.getElementById('close-detail').onclick = () => closeDetail();
 
-  // 새로고침 버튼: 캐시 비우고 다시 가져오기
-  document.getElementById('btn-refresh').onclick = async () => {
-    const btn = document.getElementById('btn-refresh');
-    btn.style.animation = 'spin 1s linear infinite';
-    localStorage.removeItem('yt_clipping_cache'); // 혹시 남은 구버전 캐시 삭제
-    await setCache('yt_clipping_cache', null);   // DB 캐시 삭제
-    await fetchData();
-    btn.style.animation = 'none';
-  };
+  // 새로고침 버튼 핸들러
+  const refreshBtn = document.getElementById('btn-refresh');
+  if (refreshBtn) {
+    refreshBtn.onclick = async () => {
+      refreshBtn.style.animation = 'spin 1s linear infinite';
+      await fetchData();
+      refreshBtn.style.animation = 'none';
+    };
+  }
 
-  // Infinite Scroll: 스크롤이 끝에 닿으면 더 불러오기
+  // Infinite Scroll
   const listPane = document.getElementById('pane-list');
   listPane.onscroll = () => {
     if (listPane.scrollTop + listPane.clientHeight >= listPane.scrollHeight - 500) {
@@ -188,7 +128,6 @@ function setupEventListeners() {
     handleSwipe();
   }, { passive: true });
 
-  // Keyboard
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDetail();
   });
@@ -209,7 +148,7 @@ function switchTab(tabName) {
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${tabName}`).classList.add('active');
 
-  currentVisibleCount = currentPageSize; // 초기화
+  currentVisibleCount = currentPageSize;
   closeDetail();
   renderGrid();
 }
@@ -220,7 +159,7 @@ function loadMore() {
 
   const start = currentVisibleCount;
   currentVisibleCount += currentPageSize;
-  renderGrid(true, start); // append 모드로 렌더링
+  renderGrid(true, start);
 }
 
 function getFilteredData() {
@@ -277,7 +216,7 @@ function renderGrid(append = false, startIndex = 0) {
     card.onclick = () => openDetail(item.ID);
     card.innerHTML = `
         <div class="card-thumbnail">
-          <img src="${imgUrl}" alt="${item.Title}" loading="lazy" onerror="handleImageError(this)">
+          <img src="${imgUrl}" alt="${item.Title}" loading="lazy" onerror="window.handleImageError(this)">
           <div class="thumbnail-overlay">
             <div class="play-button">
               <span class="material-icons-round">play_arrow</span>
@@ -309,6 +248,17 @@ function renderGrid(append = false, startIndex = 0) {
   grid.appendChild(fragment);
 }
 
+// 이미지 에러 핸들러
+window.handleImageError = (img) => {
+  if (img.src.includes('maxresdefault.jpg')) {
+    img.src = img.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+    return;
+  }
+  img.src = 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Thumbnail';
+  img.onerror = null;
+};
+
+// 상세 로직 및 Apps Script 호출 로직은 기존 기능 유지
 function openDetail(id) {
   currentDetailId = String(id);
   const item = allData.find(d => String(d.ID) === currentDetailId);
@@ -344,33 +294,97 @@ function openDetail(id) {
 
     mReadBtn.onclick = (e) => handleMarkRead(id, mReadBtn, e);
     if (isRead) {
-      mReadBtn.style.opacity = '0.6';
-      mReadBtn.disabled = true;
-      mReadBtn.innerHTML = '<span class="material-icons-round">check_circle</span> 완료';
+      mReadBtn.style.opacity = '0.5';
+      mReadBtn.innerHTML = '<span class="material-icons-round">done</span> 읽음';
     } else {
       mReadBtn.style.opacity = '1';
-      mReadBtn.disabled = false;
-      mReadBtn.innerHTML = '<span class="material-icons-round">check_circle</span> 읽음';
+      mReadBtn.innerHTML = '<span class="material-icons-round">check_circle</span> 읽음 처리';
     }
 
     mFavBtn.onclick = (e) => handleToggleFav(id, mFavBtn, e);
-    mFavBtn.querySelector('.material-icons-round').innerText = isFav ? 'star' : 'star_border';
-    isFav ? mFavBtn.classList.add('active') : mFavBtn.classList.remove('active');
+    mFavBtn.className = `btn-favorite ${isFav ? 'active' : ''}`;
+    mFavBtn.innerHTML = `<span class="material-icons-round">${isFav ? 'star' : 'star_border'}</span>`;
 
-    document.getElementById('layout-container').classList.add('detail-active');
-    detailPane.scrollTop = 0;
-    detailBody.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    detailBody.style.transition = 'all 0.4s ease';
     detailBody.style.opacity = '1';
     detailBody.style.transform = 'translateY(0)';
   }, 50);
+
+  document.getElementById('layout-container').classList.add('detail-active');
+  detailPane.scrollTop = 0;
 }
 
 function closeDetail() {
-  currentDetailId = null;
   document.getElementById('layout-container').classList.remove('detail-active');
+  currentDetailId = null;
 }
 
-// API 호출 도우미
+window.handleMarkRead = async (id, btn, event) => {
+  if (event) event.stopPropagation();
+  const icon = btn.querySelector('.material-icons-round');
+  const originalHtml = btn.innerHTML;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-icons-round spin">sync</span> 처리 중...';
+
+  try {
+    const res = await callGAS({ action: 'markAsRead', id: id });
+    if (res.status === 'success') {
+      const item = allData.find(d => String(d.ID) === String(id));
+      if (item) item.Read = true;
+      updateStats();
+      if (currentTab === 'unread') {
+        renderGrid();
+        if (currentDetailId === String(id)) closeDetail();
+      } else {
+        btn.style.opacity = '0.5';
+        btn.innerHTML = '<span class="material-icons-round">done</span> 읽음';
+      }
+    }
+  } catch (e) {
+    alert('읽음 처리 실패');
+    btn.innerHTML = originalHtml;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+window.handleToggleFav = async (id, btn, event) => {
+  if (event) event.stopPropagation();
+  const item = allData.find(d => String(d.ID) === String(id));
+  if (!item) return;
+
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  try {
+    const res = await callGAS({
+      action: 'toggleFavorite',
+      id: id,
+      currentStatus: isTrue(item.Favorite)
+    });
+    if (res.status === 'success') {
+      item.Favorite = res.result;
+      updateStats();
+      if (currentTab === 'favorite' && !isTrue(item.Favorite)) {
+        renderGrid();
+        if (currentDetailId === String(id)) closeDetail();
+      } else {
+        const isFav = isTrue(item.Favorite);
+        btn.className = `btn-favorite ${isFav ? 'active' : ''}`;
+        btn.innerHTML = `<span class="material-icons-round">${isFav ? 'star' : 'star_border'}</span>`;
+      }
+    }
+  } catch (e) {
+    alert('즐겨찾기 토글 실패');
+    btn.innerHTML = originalHtml;
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+};
+
 async function callGAS(params) {
   const response = await fetch(GAS_API_URL, {
     method: 'POST',
@@ -379,61 +393,17 @@ async function callGAS(params) {
   return await response.json();
 }
 
-// 전역 핸들러 (버튼 클릭용)
-window.handleMarkRead = async (id, btn, event) => {
-  event.stopPropagation();
-  const originalHTML = btn.innerHTML;
-  btn.style.opacity = '0.6';
-  btn.innerHTML = '<span class="material-icons-round">hourglass_empty</span>...';
-  btn.disabled = true;
-
-  try {
-    const res = await callGAS({ action: 'markAsRead', id: id });
-    if (res.status === 'success') {
-      const item = allData.find(d => String(d.ID) === String(id));
-      if (item) item.Read = true;
-      updateStats();
-      renderGrid();
-      if (currentDetailId === String(id)) openDetail(id);
-    }
-  } catch (err) {
-    alert('오류: ' + err.message);
-    btn.innerHTML = originalHTML;
-    btn.disabled = false;
-    btn.style.opacity = '1';
-  }
-};
-
-window.handleToggleFav = async (id, btn, event) => {
-  event.stopPropagation();
-  const item = allData.find(d => String(d.ID) === String(id));
-  const currentStatus = (item.Favorite === true || item.Favorite === "TRUE");
-
-  try {
-    const res = await callGAS({ action: 'toggleFavorite', id: id, currentStatus: currentStatus });
-    if (res.status === 'success') {
-      item.Favorite = res.result;
-      updateStats();
-      renderGrid();
-      if (currentDetailId === String(id)) openDetail(id);
-    }
-  } catch (err) {
-    alert('오류: ' + err.message);
-  }
-};
-
 function handleSwipe() {
-  const swipeThreshold = 50;
-  const diff = touchEndX - touchStartX;
-  if (Math.abs(diff) > swipeThreshold) {
-    const filteredData = getFilteredData();
-    const currentIndex = filteredData.findIndex(d => String(d.ID) === currentDetailId);
-    if (currentIndex === -1) return;
+  const diff = touchStartX - touchEndX;
+  if (Math.abs(diff) < 100) return;
 
-    let nextIndex = diff < 0 ? currentIndex - 1 : currentIndex + 1;
-    if (nextIndex < 0) nextIndex = filteredData.length - 1;
-    if (nextIndex >= filteredData.length) nextIndex = 0;
+  const filteredData = getFilteredData();
+  const idx = filteredData.findIndex(d => String(d.ID) === currentDetailId);
+  if (idx === -1) return;
 
-    openDetail(filteredData[nextIndex].ID);
+  if (diff > 0 && idx < filteredData.length - 1) {
+    openDetail(filteredData[idx + 1].ID);
+  } else if (diff < 0 && idx > 0) {
+    openDetail(filteredData[idx - 1].ID);
   }
 }
