@@ -82,14 +82,16 @@ async function fetchData() {
   }
 }
 
-// 간단하고 강력한 CSV 파서
+// CSV 데이터를 바탕으로 객체 배열 생성
 function parseCSV(csvText) {
-  const lines = csvText.split(/\r?\n/);
+  const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
   if (lines.length <= 1) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim());
-  return lines.slice(1).filter(line => line.trim() !== "").map((line, index) => {
-    // 따옴표 안의 콤마를 무시하고 분리하는 정규식
+  // 헤더 정규화 (BOM 제거 및 공백 제거)
+  const headers = lines[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim());
+  console.log('Detected CSV Headers:', headers);
+
+  return lines.slice(1).map((line, index) => {
     const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
     let obj = { rowIndex: index + 2 };
     headers.forEach((header, colIndex) => {
@@ -98,7 +100,12 @@ function parseCSV(csvText) {
       }
     });
     return obj;
-  });
+  }).filter(item => item.ID && String(item.ID).trim() !== "");
+}
+
+// 불리언 값 판별 헬퍼 (CSV는 "TRUE" 또는 "FALSE" 문자열로 들어옴)
+function isTrue(value) {
+  return value === true || String(value).toUpperCase() === "TRUE";
 }
 
 function onDataLoaded(data, isCache = false) {
@@ -124,6 +131,16 @@ function onLoadError(error) {
       <div class="empty-description">${error.message}</div>
     `;
 }
+
+// 이미지 에러 핸들러: 고해상도 썸네일이 없으면 표준 해상도로, 그것도 없으면 플레이스홀더로 교체
+window.handleImageError = (img) => {
+  if (img.src.includes('maxresdefault.jpg')) {
+    img.setAttribute('src', img.src.replace('maxresdefault.jpg', 'hqdefault.jpg'));
+    return;
+  }
+  img.setAttribute('src', 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Thumbnail');
+  img.onerror = null; // 무한 루프 방지
+};
 
 function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
@@ -156,8 +173,8 @@ function setupEventListeners() {
 }
 
 function updateStats() {
-  const unreadCount = allData.filter(item => item.Read !== true && item.Read !== "TRUE").length;
-  const favCount = allData.filter(item => item.Favorite === true || item.Favorite === "TRUE").length;
+  const unreadCount = allData.filter(item => !isTrue(item.Read)).length;
+  const favCount = allData.filter(item => isTrue(item.Favorite)).length;
 
   document.getElementById('unread-count').textContent = unreadCount;
   document.getElementById('fav-count').textContent = favCount;
@@ -187,9 +204,9 @@ function loadMore() {
 function getFilteredData() {
   return allData.filter(item => {
     if (currentTab === 'unread') {
-      return item.Read !== true && item.Read !== "TRUE";
+      return !isTrue(item.Read);
     } else {
-      return item.Favorite === true || item.Favorite === "TRUE";
+      return isTrue(item.Favorite);
     }
   });
 }
@@ -225,8 +242,8 @@ function renderGrid(append = false, startIndex = 0) {
   showData.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
-    const imgUrl = item.Image_URL || 'https://via.placeholder.com/640x360/1e1e2a/6b6b7b?text=No+Image';
-    const isFav = (item.Favorite === true || item.Favorite === "TRUE");
+    const imgUrl = item.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
+    const isFav = isTrue(item.Favorite);
     const pubDate = item.PublishDate ? String(item.PublishDate).substring(0, 10) : '-';
 
     let keywordHtml = '';
@@ -238,7 +255,7 @@ function renderGrid(append = false, startIndex = 0) {
     card.onclick = () => openDetail(item.ID);
     card.innerHTML = `
         <div class="card-thumbnail">
-          <img src="${imgUrl}" alt="${item.Title}" loading="lazy">
+          <img src="${imgUrl}" alt="${item.Title}" loading="lazy" onerror="handleImageError(this)">
           <div class="thumbnail-overlay">
             <div class="play-button">
               <span class="material-icons-round">play_arrow</span>
@@ -288,7 +305,11 @@ function openDetail(id) {
     const pubDate = item.PublishDate ? String(item.PublishDate).substring(0, 10) : '-';
     document.getElementById('m-date-text').innerText = pubDate;
     document.getElementById('m-date-text-mobile').innerText = pubDate;
-    document.getElementById('m-img').src = item.Image_URL || '';
+
+    const mImg = document.getElementById('m-img');
+    mImg.onerror = () => window.handleImageError(mImg);
+    mImg.src = item.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
+
     document.getElementById('m-link').href = item.VideoURL;
     document.getElementById('m-summary').innerText = item.Summary || '내용 없음';
     document.getElementById('m-analysis').innerText = item.Analysis || '내용 없음';
@@ -296,8 +317,8 @@ function openDetail(id) {
 
     const mReadBtn = document.getElementById('m-btn-read');
     const mFavBtn = document.getElementById('m-btn-fav');
-    const isFav = (item.Favorite === true || item.Favorite === "TRUE");
-    const isRead = (item.Read === true || item.Read === "TRUE");
+    const isFav = isTrue(item.Favorite);
+    const isRead = isTrue(item.Read);
 
     mReadBtn.onclick = (e) => handleMarkRead(id, mReadBtn, e);
     if (isRead) {
