@@ -20,23 +20,43 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function fetchData() {
-  document.getElementById('loader').style.display = 'block';
-  document.getElementById('card-grid').innerHTML = '';
+  const cachedData = localStorage.getItem('yt_clipping_cache');
+
+  if (cachedData) {
+    // 1. 캐시된 데이터가 있으면 즉시 렌더링
+    onDataLoaded(JSON.parse(cachedData), true);
+  } else {
+    // 2. 캐시가 없으면 로딩 인디케이터 표시
+    document.getElementById('loader').style.display = 'block';
+  }
 
   try {
+    // 3. 서버에서 데이터 가져오기
     const response = await fetch(GAS_API_URL);
     const data = await response.json();
+
+    // 4. 캐시 업데이트 및 최종 화면 갱신
+    localStorage.setItem('yt_clipping_cache', JSON.stringify(data));
     onDataLoaded(data);
   } catch (error) {
-    onLoadError(error);
+    if (!cachedData) {
+      onLoadError(error);
+    }
+    console.error('Background Fetch Error:', error);
   }
 }
 
-function onDataLoaded(data) {
+function onDataLoaded(data, isCache = false) {
   allData = typeof data === 'string' ? JSON.parse(data) : data;
   document.getElementById('loader').style.display = 'none';
   updateStats();
   renderGrid();
+
+  if (isCache) {
+    console.log('초기 데이터를 로컬 캐시에서 불러왔습니다.');
+  } else {
+    console.log('최신 데이터를 서버에서 성공적으로 가져왔습니다.');
+  }
 }
 
 function onLoadError(error) {
