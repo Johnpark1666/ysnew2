@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>유튜브 인사이트 클리핑</title>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="nav-tabs">
+        <button class="nav-tab active" id="tab-unread">
+          <span class="material-icons-round">inbox</span>
+          읽지 않음
+          <span class="badge" id="unread-count">0</span>
+        </button>
+        <button class="nav-tab" id="tab-favorite">
+          <span class="material-icons-round">star</span>
+          즐겨찾기
+          <span class="badge" id="fav-count">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="layout-container" class="layout-container">
+    <!-- List Pane -->
+    <div id="pane-list" class="pane-list">
+      <!-- Loader -->
+      <div id="loader" class="loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">데이터를 불러오는 중입니다...</div>
+      </div>
+      <!-- Card Grid -->
+      <div id="card-grid" class="grid"></div>
+    </div>
+
+    <!-- Detail Pane -->
+    <div id="pane-detail" class="pane-detail">
+      <div class="detail-header-sticky">
+        <div class="modal-header">
+          <div class="modal-header-content" style="flex: 1; min-width: 0;">
+            <h2 id="m-title" class="modal-title">제목</h2>
+            <div id="m-date" class="modal-date">
+              <span class="material-icons-round" style="font-size: 16px;">calendar_today</span>
+              <span id="m-date-text">-</span>
+            </div>
+          </div>
+          <div class="modal-actions-top">
+            <button class="close-btn" id="close-detail">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="mobile-title-section">
+          <h2 id="m-title-mobile" class="mobile-title">제목</h2>
+          <div class="mobile-date">
+            <span class="material-icons-round" style="font-size: 16px;">calendar_today</span>
+            <span id="m-date-text-mobile">-</span>
+          </div>
+        </div>
+        <div class="modal-video-section">
+          <img id="m-img" class="modal-thumbnail" src="" alt="Video thumbnail">
+          <div class="modal-actions-video">
+            <a id="m-link" href="#" target="_blank" class="btn-youtube">
+              <span class="material-icons-round">play_arrow</span>
+              YouTube에서 보기
+            </a>
+            <button id="m-btn-read" class="btn-mark-read" style="padding: 8px 12px; height: 44px; min-width: 100px;">
+              <span class="material-icons-round">check_circle</span>
+              읽음
+            </button>
+            <button id="m-btn-fav" class="btn-favorite" style="width: 44px; height: 44px;">
+              <span class="material-icons-round">star_border</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="section-header">
+            <div class="section-icon summary">
+              <span class="material-icons-round">summarize</span>
+            </div>
+            <span class="section-title">요약 (Summary)</span>
+          </div>
+          <div id="m-summary" class="section-content">내용 없음</div>
+        </div>
+
+        <div class="content-section">
+          <div class="section-header">
+            <div class="section-icon analysis">
+              <span class="material-icons-round">analytics</span>
+            </div>
+            <span class="section-title">분석 (Analysis)</span>
+          </div>
+          <div id="m-analysis" class="section-content">내용 없음</div>
+        </div>
+
+        <div class="content-section">
+          <div class="section-header">
+            <div class="section-icon insights">
+              <span class="material-icons-round">lightbulb</span>
+            </div>
+            <span class="section-title">인사이트 (Insights)</span>
+          </div>
+          <div id="m-insights" class="section-content">내용 없음</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
