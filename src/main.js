@@ -68,12 +68,17 @@ async function fetchData() {
 
   try {
     // [속도 최적화] 앱스크립트를 거치지 않고 구글 시트에서 직접 CSV를 가져옵니다.
-    const response = await fetch(SHEET_CSV_URL);
+    // 브라우저 캐시 방지를 위해 타임스탬프를 추가합니다.
+    const response = await fetch(`${SHEET_CSV_URL}&t=${Date.now()}`);
     const csvText = await response.text();
     const data = parseCSV(csvText);
 
-    await setCache('yt_clipping_cache', data);
-    onDataLoaded(data);
+    if (data.length > 0) {
+      await setCache('yt_clipping_cache', data);
+      onDataLoaded(data);
+    } else {
+      throw new Error("가져온 데이터가 비어있습니다. 시트 설정을 확인해주세요.");
+    }
   } catch (error) {
     if (!cachedData) {
       onLoadError(error);
@@ -87,8 +92,11 @@ function parseCSV(csvText) {
   const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
   if (lines.length <= 1) return [];
 
-  // 헤더 정규화 (BOM 제거 및 공백 제거)
-  const headers = lines[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim());
+  // 헤더 정규화 (BOM 제거, 따옴표 제거, 공백 제거)
+  const headers = lines[0].replace(/^\uFEFF/, '')
+    .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+    .map(h => h.replace(/^"|"$/g, '').trim());
+
   console.log('Detected CSV Headers:', headers);
 
   return lines.slice(1).map((line, index) => {
@@ -100,7 +108,11 @@ function parseCSV(csvText) {
       }
     });
     return obj;
-  }).filter(item => item.ID && String(item.ID).trim() !== "");
+  }).filter(item => {
+    // ID 필드명이 대소문자를 가릴 수 있으므로 유연하게 체크합니다.
+    const id = item.ID || item.id || item.Id || item['아이디'];
+    return id && String(id).trim() !== "";
+  });
 }
 
 // 불리언 값 판별 헬퍼 (CSV는 "TRUE" 또는 "FALSE" 문자열로 들어옴)
@@ -146,6 +158,16 @@ function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
   document.getElementById('close-detail').onclick = () => closeDetail();
+
+  // 새로고침 버튼: 캐시 비우고 다시 가져오기
+  document.getElementById('btn-refresh').onclick = async () => {
+    const btn = document.getElementById('btn-refresh');
+    btn.style.animation = 'spin 1s linear infinite';
+    localStorage.removeItem('yt_clipping_cache'); // 혹시 남은 구버전 캐시 삭제
+    await setCache('yt_clipping_cache', null);   // DB 캐시 삭제
+    await fetchData();
+    btn.style.animation = 'none';
+  };
 
   // Infinite Scroll: 스크롤이 끝에 닿으면 더 불러오기
   const listPane = document.getElementById('pane-list');
