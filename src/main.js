@@ -9,6 +9,10 @@ let currentDetailId = null;
 let touchStartX = 0;
 let touchEndX = 0;
 
+// [렌더링 최적화] 한 번에 보이는 카드 개수를 제어합니다.
+let currentPageSize = 20;
+let currentVisibleCount = 20;
+
 // [DB 설정] 데이터가 많을 경우를 대비해 localStorage 대신 IndexedDB를 사용합니다.
 const DB_NAME = 'YT_Insight_DB';
 const STORE_NAME = 'cache';
@@ -109,6 +113,14 @@ function setupEventListeners() {
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
   document.getElementById('close-detail').onclick = () => closeDetail();
 
+  // Infinite Scroll: 스크롤이 끝에 닿으면 더 불러오기
+  const listPane = document.getElementById('pane-list');
+  listPane.onscroll = () => {
+    if (listPane.scrollTop + listPane.clientHeight >= listPane.scrollHeight - 500) {
+      loadMore();
+    }
+  };
+
   // Swipe Detection
   const detailPane = document.getElementById('pane-detail');
   detailPane.addEventListener('touchstart', e => {
@@ -139,14 +151,20 @@ function switchTab(tabName) {
   currentTab = tabName;
 
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-  if (tabName === 'unread') {
-    document.getElementById('tab-unread').classList.add('active');
-  } else {
-    document.getElementById('tab-favorite').classList.add('active');
-  }
+  document.getElementById(`tab-${tabName}`).classList.add('active');
 
+  currentVisibleCount = currentPageSize; // 초기화
   closeDetail();
   renderGrid();
+}
+
+function loadMore() {
+  const filteredData = getFilteredData();
+  if (currentVisibleCount >= filteredData.length) return;
+
+  const start = currentVisibleCount;
+  currentVisibleCount += currentPageSize;
+  renderGrid(true, start); // append 모드로 렌더링
 }
 
 function getFilteredData() {
@@ -159,12 +177,17 @@ function getFilteredData() {
   });
 }
 
-function renderGrid() {
+function renderGrid(append = false, startIndex = 0) {
   const grid = document.getElementById('card-grid');
-  grid.innerHTML = "";
-  const filteredData = getFilteredData();
+  if (!append) {
+    grid.innerHTML = "";
+    startIndex = 0;
+  }
 
-  if (filteredData.length === 0) {
+  const filteredData = getFilteredData();
+  const showData = filteredData.slice(startIndex, currentVisibleCount);
+
+  if (filteredData.length === 0 && !append) {
     const emptyIcon = currentTab === 'unread' ? 'inbox' : 'star_border';
     const emptyTitle = currentTab === 'unread' ? '모든 영상을 확인했습니다' : '즐겨찾기가 없습니다';
     const emptyDesc = currentTab === 'unread' ? '새로운 영상이 추가되면 여기에 표시됩니다.' : '관심 있는 영상에 별표를 추가해보세요.';
@@ -181,7 +204,8 @@ function renderGrid() {
     return;
   }
 
-  filteredData.forEach(item => {
+  const fragment = document.createDocumentFragment();
+  showData.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
     const imgUrl = item.Image_URL || 'https://via.placeholder.com/640x360/1e1e2a/6b6b7b?text=No+Image';
@@ -224,8 +248,9 @@ function renderGrid() {
           </button>
         </div>
       `;
-    grid.appendChild(card);
+    fragment.appendChild(card);
   });
+  grid.appendChild(fragment);
 }
 
 function openDetail(id) {
