@@ -1,7 +1,8 @@
 import './style.css'
 
-// [설정] 복사해둔 Apps Script 웹 앱 URL을 여기에 붙여넣어 주세요
+// [설정] 서비스 URL들
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0tixYjtcjX0YRWK8N2tArYNmx5emY67HkCVlvBnXsehh72bi-bbg/exec';
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1ou-Nz0NNChhH4HZ3lq-MwnbuRacbY7MF8IzCya5Ndcg/export?format=csv';
 
 let allData = [];
 let currentTab = 'unread';
@@ -60,28 +61,44 @@ async function fetchData() {
   const cachedData = await getCache('yt_clipping_cache');
 
   if (cachedData) {
-    // 1. 캐시된 데이터가 있으면 즉시 렌더링
     onDataLoaded(cachedData, true);
   } else {
-    // 2. 캐시가 없으면 로딩 인디케이터 표시
     document.getElementById('loader').style.display = 'block';
   }
 
   try {
-    // 3. 서버에서 데이터 가져오기
-    const response = await fetch(GAS_API_URL);
-    const data = await response.json();
-    const finalData = typeof data === 'string' ? JSON.parse(data) : data;
+    // [속도 최적화] 앱스크립트를 거치지 않고 구글 시트에서 직접 CSV를 가져옵니다.
+    const response = await fetch(SHEET_CSV_URL);
+    const csvText = await response.text();
+    const data = parseCSV(csvText);
 
-    // 4. 캐시 업데이트 및 최종 화면 갱신
-    await setCache('yt_clipping_cache', finalData);
-    onDataLoaded(finalData);
+    await setCache('yt_clipping_cache', data);
+    onDataLoaded(data);
   } catch (error) {
     if (!cachedData) {
       onLoadError(error);
     }
-    console.error('Background Fetch Error:', error);
+    console.error('Background Fetch Error (Direct Sheet):', error);
   }
+}
+
+// 간단하고 강력한 CSV 파서
+function parseCSV(csvText) {
+  const lines = csvText.split(/\r?\n/);
+  if (lines.length <= 1) return [];
+
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).filter(line => line.trim() !== "").map((line, index) => {
+    // 따옴표 안의 콤마를 무시하고 분리하는 정규식
+    const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
+    let obj = { rowIndex: index + 2 };
+    headers.forEach((header, colIndex) => {
+      if (header) {
+        obj[header] = values[colIndex] || "";
+      }
+    });
+    return obj;
+  });
 }
 
 function onDataLoaded(data, isCache = false) {
