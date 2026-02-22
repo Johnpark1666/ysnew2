@@ -6,6 +6,7 @@ const SPREADSHEET_ID = '1ou-Nz0NNChhH4HZ3lq-MwnbuRacbY7MF8IzCya5Ndcg';
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
 
 let allData = [];
+let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
 let currentTab = 'unread';
 let currentDetailId = null;
 let touchStartX = 0;
@@ -43,24 +44,30 @@ async function fetchData() {
     const cols = table.cols.map(c => c.label || "");
 
     // 2. 데이터를 앱용 객체 배열로 변환
-    allData = rows.map((row, index) => {
+    const rawData = rows.map((row, index) => {
       let item = { rowIndex: index + 2 };
       row.c.forEach((cell, i) => {
         const header = cols[i];
         if (header) {
-          // 셀이 비어있으면 null이나 빈 값 처리
           item[header] = cell ? (cell.v ?? "") : "";
-          // 날짜 타입인 경우 가독성 좋게 변환 (Date 객체 형태인 경우 문자열 추출)
           if (typeof item[header] === 'string' && item[header].startsWith('Date(')) {
             item[header] = item[header].replace(/Date\(|\)/g, '').split(',').slice(0, 3).join('-');
           }
         }
       });
       return item;
-    }).filter(d => {
-      // ID 필드명이 대소문자를 가릴 수 있으므로 유연하게 체크합니다.
-      const id = d.ID || d.id || d.Id || d['아이디'];
-      return id && String(id).trim() !== "";
+    });
+
+    // !!BRIEFING_LATEST!! 데이터만 따로 필터링
+    briefingData = rawData.filter(d => {
+      const id = String(d.ID || d.id || d.Id || d['아이디'] || "").trim();
+      return id === "!!BRIEFING_LATEST!!";
+    });
+
+    // 일반 카드용 데이터 (그리드 표시용)
+    allData = rawData.filter(d => {
+      const id = String(d.ID || d.id || d.Id || d['아이디'] || "").trim();
+      return id !== "" && id !== "!!BRIEFING_LATEST!!";
     });
 
     console.log('실시간 연동 성공:', allData.length, '개의 행');
@@ -416,14 +423,22 @@ function handleSwipe() {
 
 let isSpeaking = false;
 function playLatestVoiceSummary() {
-  if (allData.length === 0) {
-    alert('데이터가 없습니다.');
+  if (briefingData.length === 0) {
+    alert('최신 브리핑 데이터가 없습니다.');
     return;
   }
 
-  const latestItem = allData[0];
-  const summaryText = latestItem.Summary || '요약 내용이 없습니다.';
-  const textToSpeak = `최신 영상 요약입니다. 제목: ${latestItem.Title}. 요약 내용: ${summaryText}`;
+  // G열(PublishDate) 기준 최신순 정렬 (YYYY-MM-DD 형식이므로 문자열 비교 가능)
+  const sortedBriefings = [...briefingData].sort((a, b) => {
+    const dateA = a.PublishDate || "";
+    const dateB = b.PublishDate || "";
+    return dateB.localeCompare(dateA);
+  });
+
+  const latestBriefing = sortedBriefings[0];
+  const summaryText = latestBriefing.Summary || '요약 내용이 없습니다.';
+  // 제목 제외하고 요약 본문부터 TTS 시작
+  const textToSpeak = summaryText;
 
   if (isSpeaking) {
     window.speechSynthesis.cancel();
