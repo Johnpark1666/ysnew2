@@ -328,13 +328,40 @@ body {
   .nav-tabs {
     width: 100%;
     gap: 4px;
+    padding: 4px;
   }
 
   .nav-tab {
-    padding: 8px 12px !important;
+    padding: 8px 6px !important;
     min-width: 0 !important;
     flex: 1;
-    font-size: 13px;
+    font-size: 12px;
+    flex-direction: column;
+    gap: 4px !important;
+    white-space: nowrap;
+  }
+
+  .nav-tab .material-icons-round {
+    font-size: 20px;
+  }
+
+  .nav-tab .badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    padding: 1px 4px;
+    font-size: 10px;
+  }
+
+  .tab-text {
+    display: none;
+    /* 기본적으로 탭 텍스트 숨김 (아이콘 위주) */
+  }
+
+  /* 특정 탭 텍스트나 레이블이 필요하면 조절 */
+  .nav-tab span:not(.material-icons-round):not(.badge) {
+    font-size: 10px;
+    transform: scale(0.9);
   }
 
   .mobile-title-section {
@@ -362,14 +389,31 @@ body {
     border-bottom: none !important;
   }
 
-  /* 모바일에서 음성 요약 버튼 텍스트 숨기기 또는 줄이기 */
-  #btn-play-latest .tab-text {
-    display: none;
+  /* 모바일에서 음성 요약 버튼 그룹 최적화 */
+  .tts-group {
+    margin-right: 4px;
+    background: transparent;
   }
 
   #btn-play-latest {
     padding: 8px !important;
     min-width: 44px !important;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+  }
+
+  #btn-tts-settings {
+    background: var(--bg-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+
+  .tts-settings-popover {
+    position: fixed;
+    top: 70px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
   }
 }
 
