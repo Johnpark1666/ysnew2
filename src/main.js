@@ -424,22 +424,30 @@ function handleSwipe() {
 let isSpeaking = false;
 let selectedVoice = null;
 
-// 최상의 한국어 음성 찾기 (Neural 또는 Google 음성 우선)
+// 최상의 한국어 음성 찾기 (Microsoft SunHi Neural 우선)
 function findBestKoreanVoice() {
   const voices = window.speechSynthesis.getVoices();
-  const koreanVoices = voices.filter(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
 
-  if (koreanVoices.length === 0) return null;
+  // 1순위: 마이크로소프트 선희 (가장 아나운서 같음)
+  const sunHi = voices.find(v => v.name.includes('SunHi') || v.name.includes('선희'));
+  if (sunHi) return sunHi;
 
-  // 우선순위: 1. Neural(신경망), 2. Google 온라인, 3. 일반 한국어
-  return koreanVoices.find(v => v.name.includes('Neural')) ||
-    koreanVoices.find(v => v.name.includes('Google')) ||
-    koreanVoices[0];
+  // 2순위: 기타 Neural(신경망) 음성
+  const neural = voices.find(v => (v.lang.startsWith('ko')) && v.name.includes('Neural'));
+  if (neural) return neural;
+
+  // 3순위: Google 한국어
+  const google = voices.find(v => v.name.includes('Google') && v.lang.startsWith('ko'));
+  if (google) return google;
+
+  // 일반 한국어
+  return voices.find(v => v.lang.startsWith('ko'));
 }
 
 // 음성 목록 로드 대기
 window.speechSynthesis.onvoiceschanged = () => {
   selectedVoice = findBestKoreanVoice();
+  if (selectedVoice) console.log('추천 음성 설정됨:', selectedVoice.name);
 };
 
 function playLatestVoiceSummary() {
