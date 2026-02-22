@@ -99,6 +99,12 @@ function setupEventListeners() {
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
   document.getElementById('close-detail').onclick = () => closeDetail();
 
+  // 최신 음성 요약 듣기 버튼
+  const playLatestBtn = document.getElementById('btn-play-latest');
+  if (playLatestBtn) {
+    playLatestBtn.onclick = () => playLatestVoiceSummary();
+  }
+
   // 새로고침 버튼 핸들러
   const refreshBtn = document.getElementById('btn-refresh');
   if (refreshBtn) {
@@ -407,3 +413,61 @@ function handleSwipe() {
     openDetail(filteredData[idx - 1].ID);
   }
 }
+
+let isSpeaking = false;
+function playLatestVoiceSummary() {
+  if (allData.length === 0) {
+    alert('데이터가 없습니다.');
+    return;
+  }
+
+  const latestItem = allData[0];
+  const summaryText = latestItem.Summary || '요약 내용이 없습니다.';
+  const textToSpeak = `최신 영상 요약입니다. 제목: ${latestItem.Title}. 요약 내용: ${summaryText}`;
+
+  if (isSpeaking) {
+    window.speechSynthesis.cancel();
+    isSpeaking = false;
+    const btn = document.getElementById('btn-play-latest');
+    if (btn) {
+      btn.classList.remove('speaking');
+      btn.innerHTML = '<span class="material-icons-round">volume_up</span> <span class="tab-text">최신 음성 요약 듣기</span>';
+    }
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(textToSpeak);
+  utterance.lang = 'ko-KR';
+  utterance.rate = 1.1;
+
+  utterance.onstart = () => {
+    isSpeaking = true;
+    const btn = document.getElementById('btn-play-latest');
+    if (btn) {
+      btn.classList.add('speaking');
+      btn.innerHTML = '<span class="material-icons-round">stop</span> <span class="tab-text">요약 듣기 중단</span>';
+    }
+  };
+
+  utterance.onend = () => {
+    isSpeaking = false;
+    const btn = document.getElementById('btn-play-latest');
+    if (btn) {
+      btn.classList.remove('speaking');
+      btn.innerHTML = '<span class="material-icons-round">volume_up</span> <span class="tab-text">최신 음성 요약 듣기</span>';
+    }
+  };
+
+  utterance.onerror = () => {
+    isSpeaking = false;
+    const btn = document.getElementById('btn-play-latest');
+    if (btn) {
+      btn.classList.remove('speaking');
+      btn.innerHTML = '<span class="material-icons-round">volume_up</span> <span class="tab-text">최신 음성 요약 듣기</span>';
+    }
+  };
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
