@@ -422,13 +422,33 @@ function handleSwipe() {
 }
 
 let isSpeaking = false;
+let selectedVoice = null;
+
+// 최상의 한국어 음성 찾기 (Neural 또는 Google 음성 우선)
+function findBestKoreanVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  const koreanVoices = voices.filter(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
+
+  if (koreanVoices.length === 0) return null;
+
+  // 우선순위: 1. Neural(신경망), 2. Google 온라인, 3. 일반 한국어
+  return koreanVoices.find(v => v.name.includes('Neural')) ||
+    koreanVoices.find(v => v.name.includes('Google')) ||
+    koreanVoices[0];
+}
+
+// 음성 목록 로드 대기
+window.speechSynthesis.onvoiceschanged = () => {
+  selectedVoice = findBestKoreanVoice();
+};
+
 function playLatestVoiceSummary() {
   if (briefingData.length === 0) {
     alert('최신 브리핑 데이터가 없습니다.');
     return;
   }
 
-  // G열(PublishDate) 기준 최신순 정렬 (YYYY-MM-DD 형식이므로 문자열 비교 가능)
+  // G열(PublishDate) 기준 최신순 정렬
   const sortedBriefings = [...briefingData].sort((a, b) => {
     const dateA = a.PublishDate || "";
     const dateB = b.PublishDate || "";
@@ -437,7 +457,6 @@ function playLatestVoiceSummary() {
 
   const latestBriefing = sortedBriefings[0];
   const summaryText = latestBriefing.Summary || '요약 내용이 없습니다.';
-  // 제목 제외하고 요약 본문부터 TTS 시작
   const textToSpeak = summaryText;
 
   if (isSpeaking) {
@@ -453,7 +472,20 @@ function playLatestVoiceSummary() {
 
   const utterance = new SpeechSynthesisUtterance(textToSpeak);
   utterance.lang = 'ko-KR';
-  utterance.rate = 1.1;
+
+  // 현재 시점에 최상의 음성 다시 한번 확인
+  if (!selectedVoice) {
+    selectedVoice = findBestKoreanVoice();
+  }
+
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+    console.log('Selected Voice:', selectedVoice.name);
+  }
+
+  // 약간의 속도와 조절로 더 자연스럽게 (1.0~1.1 권장)
+  utterance.rate = 1.05;
+  utterance.pitch = 1.0;
 
   utterance.onstart = () => {
     isSpeaking = true;
@@ -473,7 +505,8 @@ function playLatestVoiceSummary() {
     }
   };
 
-  utterance.onerror = () => {
+  utterance.onerror = (e) => {
+    console.error('TTS Error:', e);
     isSpeaking = false;
     const btn = document.getElementById('btn-play-latest');
     if (btn) {
