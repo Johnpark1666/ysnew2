@@ -112,6 +112,48 @@ function setupEventListeners() {
     playLatestBtn.onclick = () => playLatestVoiceSummary();
   }
 
+  // TTS 설정 팝업 제어
+  const ttsSettingsBtn = document.getElementById('btn-tts-settings');
+  const ttsPopover = document.getElementById('tts-popover');
+  if (ttsSettingsBtn && ttsPopover) {
+    ttsSettingsBtn.onclick = (e) => {
+      e.stopPropagation();
+      const isVisible = ttsPopover.style.display === 'block';
+      ttsPopover.style.display = isVisible ? 'none' : 'block';
+    };
+
+    document.addEventListener('click', (e) => {
+      if (!ttsPopover.contains(e.target) && e.target !== ttsSettingsBtn) {
+        ttsPopover.style.display = 'none';
+      }
+    });
+  }
+
+  // 속도 조절 이벤트
+  const speedRange = document.getElementById('tts-speed-range');
+  const speedValue = document.getElementById('speed-value');
+  if (speedRange && speedValue) {
+    speedRange.oninput = () => {
+      const val = speedRange.value;
+      speedValue.innerText = `${val}x`;
+      localStorage.setItem('tts-speed', val);
+    };
+    // 초기값 로드
+    const savedSpeed = localStorage.getItem('tts-speed');
+    if (savedSpeed) {
+      speedRange.value = savedSpeed;
+      speedValue.innerText = `${savedSpeed}x`;
+    }
+  }
+
+  // 목소리 선택 이벤트
+  const voiceSelect = document.getElementById('tts-voice-select');
+  if (voiceSelect) {
+    voiceSelect.onchange = () => {
+      localStorage.setItem('tts-voice-name', voiceSelect.value);
+    };
+  }
+
   // 새로고침 버튼 핸들러
   const refreshBtn = document.getElementById('btn-refresh');
   if (refreshBtn) {
@@ -424,9 +466,28 @@ function handleSwipe() {
 let isSpeaking = false;
 let selectedVoice = null;
 
-// 최상의 한국어 음성 찾기 (Microsoft SunHi Neural 우선)
+// 최상의 한국어 음성 찾기 및 목록 관리
 function findBestKoreanVoice() {
   const voices = window.speechSynthesis.getVoices();
+  const koreanVoices = voices.filter(v => v.lang.startsWith('ko'));
+
+  // 드롭다운 목록 업데이트
+  const voiceSelect = document.getElementById('tts-voice-select');
+  if (voiceSelect) {
+    const savedVoiceName = localStorage.getItem('tts-voice-name');
+    voiceSelect.innerHTML = koreanVoices.map(v =>
+      `<option value="${v.name}" ${v.name === savedVoiceName ? 'selected' : ''}>${v.name}</option>`
+    ).join('');
+  }
+
+  if (koreanVoices.length === 0) return null;
+
+  // 저장된 설정이 있으면 해당 음성 반환
+  const savedName = localStorage.getItem('tts-voice-name');
+  if (savedName) {
+    const savedVoice = koreanVoices.find(v => v.name === savedName);
+    if (savedVoice) return savedVoice;
+  }
 
   // 1순위: 마이크로소프트 선희 (가장 아나운서 같음)
   const sunHi = voices.find(v => v.name.includes('SunHi') || v.name.includes('선희'));
@@ -447,7 +508,7 @@ function findBestKoreanVoice() {
 // 음성 목록 로드 대기
 window.speechSynthesis.onvoiceschanged = () => {
   selectedVoice = findBestKoreanVoice();
-  if (selectedVoice) console.log('추천 음성 설정됨:', selectedVoice.name);
+  if (selectedVoice) console.log('현재 설정된 음성:', selectedVoice.name);
 };
 
 function playLatestVoiceSummary() {
@@ -488,11 +549,19 @@ function playLatestVoiceSummary() {
 
   if (selectedVoice) {
     utterance.voice = selectedVoice;
-    console.log('Selected Voice:', selectedVoice.name);
+  } else {
+    // 폰트 목록에서 선택된 값이 있으면 해당 voice 명시적 지정
+    const voiceSelect = document.getElementById('tts-voice-select');
+    if (voiceSelect && voiceSelect.value) {
+      const voices = window.speechSynthesis.getVoices();
+      const userVoice = voices.find(v => v.name === voiceSelect.value);
+      if (userVoice) utterance.voice = userVoice;
+    }
   }
 
-  // 약간의 속도와 조절로 더 자연스럽게 (1.0~1.1 권장)
-  utterance.rate = 1.05;
+  // 속도 설정 적용
+  const speedRange = document.getElementById('tts-speed-range');
+  utterance.rate = speedRange ? parseFloat(speedRange.value) : 1.05;
   utterance.pitch = 1.0;
 
   utterance.onstart = () => {
