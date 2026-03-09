@@ -238,8 +238,8 @@ function updateStats() {
   const unreadCount = allData.filter(item => !isTrue(item.Read)).length;
   const favCount = allData.filter(item => isTrue(item.Favorite)).length;
 
-  // 카테고리 목록 및 개수 계산
-  const categories = [...new Set(allData.map(item => String(item.Category || item['카테고리'] || "미분류").trim()))].filter(c => c !== "");
+  // 카테고리 목록 및 개수 계산 (읽지 않은 영상이 있는 카테고리만)
+  const categories = [...new Set(allData.filter(item => !isTrue(item.Read)).map(item => String(item.Category || item['카테고리'] || "미분류").trim()))].filter(c => c !== "");
   
   document.getElementById('unread-count').textContent = unreadCount;
   document.getElementById('fav-count').textContent = favCount;
@@ -277,11 +277,11 @@ function getFilteredData() {
     return allData.filter(item => isTrue(item.Favorite));
   } else if (currentTab === 'category') {
     if (currentCategory) {
-      return allData.filter(item => String(item.Category || item['카테고리'] || "미분류").trim() === currentCategory);
+      return allData.filter(item => !isTrue(item.Read) && String(item.Category || item['카테고리'] || "미분류").trim() === currentCategory);
     } else {
       // 카테고리 목록 모드일 때는 데이터 자체가 아니라 카테고리 문자열 배열을 기준으로 처리하나, 
-      // renderGrid에서 직접 처리할 것이므로 여기서는 빈 배열 혹은 전체 데이터를 반환
-      return allData; 
+      // renderGrid에서 직접 처리할 것이므로 여기서는 읽지 않은 데이터만 반환하도록 함
+      return allData.filter(item => !isTrue(item.Read)); 
     }
   }
   return [];
@@ -392,9 +392,9 @@ function renderCategoryList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
 
-  // 카테고리별 개수 및 썸네일 수집
+  // 카테고리별 개수 및 썸네일 수집 (읽지 않은 영상만 대상)
   const categoryMap = {};
-  allData.forEach(item => {
+  allData.filter(item => !isTrue(item.Read)).forEach(item => {
     const cat = String(item.Category || item['카테고리'] || "미분류").trim();
     if (cat === "") return;
     
