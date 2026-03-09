@@ -34,22 +34,33 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function initYouTubeAuth() {
-  if (typeof google === 'undefined') return;
-  ytTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: YT_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/youtube.force-ssl',
-    callback: async (response) => {
-      if (response.access_token) {
-        ytAccessToken = response.access_token;
-        if (ytPendingVideoId) {
-          await executeAddToYouTube(ytPendingVideoId, ytPendingBtn, ytPendingRowId);
-          ytPendingVideoId = null;
-          ytPendingBtn = null;
-          ytPendingRowId = null;
+  // google 객체가 없으면 500ms 후 재시도 (라이브 환경 로드 타이밍 대응)
+  if (typeof google === 'undefined' || !google.accounts) {
+    setTimeout(initYouTubeAuth, 500);
+    return;
+  }
+
+  try {
+    ytTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: YT_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/youtube.force-ssl',
+      callback: async (response) => {
+        if (response.access_token) {
+          ytAccessToken = response.access_token;
+          console.log('YouTube Access Token 획득 성공');
+          if (ytPendingVideoId) {
+            await executeAddToYouTube(ytPendingVideoId, ytPendingBtn, ytPendingRowId);
+            ytPendingVideoId = null;
+            ytPendingBtn = null;
+            ytPendingRowId = null;
+          }
         }
-      }
-    },
-  });
+      },
+    });
+    console.log('YouTube Auth Client Initialized');
+  } catch (e) {
+    console.error('YouTube Auth Init Error:', e);
+  }
 }
 
 async function fetchData() {
@@ -605,6 +616,15 @@ async function callGAS(params) {
 
 window.handleWatchLater = async (id, btn, event) => {
   if (event) event.stopPropagation();
+  
+  if (!ytTokenClient) {
+    initYouTubeAuth(); // 미초기화 시 재시도
+    if (!ytTokenClient) {
+      alert('Google 인증 모듈이 준비 중입니다. 잠시 후 다시 클릭해주세요.');
+      return;
+    }
+  }
+
   const item = allData.find(d => String(d.ID) === String(id));
   if (!item) return;
 
