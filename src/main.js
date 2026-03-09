@@ -5,9 +5,19 @@ const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0t
 const SPREADSHEET_ID = '1ou-Nz0NNChhH4HZ3lq-MwnbuRacbY7MF8IzCya5Ndcg';
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
 
+// [YouTube API 설정]
+const YT_CLIENT_ID = '53823290193-nu4v4dg1lub94d9g4kc0ffaji53ap033.apps.googleusercontent.com'; // 발급받은 클라이언트 ID를 여기에 넣으세요
+const YT_PLAYLIST_ID = 'PLQ6Ij6whruQwDSnFFMEto9zWkNm4hJWDL';
+let ytAccessToken = '';
+let ytTokenClient;
+let ytPendingVideoId = null;
+let ytPendingBtn = null;
+let ytPendingRowId = null;
+
 let allData = [];
 let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
 let currentTab = 'unread';
+let currentCategory = null; // 현재 선택된 카테고리 (null이면 전체 카테고리 목록 표시)
 let currentDetailId = null;
 let touchStartX = 0;
 let touchEndX = 0;
@@ -20,7 +30,27 @@ let currentVisibleCount = 20;
 window.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupEventListeners();
+  initYouTubeAuth();
 });
+
+function initYouTubeAuth() {
+  if (typeof google === 'undefined') return;
+  ytTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: YT_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/youtube.force-ssl',
+    callback: async (response) => {
+      if (response.access_token) {
+        ytAccessToken = response.access_token;
+        if (ytPendingVideoId) {
+          await executeAddToYouTube(ytPendingVideoId, ytPendingBtn, ytPendingRowId);
+          ytPendingVideoId = null;
+          ytPendingBtn = null;
+          ytPendingRowId = null;
+        }
+      }
+    },
+  });
+}
 
 async function fetchData() {
   const loader = document.getElementById('loader');
@@ -51,7 +81,11 @@ async function fetchData() {
         if (header) {
           item[header] = cell ? (cell.v ?? "") : "";
           if (typeof item[header] === 'string' && item[header].startsWith('Date(')) {
-            item[header] = item[header].replace(/Date\(|\)/g, '').split(',').slice(0, 3).join('-');
+            const parts = item[header].replace(/Date\(|\)/g, '').split(',');
+            const y = parts[0];
+            const m = String(parseInt(parts[1]) + 1).padStart(2, '0');
+            const d = String(parseInt(parts[2])).padStart(2, '0');
+            item[header] = `${y}-${m}-${d}`;
           }
         }
       });
@@ -104,6 +138,7 @@ function isTrue(value) {
 function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
+  document.getElementById('tab-category').onclick = () => switchTab('category');
   document.getElementById('close-detail').onclick = () => closeDetail();
 
   // 최신 음성 요약 듣기 버튼
@@ -192,13 +227,20 @@ function updateStats() {
   const unreadCount = allData.filter(item => !isTrue(item.Read)).length;
   const favCount = allData.filter(item => isTrue(item.Favorite)).length;
 
+  // 카테고리 목록 및 개수 계산
+  const categories = [...new Set(allData.map(item => String(item.Category || item['카테고리'] || "미분류").trim()))].filter(c => c !== "");
+  
   document.getElementById('unread-count').textContent = unreadCount;
   document.getElementById('fav-count').textContent = favCount;
+  document.getElementById('category-count').textContent = categories.length;
 }
 
 function switchTab(tabName) {
-  if (currentTab === tabName) return;
+  if (currentTab === tabName && tabName !== 'category') return;
+  if (currentTab === tabName && tabName === 'category' && currentCategory === null) return;
+
   currentTab = tabName;
+  currentCategory = null; // 탭 전환 시 카테고리 선택 초기화
 
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${tabName}`).classList.add('active');
@@ -218,39 +260,71 @@ function loadMore() {
 }
 
 function getFilteredData() {
-  return allData.filter(item => {
-    if (currentTab === 'unread') {
-      return !isTrue(item.Read);
+  if (currentTab === 'unread') {
+    return allData.filter(item => !isTrue(item.Read));
+  } else if (currentTab === 'favorite') {
+    return allData.filter(item => isTrue(item.Favorite));
+  } else if (currentTab === 'category') {
+    if (currentCategory) {
+      return allData.filter(item => String(item.Category || item['카테고리'] || "미분류").trim() === currentCategory);
     } else {
-      return isTrue(item.Favorite);
+      // 카테고리 목록 모드일 때는 데이터 자체가 아니라 카테고리 문자열 배열을 기준으로 처리하나, 
+      // renderGrid에서 직접 처리할 것이므로 여기서는 빈 배열 혹은 전체 데이터를 반환
+      return allData; 
     }
-  });
+  }
+  return [];
 }
 
 function renderGrid(append = false, startIndex = 0) {
   const grid = document.getElementById('card-grid');
+  
+  if (currentTab === 'category' && !currentCategory) {
+    renderCategoryList();
+    return;
+  }
+
   if (!append) {
     grid.innerHTML = "";
     startIndex = 0;
   }
 
   const filteredData = getFilteredData();
+  
+  // 카테고리 내비게이션 바 (뒤로가기 버튼)
+  if (currentTab === 'category' && currentCategory && !append) {
+    const backBtn = document.createElement('div');
+    backBtn.className = 'category-header';
+    backBtn.innerHTML = `
+      <button class="btn-back" onclick="currentCategory=null; renderGrid();">
+        <span class="material-icons-round">arrow_back</span>
+        목록으로
+      </button>
+      <div class="category-title-display">
+        <span class="material-icons-round">folder_open</span>
+        ${currentCategory}
+      </div>
+    `;
+    grid.appendChild(backBtn);
+  }
+
   const showData = filteredData.slice(startIndex, currentVisibleCount);
 
   if (filteredData.length === 0 && !append) {
-    const emptyIcon = currentTab === 'unread' ? 'inbox' : 'star_border';
-    const emptyTitle = currentTab === 'unread' ? '모든 영상을 확인했습니다' : '즐겨찾기가 없습니다';
-    const emptyDesc = currentTab === 'unread' ? '새로운 영상이 추가되면 여기에 표시됩니다.' : '관심 있는 영상에 별표를 추가해보세요.';
+    const emptyIcon = currentTab === 'unread' ? 'inbox' : (currentTab === 'favorite' ? 'star_border' : 'folder_off');
+    const emptyTitle = currentTab === 'unread' ? '모든 영상을 확인했습니다' : (currentTab === 'favorite' ? '즐겨찾기가 없습니다' : '이 카테고리에 영상이 없습니다');
+    const emptyDesc = currentTab === 'unread' ? '새로운 영상이 추가되면 여기에 표시됩니다.' : (currentTab === 'favorite' ? '관심 있는 영상에 별표를 추가해보세요.' : '');
 
-    grid.innerHTML = `
-        <div class="empty-state">
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.innerHTML = `
           <div class="empty-icon">
             <span class="material-icons-round">${emptyIcon}</span>
           </div>
           <div class="empty-title">${emptyTitle}</div>
           <div class="empty-description">${emptyDesc}</div>
-        </div>
       `;
+    grid.appendChild(emptyState);
     return;
   }
 
@@ -303,6 +377,75 @@ function renderGrid(append = false, startIndex = 0) {
   grid.appendChild(fragment);
 }
 
+function renderCategoryList() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = "";
+
+  // 카테고리별 개수 및 썸네일 수집
+  const categoryMap = {};
+  allData.forEach(item => {
+    const cat = String(item.Category || item['카테고리'] || "미분류").trim();
+    if (cat === "") return;
+    
+    if (!categoryMap[cat]) {
+      categoryMap[cat] = { count: 0, thumbs: [] };
+    }
+    categoryMap[cat].count++;
+    if (categoryMap[cat].thumbs.length < 4 && item.Image_URL) {
+      categoryMap[cat].thumbs.push(item.Image_URL);
+    }
+  });
+
+  const categories = Object.keys(categoryMap).sort();
+
+  if (categories.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon"><span class="material-icons-round">folder_off</span></div>
+        <div class="empty-title">카테고리가 없습니다</div>
+        <div class="empty-description">영상에 카테고리가 지정되면 여기에 표시됩니다.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  categories.forEach(cat => {
+    const data = categoryMap[cat];
+    const card = document.createElement('div');
+    card.className = 'category-card';
+    card.onclick = () => {
+      currentCategory = cat;
+      renderGrid();
+    };
+
+    // 썸네일 그리드 생성 (최대 4개)
+    let thumbHtml = '';
+    if (data.thumbs.length > 0) {
+      thumbHtml = data.thumbs.map(t => `<img src="${t}" alt="thumb" loading="lazy">`).join('');
+    } else {
+      thumbHtml = '<div class="no-thumb-icon"><span class="material-icons-round">play_circle_outline</span></div>';
+    }
+
+    card.innerHTML = `
+      <div class="category-preview-grid">
+        ${thumbHtml}
+      </div>
+      <div class="category-card-body">
+        <div class="category-info">
+          <div class="category-name">${cat}</div>
+          <div class="category-count">영상 ${data.count}개</div>
+        </div>
+        <div class="category-arrow">
+          <span class="material-icons-round">chevron_right</span>
+        </div>
+      </div>
+    `;
+    fragment.appendChild(card);
+  });
+  grid.appendChild(fragment);
+}
+
 // 이미지 에러 핸들러
 window.handleImageError = (img) => {
   if (img.src.includes('maxresdefault.jpg')) {
@@ -344,8 +487,10 @@ function openDetail(id) {
 
     const mReadBtn = document.getElementById('m-btn-read');
     const mFavBtn = document.getElementById('m-btn-fav');
+    const mWlBtn = document.getElementById('m-btn-wl');
     const isFav = isTrue(item.Favorite);
     const isRead = isTrue(item.Read);
+    const isWl = isTrue(item.WatchLater || item['보관함']);
 
     mReadBtn.onclick = (e) => handleMarkRead(id, mReadBtn, e);
     if (isRead) {
@@ -359,6 +504,16 @@ function openDetail(id) {
     mFavBtn.onclick = (e) => handleToggleFav(id, mFavBtn, e);
     mFavBtn.className = `btn-favorite ${isFav ? 'active' : ''}`;
     mFavBtn.innerHTML = `<span class="material-icons-round">${isFav ? 'star' : 'star_border'}</span>`;
+
+    // Watch Later 버튼 핸들러
+    mWlBtn.onclick = (e) => window.handleWatchLater(id, mWlBtn, e);
+    if (isWl) {
+      mWlBtn.classList.add('success');
+      mWlBtn.innerHTML = '<span class="material-icons-round">playlist_add_check</span> 추가됨';
+    } else {
+      mWlBtn.classList.remove('success');
+      mWlBtn.innerHTML = '<span class="material-icons-round">playlist_add</span> 보관함 추가';
+    }
 
     detailBody.style.transition = 'all 0.4s ease';
     detailBody.style.opacity = '1';
@@ -446,6 +601,83 @@ async function callGAS(params) {
     body: JSON.stringify(params)
   });
   return await response.json();
+}
+
+window.handleWatchLater = async (id, btn, event) => {
+  if (event) event.stopPropagation();
+  const item = allData.find(d => String(d.ID) === String(id));
+  if (!item) return;
+
+  const vId = extractVideoId(item.VideoURL || item.link || item.Video_URL);
+  if (!vId) {
+    alert('비디오 ID를 추출할 수 없습니다.');
+    return;
+  }
+
+  if (!ytAccessToken) {
+    ytPendingVideoId = vId;
+    ytPendingBtn = btn;
+    ytPendingRowId = id;
+    ytTokenClient.requestAccessToken();
+    return;
+  }
+
+  await executeAddToYouTube(vId, btn, id);
+};
+
+async function executeAddToYouTube(vId, btn, rowId) {
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-icons-round spin">sync</span> 추가 중...';
+  }
+
+  try {
+    const res = await fetch('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ytAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        snippet: {
+          playlistId: YT_PLAYLIST_ID,
+          resourceId: { kind: 'youtube#video', videoId: vId }
+        }
+      })
+    });
+
+    if (res.ok) {
+      if (btn) {
+        btn.classList.add('success');
+        btn.innerHTML = '<span class="material-icons-round">playlist_add_check</span> 추가 완료';
+      }
+      // 시트 업데이트 (GAS)
+      await callGAS({ action: 'markAsWatchLater', id: rowId });
+      const item = allData.find(d => String(d.ID) === String(rowId));
+      if (item) item.WatchLater = true;
+    } else {
+      const errorData = await res.json();
+      console.error('YT API Error:', errorData);
+      if (res.status === 401) {
+        ytAccessToken = '';
+        alert('인증이 만료되었습니다. 다시 시도해주세요.');
+      } else {
+        alert('추가 실패: ' + (errorData.error.message || '알 수 없는 오류'));
+      }
+    }
+  } catch (e) {
+    console.error('YT API Fetch Error:', e);
+    alert('추가 중 오류가 발생했습니다.');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function extractVideoId(url) {
+  if (!url) return null;
+  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[7].length == 11) ? match[7] : null;
 }
 
 function handleSwipe() {

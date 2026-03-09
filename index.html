@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <title>유튜브 인사이트 클리핑</title>
 </head>
 
@@ -54,6 +55,11 @@
           <span class="material-icons-round">star</span>
           즐겨찾기
           <span class="badge" id="fav-count">0</span>
+        </button>
+        <button class="nav-tab" id="tab-category">
+          <span class="material-icons-round">folder</span>
+          카테고리
+          <span class="badge" id="category-count">0</span>
         </button>
         <button class="nav-tab" id="btn-refresh" style="min-width: 50px; padding: 12px 16px;" title="새로고침">
           <span class="material-icons-round">refresh</span>
@@ -112,6 +118,10 @@
             <button id="m-btn-read" class="btn-mark-read" style="padding: 8px 12px; height: 44px; min-width: 100px;">
               <span class="material-icons-round">check_circle</span>
               읽음
+            </button>
+            <button id="m-btn-wl" class="btn-watch-later" style="padding: 8px 12px; height: 44px; flex: 1;">
+              <span class="material-icons-round">playlist_add</span>
+              보관함 추가
             </button>
             <button id="m-btn-fav" class="btn-favorite" style="width: 44px; height: 44px;">
               <span class="material-icons-round">star_border</span>
