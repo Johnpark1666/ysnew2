@@ -638,7 +638,7 @@ window.handleWatchLater = async (id, btn, event) => {
     ytPendingVideoId = vId;
     ytPendingBtn = btn;
     ytPendingRowId = id;
-    ytTokenClient.requestAccessToken();
+    ytTokenClient.requestAccessToken({ prompt: 'select_account' });
     return;
   }
 
