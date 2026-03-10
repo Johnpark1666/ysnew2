@@ -304,10 +304,10 @@ function renderGrid(append = false, startIndex = 0) {
   
   // 카테고리 내비게이션 바 (뒤로가기 버튼)
   if (currentTab === 'category' && currentCategory && !append) {
-    const backBtn = document.createElement('div');
-    backBtn.className = 'category-header';
-    backBtn.innerHTML = `
-      <button class="btn-back" onclick="currentCategory=null; renderGrid();">
+    const header = document.createElement('div');
+    header.className = 'category-header';
+    header.innerHTML = `
+      <button class="btn-back">
         <span class="material-icons-round">arrow_back</span>
         목록으로
       </button>
@@ -316,7 +316,15 @@ function renderGrid(append = false, startIndex = 0) {
         ${currentCategory}
       </div>
     `;
-    grid.appendChild(backBtn);
+    
+    // 이벤트 리스너 직접 연결 (모듈 스코프 대응)
+    const backBtn = header.querySelector('.btn-back');
+    backBtn.onclick = () => {
+      currentCategory = null;
+      renderGrid();
+    };
+    
+    grid.appendChild(header);
   }
 
   const showData = filteredData.slice(startIndex, currentVisibleCount);
