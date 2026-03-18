@@ -297,6 +297,7 @@ function renderGrid(append = false, startIndex = 0) {
 
   if (!append) {
     grid.innerHTML = "";
+    grid.classList.remove('category-grid-mode');
     startIndex = 0;
   }
 
@@ -399,6 +400,7 @@ function renderGrid(append = false, startIndex = 0) {
 function renderCategoryList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
+  grid.classList.add('category-grid-mode');
 
   // 카테고리별 개수 및 썸네일 수집 (읽지 않은 영상만 대상)
   const categoryMap = {};
@@ -410,7 +412,7 @@ function renderCategoryList() {
       categoryMap[cat] = { count: 0, thumbs: [] };
     }
     categoryMap[cat].count++;
-    if (categoryMap[cat].thumbs.length < 4 && item.Image_URL) {
+    if (categoryMap[cat].thumbs.length < 3 && item.Image_URL) {
       categoryMap[cat].thumbs.push(item.Image_URL);
     }
   });
@@ -438,25 +440,38 @@ function renderCategoryList() {
       renderGrid();
     };
 
-    // 썸네일 그리드 생성 (최대 4개)
-    let thumbHtml = '';
+    let itemsHtml = '';
     if (data.thumbs.length > 0) {
-      thumbHtml = data.thumbs.map(t => `<img src="${t}" alt="thumb" loading="lazy">`).join('');
+      itemsHtml = data.thumbs.map((t) => `
+        <div class="folder-item">
+          <img src="${t}" alt="thumb" loading="lazy">
+        </div>
+      `).join('');
     } else {
-      thumbHtml = '<div class="no-thumb-icon"><span class="material-icons-round">play_circle_outline</span></div>';
+      itemsHtml = `
+        <div class="folder-item">
+          <div class="no-thumb-icon"><span class="material-icons-round">play_circle_outline</span></div>
+        </div>
+      `;
     }
 
     card.innerHTML = `
-      <div class="category-preview-grid">
-        ${thumbHtml}
-      </div>
-      <div class="category-card-body">
-        <div class="category-info">
-          <div class="category-name">${cat}</div>
-          <div class="category-count">영상 ${data.count}개</div>
+      <div class="folder-container">
+        <div class="folder-back">
+          <div class="folder-tab"></div>
         </div>
-        <div class="category-arrow">
-          <span class="material-icons-round">chevron_right</span>
+        <div class="folder-items">
+          ${itemsHtml}
+        </div>
+        <div class="folder-front">
+          <div class="folder-front-content">
+            <span class="material-icons-round folder-icon">folder_open</span>
+            <div class="category-info">
+              <div class="category-name">${cat}</div>
+              <div class="category-count">영상 ${data.count}개</div>
+            </div>
+            <span class="material-icons-round category-arrow">chevron_right</span>
+          </div>
         </div>
       </div>
     `;
