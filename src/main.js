@@ -22,6 +22,14 @@ let currentDetailId = null;
 let touchStartX = 0;
 let touchEndX = 0;
 
+// [Carousel State]
+let categoryIndex = 0;
+let categoryList = [];
+
+// [UI State]
+let viewMode = 'grid'; // 'grid' | 'list'
+let sortOrder = 'newest';
+
 // [렌더링 설정]
 let currentPageSize = 20;
 let currentVisibleCount = 20;
@@ -150,6 +158,36 @@ function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
   document.getElementById('tab-category').onclick = () => switchTab('category');
+  
+  // [Floating Toolbar]
+  const toolbar = document.getElementById('floating-toolbar');
+  const sortSelect = document.getElementById('toolbar-sort-select');
+  const backToTopBtn = document.getElementById('btn-back-to-top');
+
+  // View Mode Toggle
+  toolbar.querySelectorAll('.view-btn').forEach(btn => {
+    btn.onclick = () => {
+      viewMode = btn.dataset.view;
+      toolbar.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderGrid();
+    };
+  });
+
+  // Sort Select
+  sortSelect.onchange = (e) => {
+    sortOrder = e.target.value;
+    renderGrid();
+  };
+
+  // Back to Top
+  backToTopBtn.onclick = () => {
+    const pane = document.getElementById('pane-list');
+    if (pane) {
+      pane.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   document.getElementById('close-detail').onclick = () => closeDetail();
 
   // 최신 음성 요약 듣기 버튼
@@ -213,8 +251,11 @@ function setupEventListeners() {
   // Infinite Scroll
   const listPane = document.getElementById('pane-list');
   listPane.onscroll = () => {
-    if (listPane.scrollTop + listPane.clientHeight >= listPane.scrollHeight - 500) {
-      loadMore();
+    if (listPane.scrollTop + listPane.clientHeight >= listPane.scrollHeight - 100) {
+      if (currentVisibleCount < getFilteredData().length) {
+        currentVisibleCount += currentPageSize;
+        renderGrid(true, currentVisibleCount - currentPageSize);
+      }
     }
   };
 
@@ -231,7 +272,41 @@ function setupEventListeners() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDetail();
+    
+    // Carousel Navigation
+    if (currentTab === 'category' && !currentCategory) {
+      if (e.key === 'ArrowLeft') {
+        categoryIndex = Math.max(0, categoryIndex - 1);
+        updateCarouselPositions();
+      } else if (e.key === 'ArrowRight') {
+        categoryIndex = Math.min(categoryList.length - 1, categoryIndex + 1);
+        updateCarouselPositions();
+      } else if (e.key === 'Enter') {
+        const activeItem = document.querySelector('.carousel-item.active');
+        if (activeItem) activeItem.click();
+      }
+    }
   });
+
+  // Mouse Wheel for Carousel
+  const grid = document.getElementById('card-grid');
+  grid.onwheel = (e) => {
+    if (currentTab === 'category' && !currentCategory) {
+      if (Math.abs(e.deltaY) < 10) return; // Ignore small movements
+      e.preventDefault();
+      if (e.deltaY > 0) {
+        if (categoryIndex < categoryList.length - 1) {
+          categoryIndex++;
+          updateCarouselPositions();
+        }
+      } else {
+        if (categoryIndex > 0) {
+          categoryIndex--;
+          updateCarouselPositions();
+        }
+      }
+    }
+  };
 }
 
 function updateStats() {
@@ -292,17 +367,31 @@ function renderGrid(append = false, startIndex = 0) {
   
   if (currentTab === 'category' && !currentCategory) {
     renderCategoryList();
+    updateFloatingToolbar();
     return;
   }
 
+  updateFloatingToolbar();
+
   if (!append) {
     grid.innerHTML = "";
-    grid.classList.remove('category-grid-mode');
+    grid.classList.remove('category-grid-mode', 'carousel-mode', 'list-mode', 'favorites-view-mode');
+    if (viewMode === 'list') grid.classList.add('list-mode');
+    if (currentTab === 'favorite') grid.classList.add('favorites-view-mode');
     startIndex = 0;
   }
 
-  const filteredData = getFilteredData();
+  let filteredData = getFilteredData();
   
+  // 정렬 적용
+  if (sortOrder === 'newest') {
+    filteredData.sort((a, b) => (b.PublishDate || "").localeCompare(a.PublishDate || ""));
+  } else if (sortOrder === 'oldest') {
+    filteredData.sort((a, b) => (a.PublishDate || "").localeCompare(b.PublishDate || ""));
+  } else if (sortOrder === 'favorited') {
+    filteredData.sort((a, b) => (b.rowIndex || 0) - (a.rowIndex || 0));
+  }
+
   // 카테고리 내비게이션 바 (뒤로가기 버튼)
   if (currentTab === 'category' && currentCategory && !append) {
     const header = document.createElement('div');
@@ -328,12 +417,10 @@ function renderGrid(append = false, startIndex = 0) {
     grid.appendChild(header);
   }
 
-  const showData = filteredData.slice(startIndex, currentVisibleCount);
-
   if (filteredData.length === 0 && !append) {
-    const emptyIcon = currentTab === 'unread' ? 'inbox' : (currentTab === 'favorite' ? 'star_border' : 'folder_off');
-    const emptyTitle = currentTab === 'unread' ? '모든 영상을 확인했습니다' : (currentTab === 'favorite' ? '즐겨찾기가 없습니다' : '이 카테고리에 영상이 없습니다');
-    const emptyDesc = currentTab === 'unread' ? '새로운 영상이 추가되면 여기에 표시됩니다.' : (currentTab === 'favorite' ? '관심 있는 영상에 별표를 추가해보세요.' : '');
+    const emptyIcon = currentTab === 'unread' ? 'mark_email_read' : (currentTab === 'favorite' ? 'star_border' : 'folder_off');
+    const emptyTitle = currentTab === 'unread' ? '모두 확인했습니다' : (currentTab === 'favorite' ? '즐겨찾기가 없습니다' : '이 카테고리에 영상이 없습니다');
+    const emptyDesc = currentTab === 'unread' ? '새로운 콘텐츠가 들어오면 여기에 표시됩니다.' : (currentTab === 'favorite' ? '마음에 드는 콘텐츠에 별표를 눌러보세요.' : '');
 
     const emptyState = document.createElement('div');
     emptyState.className = 'empty-state';
@@ -348,10 +435,33 @@ function renderGrid(append = false, startIndex = 0) {
     return;
   }
 
+  const showData = filteredData.slice(startIndex, currentVisibleCount);
   const fragment = document.createDocumentFragment();
+  
+  let lastAgeGroup = null;
+
   showData.forEach(item => {
+    // [Unread] 시간 기반 구분선 추가
+    if (currentTab === 'unread' && !append) {
+      const ageGroup = getAgeGroup(item.PublishDate);
+      if (ageGroup.label !== lastAgeGroup) {
+        const divider = document.createElement('div');
+        divider.className = 'time-divider';
+        divider.textContent = ageGroup.label;
+        fragment.appendChild(divider);
+        lastAgeGroup = ageGroup.label;
+      }
+    }
+
     const card = document.createElement('div');
     card.className = 'card';
+    
+    // [Unread] 나이 데이터 속성 추가
+    if (currentTab === 'unread') {
+      const ageData = getAgeGroup(item.PublishDate);
+      card.setAttribute('data-age', ageData.type);
+    }
+
     const imgUrl = item.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
     const isFav = isTrue(item.Favorite);
     const pubDate = item.PublishDate ? String(item.PublishDate).substring(0, 10) : '-';
@@ -362,21 +472,23 @@ function renderGrid(append = false, startIndex = 0) {
       keywordHtml = keywords.map(k => `<span class="keyword-tag">${k.trim()}</span>`).join('');
     }
 
+    // [Favorite] 추가 메타 정보
+    let favMeta = '';
+    if (currentTab === 'favorite') {
+       favMeta = `<div class="favorited-date">즐겨찾기 소장 중</div>`;
+    }
+
     card.onclick = () => openDetail(item.ID);
     card.innerHTML = `
         <div class="card-thumbnail">
           <img src="${imgUrl}" alt="${item.Title}" loading="lazy" onerror="window.handleImageError(this)">
-          <div class="thumbnail-overlay">
-            <div class="play-button">
-              <span class="material-icons-round">play_arrow</span>
-            </div>
-          </div>
         </div>
         <div class="card-content">
           <div class="channel-info">
             <div class="channel-details">
               <div class="channel-name">${item.ChannelName || '알 수 없는 채널'}</div>
               <div class="video-date">${pubDate}</div>
+              ${favMeta}
             </div>
           </div>
           <div class="card-title">${item.Title}</div>
@@ -401,6 +513,7 @@ function renderCategoryList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
   grid.classList.add('category-grid-mode');
+  grid.classList.add('carousel-mode'); // Enable carousel perspective
 
   // 카테고리별 개수 및 썸네일 수집 (읽지 않은 영상만 대상)
   const categoryMap = {};
@@ -417,9 +530,9 @@ function renderCategoryList() {
     }
   });
 
-  const categories = Object.keys(categoryMap).sort();
+  categoryList = Object.keys(categoryMap).sort();
 
-  if (categories.length === 0) {
+  if (categoryList.length === 0) {
     grid.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon"><span class="material-icons-round">folder_off</span></div>
@@ -430,14 +543,25 @@ function renderCategoryList() {
     return;
   }
 
+  // Ensure index is within bounds
+  if (categoryIndex >= categoryList.length) categoryIndex = 0;
+
   const fragment = document.createDocumentFragment();
-  categories.forEach(cat => {
+  categoryList.forEach((cat, index) => {
     const data = categoryMap[cat];
     const card = document.createElement('div');
-    card.className = 'category-card';
+    card.className = 'category-card carousel-item';
+    card.dataset.catName = cat;
+    card.dataset.idx = index;
+
     card.onclick = () => {
-      currentCategory = cat;
-      renderGrid();
+      if (categoryIndex === index) {
+        currentCategory = cat;
+        renderGrid();
+      } else {
+        categoryIndex = index;
+        updateCarouselPositions();
+      }
     };
 
     let itemsHtml = '';
@@ -460,9 +584,6 @@ function renderCategoryList() {
         <div class="folder-back">
           <div class="folder-tab"></div>
         </div>
-        <div class="folder-items">
-          ${itemsHtml}
-        </div>
         <div class="folder-front">
           <div class="folder-front-content">
             <span class="material-icons-round folder-icon">folder_open</span>
@@ -474,10 +595,42 @@ function renderCategoryList() {
           </div>
         </div>
       </div>
+      <div class="folder-items-dropdown">
+        ${itemsHtml}
+      </div>
     `;
     fragment.appendChild(card);
   });
   grid.appendChild(fragment);
+  updateCarouselPositions();
+}
+
+/**
+ * Updates positions of all carousel items based on categoryIndex
+ */
+function updateCarouselPositions() {
+  const items = document.querySelectorAll('.category-card.carousel-item');
+  items.forEach((item, i) => {
+    const index = parseInt(item.dataset.idx);
+    const diff = index - categoryIndex;
+    
+    // Remove all state classes
+    item.classList.remove('active', 'prev-1', 'prev-2', 'next-1', 'next-2', 'hidden');
+
+    if (diff === 0) {
+      item.classList.add('active');
+    } else if (diff === -1) {
+      item.classList.add('prev-1');
+    } else if (diff === -2) {
+      item.classList.add('prev-2');
+    } else if (diff === 1) {
+      item.classList.add('next-1');
+    } else if (diff === 2) {
+      item.classList.add('next-2');
+    } else {
+      item.classList.add('hidden');
+    }
+  });
 }
 
 // 이미지 에러 핸들러
@@ -869,5 +1022,50 @@ function playLatestVoiceSummary() {
 
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
+}
+
+function getAgeGroup(dateStr) {
+  if (!dateStr) return { type: 'old', label: '이전' };
+  const now = new Date();
+  const pubDate = new Date(dateStr);
+  const diffHours = (now - pubDate) / (1000 * 60 * 60);
+
+  if (diffHours < 1) return { type: 'fresh', label: '방금 도착' };
+  if (diffHours < 24) return { type: 'today', label: '오늘' };
+  return { type: 'old', label: '이전' };
+}
+
+function updateFloatingToolbar() {
+  const toolbar = document.getElementById('floating-toolbar');
+  if (!toolbar) return;
+
+  // Show/Hide logic: Hide in category carousel, show elsewhere
+  if (currentTab === 'category' && !currentCategory) {
+    toolbar.classList.add('hidden');
+    return;
+  }
+  toolbar.classList.remove('hidden');
+
+  // Update Sort Options
+  const sortSelect = document.getElementById('toolbar-sort-select');
+  if (sortSelect) {
+    let options = '<option value="newest">최신순</option><option value="oldest">오래된순</option>';
+    if (currentTab === 'favorite') {
+      options += '<option value="favorited">최근 추가순</option>';
+    }
+    
+    const currentVal = sortOrder;
+    sortSelect.innerHTML = options;
+    if ([...sortSelect.options].some(opt => opt.value === currentVal)) {
+      sortSelect.value = currentVal;
+    } else {
+      sortSelect.value = 'newest';
+    }
+  }
+
+  // Sync View Type Buttons
+  toolbar.querySelectorAll('.view-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === viewMode);
+  });
 }
 
