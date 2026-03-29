@@ -1453,3 +1453,63 @@ body {
   color: white;
   border-color: var(--accent-success);
 }
+
+/* Hidden Utility */
+.hidden {
+  display: none !important;
+}
+
+/* Card Selection Mode */
+.card .selection-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.9);
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  opacity: 0;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.selection-mode-active .card .selection-overlay {
+  opacity: 1;
+}
+
+.card.selected .selection-overlay {
+  background: var(--accent-success);
+  color: white;
+  transform: scale(1.1);
+}
+
+.card.selected {
+  border-color: var(--accent-success) !important;
+  box-shadow: 0 0 15px rgba(5, 150, 105, 0.3) !important;
+}
+
+.selection-mode-active .card:hover {
+  transform: translateY(-4px) scale(1.01);
+}
+
+.floating-toolbar .toolbar-btn#btn-select-mode.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+#btn-mark-selected-read {
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#btn-mark-selected-read:hover {
+  background: var(--accent-success);
+  filter: brightness(1.1);
+}

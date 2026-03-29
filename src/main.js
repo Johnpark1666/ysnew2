@@ -22,6 +22,10 @@ let currentDetailId = null;
 let touchStartX = 0;
 let touchEndX = 0;
 
+// [Multi-Select State]
+let isSelectionMode = false;
+let selectedIds = new Set();
+
 // [Carousel State]
 let categoryIndex = 0;
 let categoryList = [];
@@ -190,6 +194,18 @@ function setupEventListeners() {
 
   document.getElementById('close-detail').onclick = () => closeDetail();
 
+  // [Multi-Select Events]
+  const selectModeBtn = document.getElementById('btn-select-mode');
+  const markSelectedBtn = document.getElementById('btn-mark-selected-read');
+
+  if (selectModeBtn) {
+    selectModeBtn.onclick = () => toggleSelectionMode();
+  }
+
+  if (markSelectedBtn) {
+    markSelectedBtn.onclick = () => handleMarkSelectedRead();
+  }
+
   // 최신 음성 요약 듣기 버튼
   const playLatestBtn = document.getElementById('btn-play-latest');
   if (playLatestBtn) {
@@ -332,6 +348,10 @@ function switchTab(tabName) {
   document.getElementById(`tab-${tabName}`).classList.add('active');
 
   currentVisibleCount = currentPageSize;
+  
+  // 탭 전환 시 선택 모드 해제
+  if (isSelectionMode) toggleSelectionMode(false);
+  
   closeDetail();
   renderGrid();
 }
@@ -375,9 +395,10 @@ function renderGrid(append = false, startIndex = 0) {
 
   if (!append) {
     grid.innerHTML = "";
-    grid.classList.remove('category-grid-mode', 'carousel-mode', 'list-mode', 'favorites-view-mode');
+    grid.classList.remove('category-grid-mode', 'carousel-mode', 'list-mode', 'favorites-view-mode', 'selection-mode-active');
     if (viewMode === 'list') grid.classList.add('list-mode');
     if (currentTab === 'favorite') grid.classList.add('favorites-view-mode');
+    if (isSelectionMode) grid.classList.add('selection-mode-active');
     startIndex = 0;
   }
 
@@ -478,8 +499,22 @@ function renderGrid(append = false, startIndex = 0) {
        favMeta = `<div class="favorited-date">즐겨찾기 소장 중</div>`;
     }
 
-    card.onclick = () => openDetail(item.ID);
+    const isSelected = selectedIds.has(String(item.ID));
+    
+    card.onclick = () => {
+      if (isSelectionMode) {
+        toggleItemSelection(item.ID, card);
+      } else {
+        openDetail(item.ID);
+      }
+    };
+    
+    if (isSelected) card.classList.add('selected');
+
     card.innerHTML = `
+        <div class="selection-overlay">
+          <span class="material-icons-round">${isSelected ? 'check_circle' : 'radio_button_unchecked'}</span>
+        </div>
         <div class="card-thumbnail">
           <img src="${imgUrl}" alt="${item.Title}" loading="lazy" onerror="window.handleImageError(this)">
         </div>
@@ -1022,6 +1057,91 @@ function playLatestVoiceSummary() {
 
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
+}
+
+// [Multi-Select Helpers]
+function toggleSelectionMode(forceValue) {
+  isSelectionMode = forceValue !== undefined ? forceValue : !isSelectionMode;
+  selectedIds.clear();
+  
+  const selectModeBtn = document.getElementById('btn-select-mode');
+  if (selectModeBtn) {
+    selectModeBtn.classList.toggle('active', isSelectionMode);
+  }
+  
+  updateSelectionToolbar();
+  renderGrid();
+  if (isSelectionMode) closeDetail();
+}
+
+function toggleItemSelection(id, cardEl) {
+  const sId = String(id);
+  if (selectedIds.has(sId)) {
+    selectedIds.delete(sId);
+    cardEl.classList.remove('selected');
+    cardEl.querySelector('.selection-overlay span').textContent = 'radio_button_unchecked';
+  } else {
+    selectedIds.add(sId);
+    cardEl.classList.add('selected');
+    cardEl.querySelector('.selection-overlay span').textContent = 'check_circle';
+  }
+  updateSelectionToolbar();
+}
+
+function updateSelectionToolbar() {
+  const markBtn = document.getElementById('btn-mark-selected-read');
+  const divider = document.querySelector('.toolbar-divider.selection-only');
+  const countText = document.getElementById('selected-count-text');
+  
+  if (isSelectionMode && selectedIds.size > 0) {
+    markBtn.classList.remove('hidden');
+    divider.classList.remove('hidden');
+    countText.textContent = `${selectedIds.size}개 읽음 처리`;
+  } else {
+    markBtn.classList.add('hidden');
+    divider.classList.add('hidden');
+  }
+}
+
+async function handleMarkSelectedRead() {
+  if (selectedIds.size === 0) return;
+  
+  const idsToProcess = Array.from(selectedIds);
+  const markBtn = document.getElementById('btn-mark-selected-read');
+  const originalHtml = markBtn.innerHTML;
+  
+  markBtn.disabled = true;
+  markBtn.style.opacity = '0.7';
+  
+  let successCount = 0;
+  
+  for (let i = 0; i < idsToProcess.length; i++) {
+    const id = idsToProcess[i];
+    markBtn.innerHTML = `<span class="material-icons-round spin">sync</span> ${i+1}/${idsToProcess.length}`;
+    
+    try {
+      const res = await callGAS({ action: 'markAsRead', id: id });
+      if (res.status === 'success') {
+        const item = allData.find(d => String(d.ID) === String(id));
+        if (item) item.Read = true;
+        successCount++;
+      }
+    } catch (e) {
+      console.error(`Failed to mark read for ID ${id}:`, e);
+    }
+  }
+  
+  // 성공 메시지 표시 후 초기화
+  markBtn.innerHTML = `<span class="material-icons-round">done</span> 완료 (${successCount})`;
+  
+  setTimeout(() => {
+    markBtn.disabled = false;
+    markBtn.style.opacity = '1';
+    markBtn.innerHTML = originalHtml;
+    
+    updateStats();
+    toggleSelectionMode(false); // 선택 모드 종료 및 새로고침
+  }, 1000);
 }
 
 function getAgeGroup(dateStr) {

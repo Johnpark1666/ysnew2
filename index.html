@@ -181,6 +181,17 @@
         <option value="oldest">오래된순</option>
       </select>
       
+      <button id="btn-select-mode" class="toolbar-btn" title="다중 선택">
+        <span class="material-icons-round">checklist</span>
+      </button>
+
+      <div class="toolbar-divider selection-only hidden"></div>
+
+      <button id="btn-mark-selected-read" class="toolbar-btn active hidden" title="선택 항목 읽음 처리" style="background: var(--accent-success); color: white; width: auto; padding: 0 16px; border-radius: 20px; gap: 8px;">
+        <span class="material-icons-round">done_all</span>
+        <span id="selected-count-text">0개 읽음</span>
+      </button>
+
       <div class="toolbar-divider"></div>
       
       <button id="btn-back-to-top" class="toolbar-btn" title="맨 위로">
