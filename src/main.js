@@ -743,11 +743,13 @@ function openDetail(id) {
   }, 50);
 
   document.getElementById('layout-container').classList.add('detail-active');
+  document.body.classList.add('detail-open');
   detailPane.scrollTop = 0;
 }
 
 function closeDetail() {
   document.getElementById('layout-container').classList.remove('detail-active');
+  document.body.classList.remove('detail-open');
   currentDetailId = null;
 }
 

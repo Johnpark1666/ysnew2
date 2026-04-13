@@ -310,12 +310,25 @@ body {
 }
 
 @media (max-width: 1023px) {
+  body.detail-open .header {
+    display: none;
+  }
+
+  body.detail-open .floating-toolbar {
+    display: none;
+  }
+
+  body.detail-open .layout-container {
+    height: 100vh;
+  }
+
   .layout-container.detail-active .pane-list {
     display: none;
   }
 
   .layout-container.detail-active .pane-detail {
     width: 100% !important;
+    height: 100%;
     flex: 1;
     visibility: visible;
     opacity: 1;
