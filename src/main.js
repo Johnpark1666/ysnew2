@@ -162,6 +162,7 @@ function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
   document.getElementById('tab-category').onclick = () => switchTab('category');
+  document.getElementById('tab-today').onclick = () => switchTab('today');
   
   // [Floating Toolbar]
   const toolbar = document.getElementById('floating-toolbar');
@@ -353,6 +354,20 @@ function switchTab(tabName) {
   if (isSelectionMode) toggleSelectionMode(false);
   
   closeDetail();
+
+  const paneList = document.getElementById('pane-list');
+  const paneToday = document.getElementById('pane-today');
+  
+  if (tabName === 'today') {
+    if (paneList) paneList.style.display = 'none';
+    if (paneToday) paneToday.style.display = 'block';
+    updateFloatingToolbar();
+    return;
+  } else {
+    if (paneList) paneList.style.display = '';
+    if (paneToday) paneToday.style.display = 'none';
+  }
+
   renderGrid();
 }
 
@@ -1162,7 +1177,7 @@ function updateFloatingToolbar() {
   if (!toolbar) return;
 
   // Show/Hide logic: Hide in category carousel, show elsewhere
-  if (currentTab === 'category' && !currentCategory) {
+  if ((currentTab === 'category' && !currentCategory) || currentTab === 'today') {
     toolbar.classList.add('hidden');
     return;
   }
