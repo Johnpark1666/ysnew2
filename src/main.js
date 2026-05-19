@@ -718,9 +718,9 @@ function openDetail(id) {
     mImg.src = item.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
 
     document.getElementById('m-link').href = item.VideoURL;
-    document.getElementById('m-summary').innerText = item.Summary || '내용 없음';
-    document.getElementById('m-analysis').innerText = item.Analysis || '내용 없음';
-    document.getElementById('m-insights').innerText = item.Insights || '내용 없음';
+    document.getElementById('m-summary').innerHTML = String(item.Summary || '내용 없음').replace(/\n/g, '<br>');
+    document.getElementById('m-analysis').innerHTML = String(item.Analysis || '내용 없음').replace(/\n/g, '<br>');
+    document.getElementById('m-insights').innerHTML = String(item.Insights || '내용 없음').replace(/\n/g, '<br>');
 
     const mReadBtn = document.getElementById('m-btn-read');
     const mFavBtn = document.getElementById('m-btn-fav');
