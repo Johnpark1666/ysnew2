@@ -560,19 +560,6 @@ function renderCategoryList() {
   grid.appendChild(scrollContainer);
 }
 
-else if (diff === -1) {
-      item.classList.add('prev-1');
-    } else if (diff === -2) {
-      item.classList.add('prev-2');
-    } else if (diff === 1) {
-      item.classList.add('next-1');
-    } else if (diff === 2) {
-      item.classList.add('next-2');
-    } else {
-      item.classList.add('hidden');
-    }
-  });
-}
 
 // 이미지 에러 핸들러
 window.handleImageError = (img) => {
