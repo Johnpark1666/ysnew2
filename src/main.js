@@ -392,7 +392,7 @@ function renderGrid(append = false, startIndex = 0) {
 
   if (!append) {
     grid.innerHTML = "";
-    grid.classList.remove('category-grid-mode', 'carousel-mode', 'list-mode', 'favorites-view-mode', 'selection-mode-active');
+    grid.className = "grid";
     if (viewMode === 'list') grid.classList.add('list-mode');
     if (currentTab === 'favorite') grid.classList.add('favorites-view-mode');
     if (isSelectionMode) grid.classList.add('selection-mode-active');

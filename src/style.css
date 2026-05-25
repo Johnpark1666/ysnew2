@@ -466,7 +466,7 @@ body {
   gap: 20px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding: 20px 0 40px;
+  padding: 20px 24px 40px 24px;
   width: 100%;
   -webkit-overflow-scrolling: touch;
 }
