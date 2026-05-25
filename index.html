@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="/favicon.png" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <title>유튜브 인사이트 클리핑</title>
 </head>
-
 <body>
   <!-- Header -->
   <header class="header">
@@ -18,18 +16,18 @@
       <div class="nav-tabs">
         <div class="tts-group">
           <button class="nav-tab" id="btn-play-latest">
-            <span class="material-icons-round">volume_up</span>
+            <i class="ph ph-speaker-high"></i>
             <span class="tab-text">최신 음성 요약 듣기</span>
           </button>
           <button class="nav-tab" id="btn-tts-settings" title="음성 설정"
-            style="min-width: 44px; padding: 12px 10px; border-left: 1px solid rgba(0,0,0,0.05); border-radius: 0 var(--radius-md) var(--radius-md) 0;">
-            <span class="material-icons-round">tune</span>
+            style="min-width: 44px; padding: 12px 10px; border-left: 1px solid rgba(0,0,0,0.05); border-radius: 0 100px 100px 0;">
+            <i class="ph ph-sliders-horizontal"></i>
           </button>
 
           <!-- TTS 설정 팝업 -->
           <div class="tts-settings-popover" id="tts-popover" style="display: none;">
             <div class="popover-header">
-              <span class="material-icons-round">tune</span> 음성 설정
+              <i class="ph ph-sliders-horizontal"></i> 음성 설정
             </div>
             <div class="popover-body">
               <div class="setting-item">
@@ -47,26 +45,26 @@
           </div>
         </div>
         <button class="nav-tab active" id="tab-unread">
-          <span class="material-icons-round">inbox</span>
+          <i class="ph ph-tray"></i>
           읽지 않음
           <span class="badge" id="unread-count">0</span>
         </button>
         <button class="nav-tab" id="tab-favorite">
-          <span class="material-icons-round">star</span>
+          <i class="ph-fill ph-star" style="color: var(--accent-warning);"></i>
           즐겨찾기
           <span class="badge" id="fav-count">0</span>
         </button>
         <button class="nav-tab" id="tab-category">
-          <span class="material-icons-round">folder</span>
+          <i class="ph ph-folder"></i>
           카테고리
           <span class="badge" id="category-count">0</span>
         </button>
         <button class="nav-tab" id="tab-today">
-          <span class="material-icons-round">language</span>
+          <i class="ph ph-globe"></i>
           오늘의 봄봄
         </button>
-        <button class="nav-tab" id="btn-refresh" style="min-width: 50px; padding: 12px 16px;" title="새로고침">
-          <span class="material-icons-round">refresh</span>
+        <button class="nav-tab" id="btn-refresh" style="min-width: 50px; padding: 12px 16px; border-radius: 100px;" title="새로고침">
+          <i class="ph ph-arrows-clockwise"></i>
         </button>
       </div>
     </div>
@@ -92,13 +90,13 @@
           <div class="modal-header-content" style="flex: 1; min-width: 0;">
             <h2 id="m-title" class="modal-title">제목</h2>
             <div id="m-date" class="modal-date">
-              <span class="material-icons-round" style="font-size: 16px;">calendar_today</span>
+              <i class="ph ph-calendar-blank"></i>
               <span id="m-date-text">-</span>
             </div>
           </div>
           <div class="modal-actions-top">
             <button class="close-btn" id="close-detail">
-              <span class="material-icons-round">close</span>
+              <i class="ph ph-x"></i>
             </button>
           </div>
         </div>
@@ -108,7 +106,7 @@
         <div class="mobile-title-section">
           <h2 id="m-title-mobile" class="mobile-title">제목</h2>
           <div class="mobile-date">
-            <span class="material-icons-round" style="font-size: 16px;">calendar_today</span>
+            <i class="ph ph-calendar-blank"></i>
             <span id="m-date-text-mobile">-</span>
           </div>
         </div>
@@ -116,19 +114,19 @@
           <img id="m-img" class="modal-thumbnail" src="" alt="Video thumbnail">
           <div class="modal-actions-video">
             <a id="m-link" href="#" target="_blank" class="btn-youtube">
-              <span class="material-icons-round">play_arrow</span>
+              <i class="ph-fill ph-play-circle"></i>
               YouTube에서 보기
             </a>
             <button id="m-btn-read" class="btn-mark-read" style="padding: 8px 12px; height: 44px; min-width: 100px;">
-              <span class="material-icons-round">check_circle</span>
+              <i class="ph ph-check-circle"></i>
               읽음
             </button>
             <button id="m-btn-wl" class="btn-watch-later" style="padding: 8px 12px; height: 44px; flex: 1;">
-              <span class="material-icons-round">playlist_add</span>
+              <i class="ph ph-list-plus"></i>
               보관함 추가
             </button>
             <button id="m-btn-fav" class="btn-favorite" style="width: 44px; height: 44px;">
-              <span class="material-icons-round">star_border</span>
+              <i class="ph ph-star"></i>
             </button>
           </div>
         </div>
@@ -136,7 +134,7 @@
         <div class="content-section">
           <div class="section-header">
             <div class="section-icon summary">
-              <span class="material-icons-round">summarize</span>
+              <i class="ph ph-file-text"></i>
             </div>
             <span class="section-title">요약 (Summary)</span>
           </div>
@@ -146,7 +144,7 @@
         <div class="content-section">
           <div class="section-header">
             <div class="section-icon analysis">
-              <span class="material-icons-round">analytics</span>
+              <i class="ph ph-chart-bar"></i>
             </div>
             <span class="section-title">분석 (Analysis)</span>
           </div>
@@ -156,7 +154,7 @@
         <div class="content-section">
           <div class="section-header">
             <div class="section-icon insights">
-              <span class="material-icons-round">lightbulb</span>
+              <i class="ph ph-lightbulb"></i>
             </div>
             <span class="section-title">인사이트 (Insights)</span>
           </div>
@@ -176,10 +174,10 @@
     <div class="toolbar-content">
       <div id="toolbar-view-toggle" class="view-toggle">
         <button class="view-btn grid-btn active" data-view="grid" title="그리드 보기">
-          <span class="material-icons-round">grid_view</span>
+          <i class="ph ph-squares-four"></i>
         </button>
         <button class="view-btn list-btn" data-view="list" title="목록 보기">
-          <span class="material-icons-round">view_list</span>
+          <i class="ph ph-list"></i>
         </button>
       </div>
       
@@ -191,25 +189,24 @@
       </select>
       
       <button id="btn-select-mode" class="toolbar-btn" title="다중 선택">
-        <span class="material-icons-round">checklist</span>
+        <i class="ph ph-check-square-offset"></i>
       </button>
 
       <div class="toolbar-divider selection-only hidden"></div>
 
       <button id="btn-mark-selected-read" class="toolbar-btn active hidden" title="선택 항목 읽음 처리" style="background: var(--accent-success); color: white; width: auto; padding: 0 16px; border-radius: 20px; gap: 8px;">
-        <span class="material-icons-round">done_all</span>
+        <i class="ph ph-checks"></i>
         <span id="selected-count-text">0개 읽음</span>
       </button>
 
       <div class="toolbar-divider"></div>
       
       <button id="btn-back-to-top" class="toolbar-btn" title="맨 위로">
-        <span class="material-icons-round">arrow_upward</span>
+        <i class="ph ph-arrow-up"></i>
       </button>
     </div>
   </div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
-
 </html>

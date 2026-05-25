@@ -145,7 +145,7 @@ function onLoadError(error) {
   console.error('Data Load Error:', error);
   document.getElementById('loader').innerHTML = `
       <div class="empty-icon">
-        <span class="material-icons-round">error_outline</span>
+        <i class="ph ph-warning-circle"></i>
       </div>
       <div class="empty-title">데이터를 불러오지 못했습니다</div>
       <div class="empty-description">${error.message}<br>시트의 '웹에 게시' 설정을 다시 확인해주세요.</div>
@@ -290,24 +290,6 @@ function setupEventListeners() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDetail();
     
-    // Carousel Navigation
-    if (currentTab === 'category' && !currentCategory) {
-      if (e.key === 'ArrowLeft') {
-        categoryIndex = Math.max(0, categoryIndex - 1);
-        updateCarouselPositions();
-      } else if (e.key === 'ArrowRight') {
-        categoryIndex = Math.min(categoryList.length - 1, categoryIndex + 1);
-        updateCarouselPositions();
-      } else if (e.key === 'Enter') {
-        const activeItem = document.querySelector('.carousel-item.active');
-        if (activeItem) activeItem.click();
-      }
-    }
-  });
-
-  // Mouse Wheel for Carousel
-  const grid = document.getElementById('card-grid');
-  grid.onwheel = (e) => {
     if (currentTab === 'category' && !currentCategory) {
       if (Math.abs(e.deltaY) < 10) return; // Ignore small movements
       e.preventDefault();
@@ -434,11 +416,11 @@ function renderGrid(append = false, startIndex = 0) {
     header.className = 'category-header';
     header.innerHTML = `
       <button class="btn-back">
-        <span class="material-icons-round">arrow_back</span>
+        <i class="ph ph-arrow-left"></i>
         목록으로
       </button>
       <div class="category-title-display">
-        <span class="material-icons-round">folder_open</span>
+        <i class="ph ph-folder-open"></i>
         ${currentCategory}
       </div>
     `;
@@ -454,7 +436,7 @@ function renderGrid(append = false, startIndex = 0) {
   }
 
   if (filteredData.length === 0 && !append) {
-    const emptyIcon = currentTab === 'unread' ? 'mark_email_read' : (currentTab === 'favorite' ? 'star_border' : 'folder_off');
+    const emptyIcon = currentTab === 'unread' ? 'ph-envelope-open' : (currentTab === 'favorite' ? 'ph-star' : 'ph-folder-simple-minus');
     const emptyTitle = currentTab === 'unread' ? '모두 확인했습니다' : (currentTab === 'favorite' ? '즐겨찾기가 없습니다' : '이 카테고리에 영상이 없습니다');
     const emptyDesc = currentTab === 'unread' ? '새로운 콘텐츠가 들어오면 여기에 표시됩니다.' : (currentTab === 'favorite' ? '마음에 드는 콘텐츠에 별표를 눌러보세요.' : '');
 
@@ -462,7 +444,7 @@ function renderGrid(append = false, startIndex = 0) {
     emptyState.className = 'empty-state';
     emptyState.innerHTML = `
           <div class="empty-icon">
-            <span class="material-icons-round">${emptyIcon}</span>
+            <i class="ph ${emptyIcon}"></i>
           </div>
           <div class="empty-title">${emptyTitle}</div>
           <div class="empty-description">${emptyDesc}</div>
@@ -528,7 +510,7 @@ function renderGrid(append = false, startIndex = 0) {
 
     card.innerHTML = `
         <div class="selection-overlay">
-          <span class="material-icons-round">${isSelected ? 'check_circle' : 'radio_button_unchecked'}</span>
+          <i class=\"ph ${isSelected ? 'ph-check-circle ph-fill' : 'ph-circle'}\"></i>
         </div>
         <div class="card-thumbnail">
           <img src="${imgUrl}" alt="${item.Title}" loading="lazy" onerror="window.handleImageError(this)">
@@ -546,11 +528,11 @@ function renderGrid(append = false, startIndex = 0) {
         </div>
         <div class="card-actions">
           <button class="btn-mark-read" onclick="handleMarkRead('${item.ID}', this, event)">
-            <span class="material-icons-round">check_circle</span>
+            <i class="ph ph-check-circle"></i>
             읽음 처리
           </button>
           <button class="btn-favorite ${isFav ? 'active' : ''}" onclick="handleToggleFav('${item.ID}', this, event)">
-            <span class="material-icons-round">${isFav ? 'star' : 'star_border'}</span>
+            <i class=\"ph ${isFav ? 'ph-star ph-fill' : 'ph-star'}\"></i>
           </button>
         </div>
       `;
@@ -563,9 +545,8 @@ function renderCategoryList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
   grid.classList.add('category-grid-mode');
-  grid.classList.add('carousel-mode'); // Enable carousel perspective
+  grid.classList.remove('carousel-mode');
 
-  // 카테고리별 개수 및 썸네일 수집 (읽지 않은 영상만 대상)
   const categoryMap = {};
   allData.filter(item => !isTrue(item.Read)).forEach(item => {
     const cat = String(item.Category || item['카테고리'] || "미분류").trim();
@@ -585,7 +566,7 @@ function renderCategoryList() {
   if (categoryList.length === 0) {
     grid.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon"><span class="material-icons-round">folder_off</span></div>
+        <div class="empty-icon"><i class="ph ph-folder-simple-minus"></i></div>
         <div class="empty-title">카테고리가 없습니다</div>
         <div class="empty-description">영상에 카테고리가 지정되면 여기에 표시됩니다.</div>
       </div>
@@ -593,25 +574,16 @@ function renderCategoryList() {
     return;
   }
 
-  // Ensure index is within bounds
-  if (categoryIndex >= categoryList.length) categoryIndex = 0;
-
   const fragment = document.createDocumentFragment();
   categoryList.forEach((cat, index) => {
     const data = categoryMap[cat];
     const card = document.createElement('div');
-    card.className = 'category-card carousel-item';
+    card.className = 'category-card';
     card.dataset.catName = cat;
-    card.dataset.idx = index;
 
     card.onclick = () => {
-      if (categoryIndex === index) {
-        currentCategory = cat;
-        renderGrid();
-      } else {
-        categoryIndex = index;
-        updateCarouselPositions();
-      }
+      currentCategory = cat;
+      renderGrid();
     };
 
     let itemsHtml = '';
@@ -624,52 +596,35 @@ function renderCategoryList() {
     } else {
       itemsHtml = `
         <div class="folder-item">
-          <div class="no-thumb-icon"><span class="material-icons-round">play_circle_outline</span></div>
+          <div class="no-thumb-icon"><i class="ph ph-play-circle"></i></div>
         </div>
       `;
     }
 
     card.innerHTML = `
       <div class="folder-container">
-        <div class="folder-back">
-          <div class="folder-tab"></div>
-        </div>
-        <div class="folder-front">
-          <div class="folder-front-content">
-            <span class="material-icons-round folder-icon">folder_open</span>
+        <div class="folder-front-content" style="padding: 24px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-default); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="ph ph-folder-open folder-icon" style="font-size: 24px; color: var(--accent-primary);"></i>
             <div class="category-info">
-              <div class="category-name">${cat}</div>
-              <div class="category-count">영상 ${data.count}개</div>
+              <div class="category-name" style="font-weight: 700; font-size: 16px;">${cat}</div>
+              <div class="category-count" style="font-size: 13px; color: var(--text-muted);">영상 ${data.count}개</div>
             </div>
-            <span class="material-icons-round category-arrow">chevron_right</span>
           </div>
+          <i class="ph ph-caret-right category-arrow" style="color: var(--text-muted);"></i>
         </div>
-      </div>
-      <div class="folder-items-dropdown">
-        ${itemsHtml}
       </div>
     `;
     fragment.appendChild(card);
   });
-  grid.appendChild(fragment);
-  updateCarouselPositions();
+  
+  const scrollContainer = document.createElement('div');
+  scrollContainer.className = 'category-scroll-container';
+  scrollContainer.appendChild(fragment);
+  grid.appendChild(scrollContainer);
 }
 
-/**
- * Updates positions of all carousel items based on categoryIndex
- */
-function updateCarouselPositions() {
-  const items = document.querySelectorAll('.category-card.carousel-item');
-  items.forEach((item, i) => {
-    const index = parseInt(item.dataset.idx);
-    const diff = index - categoryIndex;
-    
-    // Remove all state classes
-    item.classList.remove('active', 'prev-1', 'prev-2', 'next-1', 'next-2', 'hidden');
-
-    if (diff === 0) {
-      item.classList.add('active');
-    } else if (diff === -1) {
+else if (diff === -1) {
       item.classList.add('prev-1');
     } else if (diff === -2) {
       item.classList.add('prev-2');
@@ -732,24 +687,24 @@ function openDetail(id) {
     mReadBtn.onclick = (e) => handleMarkRead(id, mReadBtn, e);
     if (isRead) {
       mReadBtn.style.opacity = '0.5';
-      mReadBtn.innerHTML = '<span class="material-icons-round">done</span> 읽음';
+      mReadBtn.innerHTML = '<i class="ph ph-check"></i> 읽음';
     } else {
       mReadBtn.style.opacity = '1';
-      mReadBtn.innerHTML = '<span class="material-icons-round">check_circle</span> 읽음 처리';
+      mReadBtn.innerHTML = '<i class="ph ph-check-circle"></i> 읽음 처리';
     }
 
     mFavBtn.onclick = (e) => handleToggleFav(id, mFavBtn, e);
     mFavBtn.className = `btn-favorite ${isFav ? 'active' : ''}`;
-    mFavBtn.innerHTML = `<span class="material-icons-round">${isFav ? 'star' : 'star_border'}</span>`;
+    mFavBtn.innerHTML = `<i class=\"ph ${isFav ? 'ph-star ph-fill' : 'ph-star'}\"></i>`;
 
     // Watch Later 버튼 핸들러
     mWlBtn.onclick = (e) => window.handleWatchLater(id, mWlBtn, e);
     if (isWl) {
       mWlBtn.classList.add('success');
-      mWlBtn.innerHTML = '<span class="material-icons-round">playlist_add_check</span> 추가됨';
+      mWlBtn.innerHTML = '<i class="ph ph-list-checks"></i> 추가됨';
     } else {
       mWlBtn.classList.remove('success');
-      mWlBtn.innerHTML = '<span class="material-icons-round">playlist_add</span> 보관함 추가';
+      mWlBtn.innerHTML = '<i class="ph ph-list-plus"></i> 보관함 추가';
     }
 
     detailBody.style.transition = 'all 0.4s ease';
@@ -774,7 +729,7 @@ window.handleMarkRead = async (id, btn, event) => {
   const originalHtml = btn.innerHTML;
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="material-icons-round spin">sync</span> 처리 중...';
+  btn.innerHTML = '<i class="ph ph-arrows-clockwise ph-spin"></i> 처리 중...';
 
   try {
     const res = await callGAS({ action: 'markAsRead', id: id });
@@ -787,7 +742,7 @@ window.handleMarkRead = async (id, btn, event) => {
         if (currentDetailId === String(id)) closeDetail();
       } else {
         btn.style.opacity = '0.5';
-        btn.innerHTML = '<span class="material-icons-round">done</span> 읽음';
+        btn.innerHTML = '<i class="ph ph-check"></i> 읽음';
       }
     }
   } catch (e) {
@@ -822,7 +777,7 @@ window.handleToggleFav = async (id, btn, event) => {
       } else {
         const isFav = isTrue(item.Favorite);
         btn.className = `btn-favorite ${isFav ? 'active' : ''}`;
-        btn.innerHTML = `<span class="material-icons-round">${isFav ? 'star' : 'star_border'}</span>`;
+        btn.innerHTML = `<i class=\"ph ${isFav ? 'ph-star ph-fill' : 'ph-star'}\"></i>`;
       }
     }
   } catch (e) {
@@ -876,7 +831,7 @@ window.handleWatchLater = async (id, btn, event) => {
 async function executeAddToYouTube(vId, btn, rowId) {
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span class="material-icons-round spin">sync</span> 추가 중...';
+    btn.innerHTML = '<i class="ph ph-arrows-clockwise ph-spin"></i> 추가 중...';
   }
 
   try {
@@ -897,7 +852,7 @@ async function executeAddToYouTube(vId, btn, rowId) {
     if (res.ok) {
       if (btn) {
         btn.classList.add('success');
-        btn.innerHTML = '<span class="material-icons-round">playlist_add_check</span> 추가 완료';
+        btn.innerHTML = '<i class="ph ph-list-checks"></i> 추가 완료';
       }
       // 시트 업데이트 (GAS)
       await callGAS({ action: 'markAsWatchLater', id: rowId });
@@ -1014,7 +969,7 @@ function playLatestVoiceSummary() {
     const btn = document.getElementById('btn-play-latest');
     if (btn) {
       btn.classList.remove('speaking');
-      btn.innerHTML = '<span class="material-icons-round">volume_up</span> <span class="tab-text">최신 음성 요약 듣기</span>';
+      btn.innerHTML = '<i class="ph ph-speaker-high"></i> <span class="tab-text">최신 음성 요약 듣기</span>';
     }
     return;
   }
@@ -1049,7 +1004,7 @@ function playLatestVoiceSummary() {
     const btn = document.getElementById('btn-play-latest');
     if (btn) {
       btn.classList.add('speaking');
-      btn.innerHTML = '<span class="material-icons-round">stop</span> <span class="tab-text">요약 듣기 중단</span>';
+      btn.innerHTML = '<i class="ph ph-stop"></i> <span class="tab-text">요약 듣기 중단</span>';
     }
   };
 
@@ -1058,7 +1013,7 @@ function playLatestVoiceSummary() {
     const btn = document.getElementById('btn-play-latest');
     if (btn) {
       btn.classList.remove('speaking');
-      btn.innerHTML = '<span class="material-icons-round">volume_up</span> <span class="tab-text">최신 음성 요약 듣기</span>';
+      btn.innerHTML = '<i class="ph ph-speaker-high"></i> <span class="tab-text">최신 음성 요약 듣기</span>';
     }
   };
 
@@ -1068,7 +1023,7 @@ function playLatestVoiceSummary() {
     const btn = document.getElementById('btn-play-latest');
     if (btn) {
       btn.classList.remove('speaking');
-      btn.innerHTML = '<span class="material-icons-round">volume_up</span> <span class="tab-text">최신 음성 요약 듣기</span>';
+      btn.innerHTML = '<i class="ph ph-speaker-high"></i> <span class="tab-text">최신 음성 요약 듣기</span>';
     }
   };
 
@@ -1134,7 +1089,7 @@ async function handleMarkSelectedRead() {
   
   for (let i = 0; i < idsToProcess.length; i++) {
     const id = idsToProcess[i];
-    markBtn.innerHTML = `<span class="material-icons-round spin">sync</span> ${i+1}/${idsToProcess.length}`;
+    markBtn.innerHTML = `<i class="ph ph-arrows-clockwise ph-spin"></i> ${i+1}/${idsToProcess.length}`;
     
     try {
       const res = await callGAS({ action: 'markAsRead', id: id });
@@ -1149,7 +1104,7 @@ async function handleMarkSelectedRead() {
   }
   
   // 성공 메시지 표시 후 초기화
-  markBtn.innerHTML = `<span class="material-icons-round">done</span> 완료 (${successCount})`;
+  markBtn.innerHTML = `<i class="ph ph-check"></i> 완료 (${successCount})`;
   
   setTimeout(() => {
     markBtn.disabled = false;
