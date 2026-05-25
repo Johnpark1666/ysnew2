@@ -16,6 +16,7 @@ let ytPendingRowId = null;
 
 let allData = [];
 let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
+let searchQuery = \'\';
 let currentTab = 'unread';
 let currentCategory = null; // 현재 선택된 카테고리 (null이면 전체 카테고리 목록 표시)
 let currentDetailId = null;
@@ -207,6 +208,31 @@ function setupEventListeners() {
     markSelectedBtn.onclick = () => handleMarkSelectedRead();
   }
 
+  
+  // Search 기능
+  const searchInput = document.getElementById('search-input');
+  const clearSearchBtn = document.getElementById('btn-clear-search');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase().trim();
+      clearSearchBtn.classList.toggle('hidden', searchQuery === '');
+      currentVisibleCount = currentPageSize; // 스크롤 초기화
+      renderGrid();
+    });
+  }
+
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', () => {
+      searchQuery = '';
+      searchInput.value = '';
+      clearSearchBtn.classList.add('hidden');
+      currentVisibleCount = currentPageSize;
+      renderGrid();
+      searchInput.focus();
+    });
+  }
+
   // 새로고침 버튼 핸들러
   const refreshBtn = document.getElementById('btn-refresh');
   if (refreshBtn) {
@@ -299,26 +325,36 @@ function loadMore() {
 }
 
 function getFilteredData() {
+  let data = [];
   if (currentTab === 'unread') {
-    return allData.filter(item => !isTrue(item.Read));
+    data = allData.filter(item => !isTrue(item.Read));
   } else if (currentTab === 'favorite') {
-    return allData.filter(item => isTrue(item.Favorite));
+    data = allData.filter(item => isTrue(item.Favorite));
   } else if (currentTab === 'category') {
     if (currentCategory) {
-      return allData.filter(item => !isTrue(item.Read) && String(item.Category || item['카테고리'] || "미분류").trim() === currentCategory);
+      data = allData.filter(item => !isTrue(item.Read) && String(item.Category || item['카테고리'] || "미분류").trim() === currentCategory);
     } else {
-      // 카테고리 목록 모드일 때는 데이터 자체가 아니라 카테고리 문자열 배열을 기준으로 처리하나, 
-      // renderGrid에서 직접 처리할 것이므로 여기서는 읽지 않은 데이터만 반환하도록 함
-      return allData.filter(item => !isTrue(item.Read)); 
+      data = allData.filter(item => !isTrue(item.Read)); 
     }
   }
-  return [];
+  
+  if (searchQuery) {
+    data = data.filter(item => {
+      const title = String(item.Title || "").toLowerCase();
+      const channel = String(item.ChannelName || "").toLowerCase();
+      const keywords = String(item.Keywords || "").toLowerCase();
+      const summary = String(item.Summary || "").toLowerCase();
+      return title.includes(searchQuery) || channel.includes(searchQuery) || keywords.includes(searchQuery) || summary.includes(searchQuery);
+    });
+  }
+  
+  return data;
 }
 
 function renderGrid(append = false, startIndex = 0) {
   const grid = document.getElementById('card-grid');
   
-  if (currentTab === 'category' && !currentCategory) {
+  if (currentTab === 'category' && !currentCategory && !searchQuery) {
     renderCategoryList();
     updateFloatingToolbar();
     return;
