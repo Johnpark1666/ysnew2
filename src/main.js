@@ -241,23 +241,7 @@ function setupEventListeners() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDetail();
-    
-    if (currentTab === 'category' && !currentCategory) {
-      if (Math.abs(e.deltaY) < 10) return; // Ignore small movements
-      e.preventDefault();
-      if (e.deltaY > 0) {
-        if (categoryIndex < categoryList.length - 1) {
-          categoryIndex++;
-          updateCarouselPositions();
-        }
-      } else {
-        if (categoryIndex > 0) {
-          categoryIndex--;
-          updateCarouselPositions();
-        }
-      }
-    }
-  };
+  });
 }
 
 function updateStats() {
