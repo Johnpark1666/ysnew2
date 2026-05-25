@@ -16,7 +16,7 @@ let ytPendingRowId = null;
 
 let allData = [];
 let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
-let searchQuery = \'\';
+let searchQuery = '';
 let currentTab = 'unread';
 let currentCategory = null; // 현재 선택된 카테고리 (null이면 전체 카테고리 목록 표시)
 let currentDetailId = null;
