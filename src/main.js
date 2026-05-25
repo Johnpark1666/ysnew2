@@ -18,7 +18,8 @@ let allData = [];
 let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
 let searchQuery = '';
 let currentTab = 'unread';
-let currentCategory = null; // 현재 선택된 카테고리 (null이면 전체 카테고리 목록 표시)
+let currentCategory = null;
+let currentChannel = null; // 현재 선택된 카테고리 (null이면 전체 카테고리 목록 표시)
 let currentDetailId = null;
 let touchStartX = 0;
 let touchEndX = 0;
@@ -162,7 +163,11 @@ function isTrue(value) {
 function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
+  
   document.getElementById('tab-category').onclick = () => switchTab('category');
+  const tabChannel = document.getElementById('tab-channel');
+  if (tabChannel) tabChannel.onclick = () => switchTab('channel');
+
   document.getElementById('tab-today').onclick = () => switchTab('today');
   
   // [Floating Toolbar]
@@ -275,19 +280,28 @@ function updateStats() {
   const favCount = allData.filter(item => isTrue(item.Favorite)).length;
 
   // 카테고리 목록 및 개수 계산 (읽지 않은 영상이 있는 카테고리만)
+  
   const categories = [...new Set(allData.filter(item => !isTrue(item.Read)).map(item => String(item.Category || item['카테고리'] || "미분류").trim()))].filter(c => c !== "");
+  const channels = [...new Set(allData.filter(item => !isTrue(item.Read)).map(item => String(item.ChannelName || "알 수 없음").trim()))].filter(c => c !== "");
   
   document.getElementById('unread-count').textContent = unreadCount;
   document.getElementById('fav-count').textContent = favCount;
   document.getElementById('category-count').textContent = categories.length;
+  const channelCountEl = document.getElementById('channel-count');
+  if(channelCountEl) channelCountEl.textContent = channels.length;
+
 }
 
 function switchTab(tabName) {
-  if (currentTab === tabName && tabName !== 'category') return;
+  
+  if (currentTab === tabName && tabName !== 'category' && tabName !== 'channel') return;
   if (currentTab === tabName && tabName === 'category' && currentCategory === null) return;
+  if (currentTab === tabName && tabName === 'channel' && currentChannel === null) return;
 
   currentTab = tabName;
-  currentCategory = null; // 탭 전환 시 카테고리 선택 초기화
+  currentCategory = null; 
+  currentChannel = null; 
+
 
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${tabName}`).classList.add('active');
@@ -336,6 +350,12 @@ function getFilteredData() {
     } else {
       data = allData.filter(item => !isTrue(item.Read)); 
     }
+  } else if (currentTab === 'channel') {
+    if (currentChannel) {
+      data = allData.filter(item => !isTrue(item.Read) && String(item.ChannelName || "알 수 없음").trim() === currentChannel);
+    } else {
+      data = allData.filter(item => !isTrue(item.Read)); 
+    }
   }
   
   if (searchQuery) {
@@ -354,11 +374,19 @@ function getFilteredData() {
 function renderGrid(append = false, startIndex = 0) {
   const grid = document.getElementById('card-grid');
   
+
   if (currentTab === 'category' && !currentCategory && !searchQuery) {
     renderCategoryList();
     updateFloatingToolbar();
     return;
   }
+
+  if (currentTab === 'channel' && !currentChannel && !searchQuery) {
+    renderChannelList();
+    updateFloatingToolbar();
+    return;
+  }
+
 
   updateFloatingToolbar();
 
@@ -382,25 +410,26 @@ function renderGrid(append = false, startIndex = 0) {
     filteredData.sort((a, b) => (b.rowIndex || 0) - (a.rowIndex || 0));
   }
 
-  // 카테고리 내비게이션 바 (뒤로가기 버튼)
-  if (currentTab === 'category' && currentCategory && !append) {
+  // 카테고리/채널 내비게이션 바 (뒤로가기 버튼)
+  if (((currentTab === 'category' && currentCategory) || (currentTab === 'channel' && currentChannel)) && !append) {
     const header = document.createElement('div');
     header.className = 'category-header';
+    const isCat = currentTab === 'category';
     header.innerHTML = `
       <button class="btn-back">
         <i class="ph ph-arrow-left"></i>
         목록으로
       </button>
       <div class="category-title-display">
-        <i class="ph ph-folder-open"></i>
-        ${currentCategory}
+        <i class="ph ${isCat ? 'ph-folder-open' : 'ph-youtube-logo'}"></i>
+        ${isCat ? currentCategory : currentChannel}
       </div>
     `;
     
-    // 이벤트 리스너 직접 연결 (모듈 스코프 대응)
     const backBtn = header.querySelector('.btn-back');
     backBtn.onclick = () => {
-      currentCategory = null;
+      if (isCat) currentCategory = null;
+      else currentChannel = null;
       renderGrid();
     };
     
@@ -516,8 +545,8 @@ function renderGrid(append = false, startIndex = 0) {
 function renderCategoryList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
-  grid.classList.add('category-grid-mode');
-  grid.classList.remove('carousel-mode');
+  grid.className = 'horizontal-scroll-mode';
+  
 
   const categoryMap = {};
   allData.filter(item => !isTrue(item.Read)).forEach(item => {
@@ -989,3 +1018,51 @@ function updateFloatingToolbar() {
   });
 }
 
+
+
+function renderChannelList() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = "";
+  grid.className = "channel-grid-mode";
+
+  const channelMap = {};
+  allData.filter(item => !isTrue(item.Read)).forEach(item => {
+    const ch = String(item.ChannelName || "알 수 없음").trim();
+    if (!channelMap[ch]) channelMap[ch] = { count: 0 };
+    channelMap[ch].count++;
+  });
+
+  const channelList = Object.keys(channelMap).sort((a,b) => channelMap[b].count - channelMap[a].count);
+
+  if (channelList.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon"><i class="ph ph-youtube-logo"></i></div>
+        <div class="empty-title">채널이 없습니다</div>
+        <div class="empty-description">읽지 않은 영상이 없습니다.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  channelList.forEach(ch => {
+    const card = document.createElement('div');
+    card.className = 'channel-card';
+    card.onclick = () => {
+      currentChannel = ch;
+      renderGrid();
+    };
+    card.innerHTML = `
+      <div class="channel-avatar">
+        <i class="ph-fill ph-youtube-logo"></i>
+      </div>
+      <div class="channel-info-text">
+        <div class="channel-name-large">${ch}</div>
+        <div class="channel-video-count">${channelMap[ch].count}개의 새 영상</div>
+      </div>
+    `;
+    fragment.appendChild(card);
+  });
+  grid.appendChild(fragment);
+}

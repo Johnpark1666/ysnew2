@@ -300,12 +300,7 @@ body {
   gap: 24px;
 }
 
-.grid.category-grid-mode {
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  max-width: 1200px; /* Limits the max expansion of the 4 columns */
-  margin: 0 auto; /* Centers the whole grid on large monitors */
-}
+
 
 /* Floating Toolbar */
 .floating-toolbar {
@@ -1533,4 +1528,64 @@ body {
 }
 #btn-clear-search:hover {
   color: var(--text-primary);
+}
+
+/* Fix Category Horizontal Scroll Mode */
+.horizontal-scroll-mode {
+  display: block;
+  width: 100%;
+}
+
+/* Channel Grid Mode */
+.channel-grid-mode {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+.channel-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  backdrop-filter: blur(8px);
+}
+.channel-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+.channel-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.channel-info-text {
+  overflow: hidden;
+}
+.channel-name-large {
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+.channel-video-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
