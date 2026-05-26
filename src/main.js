@@ -1023,8 +1023,8 @@ function openSublist(type, key) {
       openDetail(item.id);
     };
     
-    let videoId = extractVideoId(item.URL);
-    const thumb = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : 'icons8-youtube-16.png';
+    let videoId = extractVideoId(item.URL || item['URL'] || "");
+    const thumb = item.Image_URL || item['썸네일'] || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : 'icons8-youtube-16.png');
     
     card.innerHTML = `
       <img src="${thumb}" class="sublist-thumb">
