@@ -555,14 +555,23 @@ function renderCategoryList() {
 }
 
 
-// 이미지 에러 핸들러
 window.handleImageError = (img) => {
-  img.onerror = null; // Prevent infinite loop if fallback fails
+  // Prevent any inline HTML onerror loops
+  img.removeAttribute('onerror');
+  img.onerror = null;
+  
   if (img.src.includes('maxresdefault.jpg')) {
     img.src = img.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+    // JS-based fallback if hqdefault also fails
+    img.onerror = function() {
+      this.onerror = null;
+      this.src = 'icons8-youtube-16.png';
+    };
     return;
   }
-  img.src = 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Thumbnail';
+  
+  // Ultimate fallback to a local image that we know exists
+  img.src = 'icons8-youtube-16.png';
 };
 
 // 상세 로직 및 Apps Script 호출 로직은 기존 기능 유지
