@@ -1601,16 +1601,16 @@ body {
   z-index: 100;
   display: none;
   min-width: 0;
-  width: 960px;
+  width: 1150px;
 }
 .layout-container.sublist-active {
-  grid-template-columns: minmax(0, 1fr) 960px;
+  grid-template-columns: minmax(0, 1fr) 1150px;
 }
 .layout-container.sublist-active .pane-sublist {
   display: flex;
 }
 .layout-container.sublist-active.detail-active {
-  grid-template-columns: minmax(0, 1fr) 960px;
+  grid-template-columns: minmax(0, 1fr) 1150px;
 }
 .layout-container.sublist-active.detail-active .pane-detail {
   position: absolute;
@@ -1625,9 +1625,9 @@ body {
 
 .sublist-body {
   padding: 16px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .sublist-card {
   display: flex;
