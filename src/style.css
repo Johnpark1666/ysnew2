@@ -1610,20 +1610,21 @@ body {
 }
 .layout-container.sublist-active .pane-list {
   flex: none !important;
-  width: 320px !important;
+  width: 280px !important;
   border-right: 1px solid var(--border-default);
   padding: 24px 16px;
 }
 .layout-container.sublist-active .pane-sublist {
-  flex: 1;
-  min-width: 600px;
-  width: auto;
+  flex: none !important;
+  width: 450px !important;
+  min-width: 0 !important;
   display: flex;
 }
 .layout-container.sublist-active.detail-active .pane-detail {
   position: static;
-  flex: none !important;
-  width: 800px !important;
+  flex: 1 !important;
+  width: auto !important;
+  min-width: 500px !important;
   display: block;
   box-shadow: none;
   border-left: 1px solid var(--border-default);
