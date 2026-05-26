@@ -1623,7 +1623,7 @@ body {
 .layout-container.sublist-active.detail-active .pane-detail {
   position: static;
   flex: none !important;
-  width: 480px !important;
+  width: 800px !important;
   display: block;
   box-shadow: none;
   border-left: 1px solid var(--border-default);
