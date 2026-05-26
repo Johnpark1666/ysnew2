@@ -1624,7 +1624,7 @@ body {
   position: static;
   flex: none !important;
   width: 480px !important;
-  display: flex;
+  display: block;
   box-shadow: none;
   border-left: 1px solid var(--border-default);
 }
