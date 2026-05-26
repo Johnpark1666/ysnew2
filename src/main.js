@@ -1025,11 +1025,23 @@ function openSublist(type, key) {
     let videoId = extractVideoId(item.URL || item['URL'] || "");
     const thumb = item.Image_URL || item['썸네일'] || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : 'icons8-youtube-16.png');
     
+    const isFav = isTrue(item.Favorite);
+
     card.innerHTML = `
-      <img src="${thumb}" class="sublist-thumb">
-      <div class="sublist-info">
-        <div class="sublist-title">${item.Title || "제목 없음"}</div>
-        <div class="sublist-date">${item.PublishDate || ""}</div>
+      <div style="display: flex; gap: 16px; flex: 1; align-items: center; overflow: hidden;">
+        <img src="${thumb}" class="sublist-thumb" onerror="window.handleImageError(this)">
+        <div class="sublist-info" style="flex: 1; min-width: 0;">
+          <div class="sublist-title">${item.Title || "제목 없음"}</div>
+          <div class="sublist-date">${item.PublishDate || ""}</div>
+        </div>
+      </div>
+      <div class="sublist-actions" style="display: flex; gap: 8px; flex-shrink: 0; align-items: center; border-left: 1px solid var(--border-subtle); padding-left: 16px;">
+        <button class="btn-mark-read" style="padding: 8px 12px; height: 44px; border-radius: 8px; font-size: 13px; border: 1px solid var(--border-default); background: white; color: var(--text-primary); cursor: pointer;" onclick="event.stopPropagation(); handleMarkRead('${item.id || item.ID}', this, event)">
+          <i class="ph ph-check-circle" style="font-size: 18px; margin-right: 4px;"></i> 읽음
+        </button>
+        <button class="btn-favorite ${isFav ? 'active' : ''}" style="width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--border-default); background: white; cursor: pointer; color: ${isFav ? 'var(--accent-warning)' : 'var(--text-muted)'};" onclick="event.stopPropagation(); handleToggleFav('${item.id || item.ID}', this, event)">
+          <i class="ph ${isFav ? 'ph-star ph-fill' : 'ph-star'}" style="font-size: 20px;"></i>
+        </button>
       </div>
     `;
     sublistBody.appendChild(card);
