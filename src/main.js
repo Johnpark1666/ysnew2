@@ -982,7 +982,6 @@ function renderChannelList() {
     
     card.innerHTML = `
       <div class="list-row-left">
-        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(ch)}&background=random&color=fff&rounded=true&bold=true" class="list-row-icon">
         <div class="list-row-title">${ch}</div>
       </div>
       <div class="list-row-right">
