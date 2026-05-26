@@ -557,12 +557,12 @@ function renderCategoryList() {
 
 // 이미지 에러 핸들러
 window.handleImageError = (img) => {
+  img.onerror = null; // Prevent infinite loop if fallback fails
   if (img.src.includes('maxresdefault.jpg')) {
     img.src = img.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
     return;
   }
   img.src = 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Thumbnail';
-  img.onerror = null;
 };
 
 // 상세 로직 및 Apps Script 호출 로직은 기존 기능 유지
