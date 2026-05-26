@@ -310,6 +310,7 @@ function switchTab(tabName) {
   
   // 탭 전환 시 선택 모드 해제
   if (isSelectionMode) toggleSelectionMode(false);
+  closeSublist();
   
   closeDetail();
 
@@ -375,13 +376,13 @@ function renderGrid(append = false, startIndex = 0) {
   const grid = document.getElementById('card-grid');
   
 
-  if (currentTab === 'category' && !currentCategory && !searchQuery) {
+  if (currentTab === 'category' && !searchQuery) {
     renderCategoryList();
     updateFloatingToolbar();
     return;
   }
 
-  if (currentTab === 'channel' && !currentChannel && !searchQuery) {
+  if (currentTab === 'channel' && !searchQuery) {
     renderChannelList();
     updateFloatingToolbar();
     return;
@@ -410,31 +411,7 @@ function renderGrid(append = false, startIndex = 0) {
     filteredData.sort((a, b) => (b.rowIndex || 0) - (a.rowIndex || 0));
   }
 
-  // 카테고리/채널 내비게이션 바 (뒤로가기 버튼)
-  if (((currentTab === 'category' && currentCategory) || (currentTab === 'channel' && currentChannel)) && !append) {
-    const header = document.createElement('div');
-    header.className = 'category-header';
-    const isCat = currentTab === 'category';
-    header.innerHTML = `
-      <button class="btn-back">
-        <i class="ph ph-arrow-left"></i>
-        목록으로
-      </button>
-      <div class="category-title-display">
-        <i class="ph ${isCat ? 'ph-folder-open' : 'ph-youtube-logo'}"></i>
-        ${isCat ? currentCategory : currentChannel}
-      </div>
-    `;
-    
-    const backBtn = header.querySelector('.btn-back');
-    backBtn.onclick = () => {
-      if (isCat) currentCategory = null;
-      else currentChannel = null;
-      renderGrid();
-    };
-    
-    grid.appendChild(header);
-  }
+
 
   if (filteredData.length === 0 && !append) {
     const emptyIcon = currentTab === 'unread' ? 'ph-envelope-open' : (currentTab === 'favorite' ? 'ph-star' : 'ph-folder-simple-minus');
@@ -545,84 +522,36 @@ function renderGrid(append = false, startIndex = 0) {
 function renderCategoryList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
-  grid.className = 'horizontal-scroll-mode';
-  
+  grid.className = "vertical-list-mode";
 
-  const categoryMap = {};
+  const categories = {};
   allData.filter(item => !isTrue(item.Read)).forEach(item => {
-    const cat = String(item.Category || item['카테고리'] || "미분류").trim();
-    if (cat === "") return;
-    
-    if (!categoryMap[cat]) {
-      categoryMap[cat] = { count: 0, thumbs: [] };
-    }
-    categoryMap[cat].count++;
-    if (categoryMap[cat].thumbs.length < 3 && item.Image_URL) {
-      categoryMap[cat].thumbs.push(item.Image_URL);
-    }
+    const c = String(item.Category || item['카테고리'] || "미분류").trim();
+    if (!categories[c]) categories[c] = { count: 0 };
+    categories[c].count++;
   });
 
-  categoryList = Object.keys(categoryMap).sort();
-
-  if (categoryList.length === 0) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon"><i class="ph ph-folder-simple-minus"></i></div>
-        <div class="empty-title">카테고리가 없습니다</div>
-        <div class="empty-description">영상에 카테고리가 지정되면 여기에 표시됩니다.</div>
-      </div>
-    `;
-    return;
-  }
+  const catList = Object.keys(categories).sort((a,b) => categories[b].count - categories[a].count);
 
   const fragment = document.createDocumentFragment();
-  categoryList.forEach((cat, index) => {
-    const data = categoryMap[cat];
+  catList.forEach(c => {
     const card = document.createElement('div');
-    card.className = 'category-card';
-    card.dataset.catName = cat;
-
-    card.onclick = () => {
-      currentCategory = cat;
-      renderGrid();
-    };
-
-    let itemsHtml = '';
-    if (data.thumbs.length > 0) {
-      itemsHtml = data.thumbs.map((t) => `
-        <div class="folder-item">
-          <img src="${t}" alt="thumb" loading="lazy">
-        </div>
-      `).join('');
-    } else {
-      itemsHtml = `
-        <div class="folder-item">
-          <div class="no-thumb-icon"><i class="ph ph-play-circle"></i></div>
-        </div>
-      `;
-    }
-
+    card.className = 'list-row-item';
+    card.onclick = () => openSublist('category', c);
+    
     card.innerHTML = `
-      <div class="folder-container">
-        <div class="folder-front-content" style="padding: 24px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-default); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <i class="ph ph-folder-open folder-icon" style="font-size: 24px; color: var(--accent-primary);"></i>
-            <div class="category-info">
-              <div class="category-name" style="font-weight: 700; font-size: 16px;">${cat}</div>
-              <div class="category-count" style="font-size: 13px; color: var(--text-muted);">영상 ${data.count}개</div>
-            </div>
-          </div>
-          <i class="ph ph-caret-right category-arrow" style="color: var(--text-muted);"></i>
-        </div>
+      <div class="list-row-left">
+        <div class="list-row-icon"><i class="ph ph-folder-open"></i></div>
+        <div class="list-row-title">${c}</div>
+      </div>
+      <div class="list-row-right">
+        <div class="list-row-count">${categories[c].count}개의 새 영상</div>
+        <i class="ph ph-caret-right" style="color: var(--text-muted); font-size: 20px;"></i>
       </div>
     `;
     fragment.appendChild(card);
   });
-  
-  const scrollContainer = document.createElement('div');
-  scrollContainer.className = 'category-scroll-container';
-  scrollContainer.appendChild(fragment);
-  grid.appendChild(scrollContainer);
+  grid.appendChild(fragment);
 }
 
 
@@ -1023,7 +952,7 @@ function updateFloatingToolbar() {
 function renderChannelList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
-  grid.className = "channel-grid-mode";
+  grid.className = "vertical-list-mode";
 
   const channelMap = {};
   allData.filter(item => !isTrue(item.Read)).forEach(item => {
@@ -1048,21 +977,66 @@ function renderChannelList() {
   const fragment = document.createDocumentFragment();
   channelList.forEach(ch => {
     const card = document.createElement('div');
-    card.className = 'channel-card';
-    card.onclick = () => {
-      currentChannel = ch;
-      renderGrid();
-    };
+    card.className = 'list-row-item';
+    card.onclick = () => openSublist('channel', ch);
+    
     card.innerHTML = `
-      <div class="channel-avatar">
-        <i class="ph-fill ph-youtube-logo"></i>
+      <div class="list-row-left">
+        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(ch)}&background=random&color=fff&rounded=true&bold=true" class="list-row-icon">
+        <div class="list-row-title">${ch}</div>
       </div>
-      <div class="channel-info-text">
-        <div class="channel-name-large">${ch}</div>
-        <div class="channel-video-count">${channelMap[ch].count}개의 새 영상</div>
+      <div class="list-row-right">
+        <div class="list-row-count">${channelMap[ch].count}개의 새 영상</div>
+        <i class="ph ph-caret-right" style="color: var(--text-muted); font-size: 20px;"></i>
       </div>
     `;
     fragment.appendChild(card);
   });
   grid.appendChild(fragment);
+}
+
+
+function openSublist(type, key) {
+  document.querySelector('.layout-container').classList.add('sublist-active');
+  document.getElementById('sl-title').textContent = key;
+  
+  const sublistBody = document.getElementById('sublist-body');
+  sublistBody.innerHTML = '';
+  
+  let data = [];
+  if (type === 'category') {
+    data = allData.filter(item => !isTrue(item.Read) && String(item.Category || item['카테고리'] || "미분류").trim() === key);
+  } else {
+    data = allData.filter(item => !isTrue(item.Read) && String(item.ChannelName || "알 수 없음").trim() === key);
+  }
+  
+  if (sortOrder === 'newest') {
+    data.sort((a, b) => (b.PublishDate || "").localeCompare(a.PublishDate || ""));
+  } else if (sortOrder === 'oldest') {
+    data.sort((a, b) => (a.PublishDate || "").localeCompare(b.PublishDate || ""));
+  }
+  
+  data.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'sublist-card';
+    card.onclick = () => {
+      openDetail(item.id);
+    };
+    
+    let videoId = extractVideoId(item.URL);
+    const thumb = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : 'icons8-youtube-16.png';
+    
+    card.innerHTML = `
+      <img src="${thumb}" class="sublist-thumb">
+      <div class="sublist-info">
+        <div class="sublist-title">${item.Title || "제목 없음"}</div>
+        <div class="sublist-date">${item.PublishDate || ""}</div>
+      </div>
+    `;
+    sublistBody.appendChild(card);
+  });
+}
+
+function closeSublist() {
+  document.querySelector('.layout-container').classList.remove('sublist-active');
 }
