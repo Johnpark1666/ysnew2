@@ -1019,7 +1019,7 @@ function openSublist(type, key) {
     const card = document.createElement('div');
     card.className = 'sublist-card';
     card.onclick = () => {
-      openDetail(item.id);
+      openDetail(item.id || item.ID);
     };
     
     let videoId = extractVideoId(item.URL || item['URL'] || "");
