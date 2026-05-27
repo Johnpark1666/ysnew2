@@ -16,6 +16,7 @@ let ytPendingRowId = null;
 
 let allData = [];
 let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
+let mixData = []; // NotebookLM_Mix 데이터
 let searchQuery = '';
 let currentTab = 'unread';
 let currentCategory = null;
@@ -129,7 +130,26 @@ async function fetchData() {
       return id !== "" && id !== "!!BRIEFING_LATEST!!";
     });
 
-    console.log('실시간 연동 성공:', allData.length, '개의 행');
+    // 3. NotebookLM_Mix 시트 데이터 가져오기
+    const mixResponse = await fetch(`${GVIZ_URL}&sheet=NotebookLM_Mix&t=${Date.now()}`);
+    const mixText = await mixResponse.text();
+    const mixJsonStr = mixText.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
+    if (mixJsonStr) {
+      const mixObj = JSON.parse(mixJsonStr[1]);
+      const mixRows = mixObj.table.rows;
+      mixData = mixRows.map((row, index) => {
+        return {
+          id: `mix_${index}`,
+          timestamp: row.c[0] ? row.c[0].v : "",
+          type: row.c[1] ? row.c[1].v : "",
+          url: row.c[2] ? row.c[2].v : "",
+          sourceIds: row.c[3] ? row.c[3].v : "",
+          title: row.c[4] ? row.c[4].v : ""
+        };
+      }).reverse(); // 최신순으로 정렬
+    }
+
+    console.log('실시간 연동 성공:', allData.length, '개의 행, Mix 데이터:', mixData.length, '개');
     onDataLoaded();
 
   } catch (error) {
@@ -170,6 +190,9 @@ function setupEventListeners() {
 
   document.getElementById('tab-today').onclick = () => switchTab('today');
   
+  const tabMix = document.getElementById('tab-mix');
+  if (tabMix) tabMix.onclick = () => switchTab('mix');
+  
   // [Floating Toolbar]
   const toolbar = document.getElementById('floating-toolbar');
   const sortSelect = document.getElementById('toolbar-sort-select');
@@ -200,6 +223,9 @@ function setupEventListeners() {
   };
 
   document.getElementById('close-detail').onclick = () => closeDetail();
+  
+  const closeMixDetailBtn = document.getElementById('close-mix-detail');
+  if (closeMixDetailBtn) closeMixDetailBtn.onclick = () => closeMixDetail();
 
   // [Multi-Select Events]
   const selectModeBtn = document.getElementById('btn-select-mode');
@@ -289,6 +315,9 @@ function updateStats() {
   document.getElementById('category-count').textContent = categories.length;
   const channelCountEl = document.getElementById('channel-count');
   if(channelCountEl) channelCountEl.textContent = channels.length;
+  
+  const mixCountEl = document.getElementById('mix-count');
+  if (mixCountEl) mixCountEl.textContent = mixData.length;
 
 }
 
@@ -313,6 +342,7 @@ function switchTab(tabName) {
   closeSublist();
   
   closeDetail();
+  closeMixDetail();
 
   const paneList = document.getElementById('pane-list');
   const paneToday = document.getElementById('pane-today');
@@ -384,6 +414,12 @@ function renderGrid(append = false, startIndex = 0) {
 
   if (currentTab === 'channel' && !searchQuery) {
     renderChannelList();
+    updateFloatingToolbar();
+    return;
+  }
+  
+  if (currentTab === 'mix') {
+    renderMixGrid();
     updateFloatingToolbar();
     return;
   }
@@ -519,6 +555,63 @@ function renderGrid(append = false, startIndex = 0) {
   grid.appendChild(fragment);
 }
 
+function renderMixGrid() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = "";
+  grid.className = "grid list-mode mix-grid";
+
+  if (mixData.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.innerHTML = `
+        <div class="empty-icon"><i class="ph ph-headphones"></i></div>
+        <div class="empty-title">믹스 데이터가 없습니다</div>
+        <div class="empty-description">NotebookLM_Mix 시트에 데이터가 없습니다.</div>
+    `;
+    grid.appendChild(emptyState);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  mixData.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card mix-card';
+    
+    let vIds = [];
+    if (typeof item.sourceIds === 'string') {
+      vIds = item.sourceIds.split(',').map(s => s.trim()).filter(s => s);
+    }
+    
+    const typeIcon = item.type && item.type.toUpperCase() === 'AUDIO' ? 'ph-headphones' : 'ph-file-pdf';
+    const timestampStr = typeof item.timestamp === 'string' ? item.timestamp.substring(0, 10) : '';
+    
+    // URL 변환 (드라이브 링크 -> 다운로드 링크 방지 / 미리보기용)
+    // 썸네일 아이콘
+    
+    card.innerHTML = `
+      <div class="card-thumbnail mix-thumbnail" style="display:flex; align-items:center; justify-content:center; background: var(--bg-card-hover); font-size: 32px; color: var(--accent-primary);">
+        <i class="ph ${typeIcon}"></i>
+      </div>
+      <div class="card-content">
+        <div class="channel-info">
+          <div class="channel-details">
+            <div class="channel-name" style="color:var(--accent-primary)">NotebookLM ${item.type}</div>
+            <div class="video-date">${timestampStr}</div>
+          </div>
+        </div>
+        <div class="card-title">${item.title || '제목 없음'}</div>
+        <div class="keywords">
+          <span class="keyword-tag"><i class="ph ph-youtube-logo"></i> ${vIds.length}개의 소스 영상</span>
+        </div>
+      </div>
+    `;
+
+    card.onclick = () => openMixDetail(item);
+    fragment.appendChild(card);
+  });
+  grid.appendChild(fragment);
+}
+
 function renderCategoryList() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
@@ -647,6 +740,106 @@ function closeDetail() {
   document.getElementById('layout-container').classList.remove('detail-active');
   document.body.classList.remove('detail-open');
   currentDetailId = null;
+}
+
+function openMixDetail(item) {
+  const detailPane = document.getElementById('pane-mix-detail');
+  const detailBody = detailPane.querySelector('.modal-body');
+
+  detailBody.style.opacity = '0';
+  detailBody.style.transform = 'translateY(10px)';
+  detailBody.style.transition = 'none';
+
+  setTimeout(() => {
+    document.getElementById('mix-title').innerText = item.title || '제목 없음';
+    document.getElementById('mix-date-text').innerText = typeof item.timestamp === 'string' ? item.timestamp.substring(0, 10) : '';
+
+    const mediaContainer = document.getElementById('mix-media-container');
+    mediaContainer.innerHTML = '';
+    
+    if (item.url) {
+      if (item.type && item.type.toUpperCase() === 'AUDIO') {
+        // 드라이브 링크가 다운로드 형식이거나 preview 형식일 때 오디오 태그 지원이 브라우저에 따라 다름.
+        // 드라이브 URL을 iframe으로 바로 띄우는 것이 안전함.
+        const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
+        mediaContainer.innerHTML = `<iframe src="${previewUrl}" width="100%" height="200" allow="autoplay" style="border-radius:12px; border:none; margin-bottom: 20px;"></iframe>`;
+      } else {
+        const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
+        mediaContainer.innerHTML = `<iframe src="${previewUrl}" width="100%" height="500" style="border-radius:12px; border:none; margin-bottom: 20px;"></iframe>`;
+      }
+    }
+
+    const sourcesContainer = document.getElementById('mix-sources-container');
+    sourcesContainer.innerHTML = '';
+    let vIds = [];
+    if (typeof item.sourceIds === 'string') {
+      vIds = item.sourceIds.split(',').map(s => s.trim()).filter(s => s);
+    }
+    
+    // vId를 바탕으로 allData에서 원본 데이터를 찾아 카드 렌더링
+    vIds.forEach(vId => {
+      // url에서 비디오 ID 매칭할 수 있도록 추출 로직. allData의 각 item에서 vId를 포함하는지 확인
+      const sourceItem = allData.find(d => {
+        const dUrl = d.VideoURL || d.link || d.Video_URL || "";
+        return dUrl.includes(vId);
+      });
+      
+      const card = document.createElement('div');
+      card.className = 'card source-card';
+      // 클릭 시 해당 원본의 상세 페이지 열기 (이미 openDetail 함수가 있음)
+      if (sourceItem) {
+        card.onclick = () => {
+          closeMixDetail(); // 믹스 디테일 닫고
+          openDetail(sourceItem.ID); // 원본 디테일 열기
+        };
+        const imgUrl = sourceItem.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
+        const pubDate = sourceItem.PublishDate ? String(sourceItem.PublishDate).substring(0, 10) : '-';
+        card.innerHTML = \`
+          <div class="card-thumbnail" style="width:120px; flex-shrink:0;">
+            <img src="\${imgUrl}" alt="\${sourceItem.Title}" loading="lazy" onerror="window.handleImageError(this)">
+          </div>
+          <div class="card-content">
+            <div class="channel-info">
+              <div class="channel-name">\${sourceItem.ChannelName || '알 수 없는 채널'}</div>
+              <div class="video-date">\${pubDate}</div>
+            </div>
+            <div class="card-title" style="font-size: 14px;">\${sourceItem.Title}</div>
+          </div>
+        \`;
+      } else {
+        // 원본 데이터를 못 찾았을 경우, 단순 링크로 표시
+        card.onclick = () => window.open(\`https://www.youtube.com/watch?v=\${vId}\`, '_blank');
+        card.innerHTML = \`
+          <div class="card-thumbnail" style="width:120px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:#1e1e2a;">
+            <i class="ph ph-youtube-logo" style="font-size:24px; color:#ff0000;"></i>
+          </div>
+          <div class="card-content">
+            <div class="card-title" style="font-size: 14px;">YouTube Video (\${vId})</div>
+            <div class="keywords">클릭하여 YouTube에서 열기</div>
+          </div>
+        \`;
+      }
+      sourcesContainer.appendChild(card);
+    });
+
+    detailBody.style.transition = 'all 0.4s ease';
+    detailBody.style.opacity = '1';
+    detailBody.style.transform = 'translateY(0)';
+  }, 50);
+
+  document.getElementById('layout-container').classList.add('mix-detail-active');
+  document.body.classList.add('detail-open'); // 스크롤 방지 등 동일한 클래스 사용
+  setTimeout(() => detailPane.classList.add('open'), 10); // CSS 애니메이션 용 (필요 시)
+  detailPane.scrollTop = 0;
+}
+
+function closeMixDetail() {
+  document.getElementById('layout-container').classList.remove('mix-detail-active');
+  document.body.classList.remove('detail-open');
+  const detailPane = document.getElementById('pane-mix-detail');
+  if (detailPane) {
+    detailPane.classList.remove('open');
+  }
 }
 
 window.handleMarkRead = async (id, btn, event) => {

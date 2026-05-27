@@ -169,17 +169,21 @@ body {
   opacity: 0;
   position: relative;
   border-left: 1px solid var(--border-subtle);
+  display: none; /* By default hidden, only shown via JS when active */
 }
 
 @media (min-width: 1024px) {
-  .layout-container.detail-active .pane-list {
+  .layout-container.detail-active .pane-list,
+  .layout-container.mix-detail-active .pane-list {
     flex: 3;
   }
 
-  .layout-container.detail-active .pane-detail {
+  .layout-container.detail-active #pane-detail,
+  .layout-container.mix-detail-active #pane-mix-detail {
     flex: 2;
     visibility: visible;
     opacity: 1;
+    display: block; /* Override display: none */
     padding-bottom: 80px;
   }
 
@@ -210,16 +214,19 @@ body {
     height: 100vh;
   }
 
-  .layout-container.detail-active .pane-list {
+  .layout-container.detail-active .pane-list,
+  .layout-container.mix-detail-active .pane-list {
     display: none;
   }
 
-  .layout-container.detail-active .pane-detail {
+  .layout-container.detail-active #pane-detail,
+  .layout-container.mix-detail-active #pane-mix-detail {
     width: 100% !important;
     height: 100%;
     flex: 1;
     visibility: visible;
     opacity: 1;
+    display: block; /* Override display: none */
     border-left: none;
   }
 
