@@ -794,30 +794,30 @@ function openMixDetail(item) {
         };
         const imgUrl = sourceItem.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
         const pubDate = sourceItem.PublishDate ? String(sourceItem.PublishDate).substring(0, 10) : '-';
-        card.innerHTML = \`
+        card.innerHTML = `
           <div class="card-thumbnail" style="width:120px; flex-shrink:0;">
-            <img src="\${imgUrl}" alt="\${sourceItem.Title}" loading="lazy" onerror="window.handleImageError(this)">
+            <img src="${imgUrl}" alt="${sourceItem.Title}" loading="lazy" onerror="window.handleImageError(this)">
           </div>
           <div class="card-content">
             <div class="channel-info">
-              <div class="channel-name">\${sourceItem.ChannelName || '알 수 없는 채널'}</div>
-              <div class="video-date">\${pubDate}</div>
+              <div class="channel-name">${sourceItem.ChannelName || '알 수 없는 채널'}</div>
+              <div class="video-date">${pubDate}</div>
             </div>
-            <div class="card-title" style="font-size: 14px;">\${sourceItem.Title}</div>
+            <div class="card-title" style="font-size: 14px;">${sourceItem.Title}</div>
           </div>
-        \`;
+        `;
       } else {
         // 원본 데이터를 못 찾았을 경우, 단순 링크로 표시
-        card.onclick = () => window.open(\`https://www.youtube.com/watch?v=\${vId}\`, '_blank');
-        card.innerHTML = \`
+        card.onclick = () => window.open(`https://www.youtube.com/watch?v=${vId}`, '_blank');
+        card.innerHTML = `
           <div class="card-thumbnail" style="width:120px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:#1e1e2a;">
             <i class="ph ph-youtube-logo" style="font-size:24px; color:#ff0000;"></i>
           </div>
           <div class="card-content">
-            <div class="card-title" style="font-size: 14px;">YouTube Video (\${vId})</div>
+            <div class="card-title" style="font-size: 14px;">YouTube Video (${vId})</div>
             <div class="keywords">클릭하여 YouTube에서 열기</div>
           </div>
-        \`;
+        `;
       }
       sourcesContainer.appendChild(card);
     });
