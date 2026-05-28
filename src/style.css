@@ -1752,3 +1752,39 @@ body {
   padding: 4px 12px;
   border-radius: 100px;
 }
+
+/* Source Card styles inside NotebookLM Mix detail pane */
+.mix-sources .source-card {
+  height: 90px !important;
+  min-height: 90px !important;
+  flex-direction: row !important;
+}
+
+.mix-sources .source-card .card-thumbnail {
+  width: 160px !important;
+  height: 100% !important;
+  aspect-ratio: 16/9 !important;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.mix-sources .source-card .card-thumbnail img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.mix-sources .source-card .card-content {
+  padding: 10px 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 4px !important;
+}
+
+.mix-sources .source-card .card-title {
+  font-size: 13px !important;
+  line-clamp: 2 !important;
+  -webkit-line-clamp: 2 !important;
+}
+
