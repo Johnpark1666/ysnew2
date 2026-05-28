@@ -1637,16 +1637,16 @@ body {
   
   /* sublist와 일반 detail이 활성화되었을 때 (3분할) */
   .layout-container.sublist-active.detail-active .pane-list {
-    flex: 1 1 260px !important;
+    flex: 1.6 1 340px !important;
     width: auto !important;
-    min-width: 240px !important;
-    max-width: 320px !important;
+    min-width: 300px !important;
+    max-width: 420px !important;
     border-right: 1px solid var(--border-default);
     padding: 24px 16px;
     display: block !important;
   }
   .layout-container.sublist-active.detail-active .pane-sublist {
-    flex: 3 1 auto !important;
+    flex: 2.4 1 auto !important;
     width: auto !important;
     min-width: 400px !important;
     display: flex !important;
@@ -1666,16 +1666,16 @@ body {
 
   /* sublist와 mix-detail이 활성화되었을 때 (3분할) */
   .layout-container.sublist-active.mix-detail-active .pane-list {
-    flex: 1 1 260px !important;
+    flex: 1.6 1 340px !important;
     width: auto !important;
-    min-width: 240px !important;
-    max-width: 320px !important;
+    min-width: 300px !important;
+    max-width: 420px !important;
     border-right: 1px solid var(--border-default);
     padding: 24px 16px;
     display: block !important;
   }
   .layout-container.sublist-active.mix-detail-active .pane-sublist {
-    flex: 3 1 auto !important;
+    flex: 2.4 1 auto !important;
     width: auto !important;
     min-width: 400px !important;
     display: flex !important;
