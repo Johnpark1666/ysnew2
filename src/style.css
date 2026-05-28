@@ -1633,54 +1633,60 @@ body {
   
   /* sublist와 일반 detail이 활성화되었을 때 (3분할) */
   .layout-container.sublist-active.detail-active .pane-list {
-    flex: 0 0 260px !important;
-    width: 260px !important;
+    flex: 1 1 260px !important;
+    width: auto !important;
+    min-width: 240px !important;
+    max-width: 320px !important;
     border-right: 1px solid var(--border-default);
     padding: 24px 16px;
     display: block !important;
   }
   .layout-container.sublist-active.detail-active .pane-sublist {
-    flex: 0 0 420px !important;
-    width: 420px !important;
+    flex: 3 1 auto !important;
+    width: auto !important;
+    min-width: 400px !important;
     display: flex !important;
     border-right: 1px solid var(--border-default);
   }
   .layout-container.sublist-active.detail-active #pane-detail {
     position: static;
-    flex: 1 1 auto !important;
-    width: auto !important;
-    min-width: 450px !important;
+    flex: 0 0 650px !important;
+    width: 650px !important;
+    min-width: 650px !important;
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     box-shadow: none;
-    border-left: none;
+    border-left: 1px solid var(--border-default);
   }
 
   /* sublist와 mix-detail이 활성화되었을 때 (3분할) */
   .layout-container.sublist-active.mix-detail-active .pane-list {
-    flex: 0 0 260px !important;
-    width: 260px !important;
+    flex: 1 1 260px !important;
+    width: auto !important;
+    min-width: 240px !important;
+    max-width: 320px !important;
     border-right: 1px solid var(--border-default);
     padding: 24px 16px;
     display: block !important;
   }
   .layout-container.sublist-active.mix-detail-active .pane-sublist {
-    flex: 0 0 420px !important;
-    width: 420px !important;
+    flex: 3 1 auto !important;
+    width: auto !important;
+    min-width: 400px !important;
     display: flex !important;
     border-right: 1px solid var(--border-default);
   }
   .layout-container.sublist-active.mix-detail-active #pane-mix-detail {
     position: static;
-    flex: 1 1 auto !important;
-    width: auto !important;
-    min-width: 450px !important;
+    flex: 0 0 650px !important;
+    width: 650px !important;
+    min-width: 650px !important;
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     box-shadow: none;
-    border-left: none;
+    border-left: 1px solid var(--border-default);
   }
 }
 @media (max-width: 1023px) {
