@@ -175,16 +175,20 @@ body {
 @media (min-width: 1024px) {
   .layout-container.detail-active .pane-list,
   .layout-container.mix-detail-active .pane-list {
-    flex: 3;
+    flex: 1 1 auto;
   }
 
   .layout-container.detail-active #pane-detail,
   .layout-container.mix-detail-active #pane-mix-detail {
-    flex: 2;
+    flex: 0 0 650px !important;
+    width: 650px !important;
+    min-width: 650px !important;
+    max-width: 650px !important;
     visibility: visible;
     opacity: 1;
     display: block; /* Override display: none */
     padding-bottom: 80px;
+    border-left: 1px solid var(--border-default);
   }
 
   .pane-detail>div {
