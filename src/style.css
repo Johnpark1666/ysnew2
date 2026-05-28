@@ -1633,8 +1633,37 @@ body {
     display: flex !important;
   }
   
-  /* sublist와 detail이 모두 활성화되었을 때 (3분할) */
-  .layout-container.sublist-active.detail-active .pane-list,
+  /* sublist와 일반 detail이 활성화되었을 때 (3분할) */
+  .layout-container.sublist-active.detail-active .pane-list {
+    flex: 1.5 1 200px !important;
+    width: auto !important;
+    min-width: 200px !important;
+    max-width: 280px !important;
+    border-right: 1px solid var(--border-default);
+    padding: 24px 12px;
+    display: block !important;
+  }
+  .layout-container.sublist-active.detail-active .pane-sublist {
+    flex: 2.5 1 300px !important;
+    width: auto !important;
+    min-width: 300px !important;
+    max-width: 420px !important;
+    display: flex !important;
+    border-right: 1px solid var(--border-default);
+  }
+  .layout-container.sublist-active.detail-active #pane-detail {
+    position: static;
+    flex: 4 1 450px !important;
+    width: auto !important;
+    min-width: 450px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    box-shadow: none;
+    border-left: none;
+  }
+
+  /* sublist와 mix-detail이 활성화되었을 때 (3분할) */
   .layout-container.sublist-active.mix-detail-active .pane-list {
     flex: 1.5 1 200px !important;
     width: auto !important;
@@ -1644,7 +1673,6 @@ body {
     padding: 24px 12px;
     display: block !important;
   }
-  .layout-container.sublist-active.detail-active .pane-sublist,
   .layout-container.sublist-active.mix-detail-active .pane-sublist {
     flex: 2.5 1 300px !important;
     width: auto !important;
@@ -1653,7 +1681,6 @@ body {
     display: flex !important;
     border-right: 1px solid var(--border-default);
   }
-  .layout-container.sublist-active.detail-active .pane-detail,
   .layout-container.sublist-active.mix-detail-active #pane-mix-detail {
     position: static;
     flex: 4 1 450px !important;
@@ -1679,16 +1706,26 @@ body {
     border-left: none !important;
   }
   
-  /* sublist와 detail이 모두 활성화되었을 때 (3분할 -> 모바일에서는 디테일만 가득 참) */
+  /* sublist와 일반 detail이 활성화되었을 때 */
   .layout-container.sublist-active.detail-active .pane-list,
-  .layout-container.sublist-active.mix-detail-active .pane-list {
+  .layout-container.sublist-active.detail-active .pane-sublist {
     display: none !important;
   }
-  .layout-container.sublist-active.detail-active .pane-sublist,
+  .layout-container.sublist-active.detail-active #pane-detail {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    border-left: none !important;
+  }
+
+  /* sublist와 mix-detail이 활성화되었을 때 */
+  .layout-container.sublist-active.mix-detail-active .pane-list,
   .layout-container.sublist-active.mix-detail-active .pane-sublist {
     display: none !important;
   }
-  .layout-container.sublist-active.detail-active .pane-detail,
   .layout-container.sublist-active.mix-detail-active #pane-mix-detail {
     flex: 1 1 100% !important;
     width: 100% !important;
