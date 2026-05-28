@@ -772,56 +772,50 @@ function openMixDetail(item) {
         // 드라이브 URL을 iframe으로 바로 띄우는 것이 안전함.
         const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
         mediaContainer.innerHTML = `<iframe src="${previewUrl}" width="100%" height="200" allow="autoplay" style="border-radius:12px; border:none; margin-bottom: 20px;"></iframe>`;
-      } else if (item.type && item.type.toUpperCase().includes('HTML')) {
-        const fileId = getGoogleDriveFileId(item.url);
-        if (fileId) {
-          const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-          
-          mediaContainer.innerHTML = `
-            <div class="html-preview-container" style="position:relative; width:100%; height:600px; margin-bottom: 20px;">
-              <iframe id="html-preview-iframe" width="100%" height="100%" style="border-radius:12px; border:none; background:#ffffff;"></iframe>
-              <div id="html-preview-loading" style="position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg-card, #1e1e2a); display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:12px; border:1px solid var(--border-default, rgba(255,255,255,0.1)); text-align:center; padding:20px; z-index:10; box-sizing:border-box;">
-                <div class="loader-spinner" style="margin-bottom: 12px;"></div>
-                <div style="font-size:14px; color:var(--text-muted, #a0a0b0);">HTML 프리뷰를 가져오는 중...</div>
-              </div>
-              <div id="html-preview-fallback" class="hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg-card, #1e1e2a); display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:12px; border:1px solid var(--border-default, rgba(255,255,255,0.1)); text-align:center; padding:20px; z-index:10; box-sizing:border-box;">
-                <i class="ph ph-warning-circle" style="font-size:48px; color:var(--accent-primary); margin-bottom:12px;"></i>
-                <div style="font-size:16px; font-weight:600; margin-bottom:8px; color:var(--text-primary, #ffffff);">HTML 프리뷰를 불러올 수 없습니다</div>
-                <div style="font-size:14px; color:var(--text-muted, #a0a0b0); margin-bottom:20px; line-height:1.5;">
-                  구글 드라이브 파일이 "링크가 있는 모든 사용자"에게 공개 공유되어 있는지 확인해 주세요.<br>
-                  또는 아래 버튼을 눌러 구글 드라이브에서 직접 확인해 보세요.
-                </div>
-                <a href="${item.url}" target="_blank" class="btn-youtube" style="background:var(--accent-primary); color:white; width:auto; display:inline-flex; align-items:center; gap:8px; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
-                  <i class="ph ph-arrow-square-out"></i> 구글 드라이브에서 열기
-                </a>
-              </div>
+      } else if (item.type && (item.type.toUpperCase() === 'MIND-MAP-HTML' || item.type.toUpperCase() === 'HTML')) {
+        const localServerUrl = `http://localhost:5000/api/drive/preview?url=${encodeURIComponent(item.url)}`;
+        
+        mediaContainer.innerHTML = `
+          <div class="html-preview-container" style="position:relative; width:100%; height:600px; margin-bottom: 20px;">
+            <iframe id="html-preview-iframe" src="${localServerUrl}" width="100%" height="100%" style="border-radius:12px; border:none; background:#ffffff;"></iframe>
+            <div id="html-preview-loading" style="position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg-card, #1e1e2a); display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:12px; border:1px solid var(--border-default, rgba(255,255,255,0.1)); text-align:center; padding:20px; z-index:10; box-sizing:border-box;">
+              <div class="loader-spinner" style="margin-bottom: 12px;"></div>
+              <div style="font-size:14px; color:var(--text-muted, #a0a0b0);">로컬 서버를 통해 HTML 프리뷰를 가져오는 중...</div>
             </div>
-          `;
-          
-          fetch(downloadUrl)
-            .then(res => {
-              if (!res.ok) throw new Error('Google Drive file fetch failed');
-              return res.text();
-            })
-            .then(htmlContent => {
-              const iframe = document.getElementById('html-preview-iframe');
-              const loader = document.getElementById('html-preview-loading');
-              if (iframe) {
-                iframe.srcdoc = htmlContent;
-                if (loader) loader.classList.add('hidden');
-              }
-            })
-            .catch(err => {
-              console.error('Error loading HTML preview:', err);
-              const loader = document.getElementById('html-preview-loading');
-              const fallback = document.getElementById('html-preview-fallback');
-              if (loader) loader.classList.add('hidden');
-              if (fallback) fallback.classList.remove('hidden');
-            });
-        } else {
-          // 구글 드라이브 링크가 아니면 직접 임베드 시도
-          mediaContainer.innerHTML = `<iframe src="${item.url}" width="100%" height="600" style="border-radius:12px; border:none; margin-bottom: 20px; background:#ffffff;"></iframe>`;
+            <div id="html-preview-fallback" class="hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg-card, #1e1e2a); display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:12px; border:1px solid var(--border-default, rgba(255,255,255,0.1)); text-align:center; padding:20px; z-index:10; box-sizing:border-box;">
+              <i class="ph ph-warning-circle" style="font-size:48px; color:var(--accent-primary); margin-bottom:12px;"></i>
+              <div style="font-size:16px; font-weight:600; margin-bottom:8px; color:var(--text-primary, #ffffff);">로컬 API 서버가 실행 중이지 않습니다</div>
+              <div style="font-size:14px; color:var(--text-muted, #a0a0b0); margin-bottom:20px; line-height:1.5;">
+                HTML Mind Map을 보려면 백엔드 서버를 실행해야 합니다 (start_all.bat).<br>
+                또는 아래 버튼을 눌러 구글 드라이브에서 직접 확인해 보세요.
+              </div>
+              <a href="${item.url}" target="_blank" class="btn-youtube" style="background:var(--accent-primary); color:white; width:auto; display:inline-flex; align-items:center; gap:8px; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+                <i class="ph ph-arrow-square-out"></i> 구글 드라이브에서 열기
+              </a>
+            </div>
+          </div>
+        `;
+        
+        const iframe = document.getElementById('html-preview-iframe');
+        const loader = document.getElementById('html-preview-loading');
+        const fallback = document.getElementById('html-preview-fallback');
+        
+        if (iframe) {
+          iframe.onload = () => {
+            if (loader) loader.classList.add('hidden');
+          };
         }
+        
+        fetch('http://localhost:5000/api/status', { mode: 'cors' })
+          .then(res => {
+            if (!res.ok) throw new Error('Local server status check failed');
+          })
+          .catch(err => {
+            console.warn('Local server is not running, showing fallback:', err);
+            if (loader) loader.classList.add('hidden');
+            if (fallback) fallback.classList.remove('hidden');
+            if (iframe) iframe.style.display = 'none';
+          });
       } else {
         const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
         mediaContainer.innerHTML = `<iframe src="${previewUrl}" width="100%" height="500" style="border-radius:12px; border:none; margin-bottom: 20px;"></iframe>`;
