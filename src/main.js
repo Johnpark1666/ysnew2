@@ -776,8 +776,6 @@ function openMixDetail(item) {
         const fileId = getGoogleDriveFileId(item.url);
         if (fileId) {
           const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-          // CORS 우회를 위해 AllOrigins CORS Proxy 사용
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(downloadUrl)}`;
           
           mediaContainer.innerHTML = `
             <div class="html-preview-container" style="position:relative; width:100%; height:600px; margin-bottom: 20px;">
@@ -800,9 +798,9 @@ function openMixDetail(item) {
             </div>
           `;
           
-          fetch(proxyUrl)
+          fetch(downloadUrl)
             .then(res => {
-              if (!res.ok) throw new Error('CORS proxy request failed');
+              if (!res.ok) throw new Error('Google Drive file fetch failed');
               return res.text();
             })
             .then(htmlContent => {
