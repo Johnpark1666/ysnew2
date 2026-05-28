@@ -743,7 +743,9 @@ function openDetail(id) {
     detailBody.style.transform = 'translateY(0)';
   }, 50);
 
-  document.getElementById('layout-container').classList.add('detail-active');
+  const container = document.getElementById('layout-container');
+  container.classList.remove('mix-detail-active');
+  container.classList.add('detail-active');
   document.body.classList.add('detail-open');
   detailPane.scrollTop = 0;
 }
@@ -862,7 +864,9 @@ function openMixDetail(item) {
     detailBody.style.transform = 'translateY(0)';
   }, 50);
 
-  document.getElementById('layout-container').classList.add('mix-detail-active');
+  const container = document.getElementById('layout-container');
+  container.classList.remove('detail-active');
+  container.classList.add('mix-detail-active');
   document.body.classList.add('detail-open'); // 스크롤 방지 등 동일한 클래스 사용
   setTimeout(() => detailPane.classList.add('open'), 10); // CSS 애니메이션 용 (필요 시)
   detailPane.scrollTop = 0;
