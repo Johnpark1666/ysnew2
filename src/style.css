@@ -1609,32 +1609,95 @@ body {
   z-index: 100;
   display: none;
   min-width: 0;
-  width: 1150px;
+  width: 450px;
   flex-shrink: 0;
 }
 .layout-container.sublist-active {
   display: flex;
 }
-.layout-container.sublist-active .pane-list {
-  flex: none !important;
-  width: 280px !important;
-  border-right: 1px solid var(--border-default);
-  padding: 24px 16px;
+@media (min-width: 1024px) {
+  /* sublist만 활성화되었을 때 (2분할) */
+  .layout-container.sublist-active .pane-list {
+    flex: 1 1 20% !important;
+    width: auto !important;
+    min-width: 240px !important;
+    max-width: 320px !important;
+    border-right: 1px solid var(--border-default);
+    padding: 24px 16px;
+    display: block !important;
+  }
+  .layout-container.sublist-active .pane-sublist {
+    flex: 3 1 auto !important;
+    width: auto !important;
+    min-width: 400px !important;
+    display: flex !important;
+  }
+  
+  /* sublist와 detail이 모두 활성화되었을 때 (3분할) */
+  .layout-container.sublist-active.detail-active .pane-list,
+  .layout-container.sublist-active.mix-detail-active .pane-list {
+    flex: 1.5 1 200px !important;
+    width: auto !important;
+    min-width: 200px !important;
+    max-width: 280px !important;
+    border-right: 1px solid var(--border-default);
+    padding: 24px 12px;
+    display: block !important;
+  }
+  .layout-container.sublist-active.detail-active .pane-sublist,
+  .layout-container.sublist-active.mix-detail-active .pane-sublist {
+    flex: 2.5 1 300px !important;
+    width: auto !important;
+    min-width: 300px !important;
+    max-width: 420px !important;
+    display: flex !important;
+    border-right: 1px solid var(--border-default);
+  }
+  .layout-container.sublist-active.detail-active .pane-detail,
+  .layout-container.sublist-active.mix-detail-active #pane-mix-detail {
+    position: static;
+    flex: 4 1 450px !important;
+    width: auto !important;
+    min-width: 450px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    box-shadow: none;
+    border-left: none;
+  }
 }
-.layout-container.sublist-active .pane-sublist {
-  flex: none !important;
-  width: 450px !important;
-  min-width: 0 !important;
-  display: flex;
-}
-.layout-container.sublist-active.detail-active .pane-detail {
-  position: static;
-  flex: 1 !important;
-  width: auto !important;
-  min-width: 500px !important;
-  display: block;
-  box-shadow: none;
-  border-left: 1px solid var(--border-default);
+@media (max-width: 1023px) {
+  /* sublist만 활성화되었을 때 (2분할 -> 모바일에서는 1분할씩) */
+  .layout-container.sublist-active .pane-list {
+    display: none !important;
+  }
+  .layout-container.sublist-active .pane-sublist {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: flex !important;
+    border-left: none !important;
+  }
+  
+  /* sublist와 detail이 모두 활성화되었을 때 (3분할 -> 모바일에서는 디테일만 가득 참) */
+  .layout-container.sublist-active.detail-active .pane-list,
+  .layout-container.sublist-active.mix-detail-active .pane-list {
+    display: none !important;
+  }
+  .layout-container.sublist-active.detail-active .pane-sublist,
+  .layout-container.sublist-active.mix-detail-active .pane-sublist {
+    display: none !important;
+  }
+  .layout-container.sublist-active.detail-active .pane-detail,
+  .layout-container.sublist-active.mix-detail-active #pane-mix-detail {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    border-left: none !important;
+  }
 }
 
 .sublist-body {
