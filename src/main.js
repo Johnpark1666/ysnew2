@@ -558,7 +558,7 @@ function renderGrid(append = false, startIndex = 0) {
 function renderMixGrid() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
-  grid.className = "grid list-mode mix-grid";
+  grid.className = "grid mix-grid";
 
   if (mixData.length === 0) {
     const emptyState = document.createElement('div');
@@ -582,15 +582,27 @@ function renderMixGrid() {
       vIds = item.sourceIds.split(',').map(s => s.trim()).filter(s => s);
     }
     
-    const typeIcon = item.type && item.type.toUpperCase() === 'AUDIO' ? 'ph-headphones' : 'ph-file-pdf';
+    let typeIcon = 'ph-file-text';
+    const typeUpper = (item.type || '').toUpperCase();
+    if (typeUpper === 'AUDIO') {
+      typeIcon = 'ph-headphones';
+    } else if (typeUpper.includes('HTML') || typeUpper.includes('MAP')) {
+      typeIcon = 'ph-tree-structure';
+    } else if (typeUpper.includes('PDF')) {
+      typeIcon = 'ph-file-pdf';
+    }
+    
     const timestampStr = typeof item.timestamp === 'string' ? item.timestamp.substring(0, 10) : '';
     
-    // URL 변환 (드라이브 링크 -> 다운로드 링크 방지 / 미리보기용)
-    // 썸네일 아이콘
+    const fileId = getGoogleDriveFileId(item.url);
+    const imgUrl = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w640` : '';
     
     card.innerHTML = `
-      <div class="card-thumbnail mix-thumbnail" style="display:flex; align-items:center; justify-content:center; background: var(--bg-card-hover); font-size: 32px; color: var(--accent-primary);">
-        <i class="ph ${typeIcon}"></i>
+      <div class="card-thumbnail mix-thumbnail" style="display:flex; align-items:center; justify-content:center; background: var(--bg-card-hover); position: relative; aspect-ratio: 16/9; overflow: hidden; width: 100%;">
+        ${imgUrl ? `<img src="${imgUrl}" alt="${item.title}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+        <div class="mix-fallback-icon" style="display: ${imgUrl ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; height:100%; font-size: 40px; color: var(--accent-primary); position: absolute; top:0; left:0; background: var(--bg-card-hover);">
+          <i class="ph ${typeIcon}"></i>
+        </div>
       </div>
       <div class="card-content">
         <div class="channel-info">
