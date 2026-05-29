@@ -798,23 +798,62 @@ function openMixDetail(item) {
             <audio src="${streamUrl}" controls style="width: 100%; border-radius: 8px; outline: none;"></audio>
           </div>
         `;
-      } else if (item.type && (item.type.toUpperCase() === 'MIND-MAP-HTML' || item.type.toUpperCase() === 'HTML')) {
-        const fileId = getGoogleDriveFileId(item.url);
-        if (fileId) {
-          const proxyUrl = `${GAS_API_URL}?id=${fileId}`;
-          
-          mediaContainer.innerHTML = `
-            <div class="html-preview-container" style="position:relative; width:100%; height:600px; margin-bottom: 20px;">
-              <iframe id="html-preview-iframe" src="${proxyUrl}" width="100%" height="100%" style="border-radius:12px; border:none; background:#ffffff;"></iframe>
-            </div>
-          `;
-        } else {
-          // 구글 드라이브 링크가 아니면 직접 임베드 시도
-          mediaContainer.innerHTML = `<iframe src="${item.url}" width="100%" height="600" style="border-radius:12px; border:none; margin-bottom: 20px; background:#ffffff;"></iframe>`;
-        }
       } else {
-        const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
-        mediaContainer.innerHTML = `<iframe src="${previewUrl}" width="100%" height="500" style="border-radius:12px; border:none; margin-bottom: 20px;"></iframe>`;
+        // Document, Slide, HTML, PDF 등 모든 웹 문서 처리
+        let previewUrl = item.url;
+        let isGoogleDrive = false;
+        const fileId = getGoogleDriveFileId(item.url);
+
+        let iconClass = 'ph ph-file-text';
+        let typeLabel = '문서';
+        const typeUpper = (item.type || '').toUpperCase();
+
+        if (typeUpper.includes('HTML') || typeUpper.includes('MAP')) {
+          iconClass = 'ph ph-tree-structure';
+          typeLabel = '마인드맵';
+          if (fileId) {
+            previewUrl = `${GAS_API_URL}?id=${fileId}`;
+            isGoogleDrive = true;
+          }
+        } else {
+          if (typeUpper.includes('SLIDE') || typeUpper.includes('DECK')) {
+            iconClass = 'ph ph-presentation';
+            typeLabel = '슬라이드';
+          } else if (typeUpper.includes('PDF')) {
+            iconClass = 'ph ph-file-pdf';
+            typeLabel = 'PDF 문서';
+          }
+          previewUrl = getDocumentPreviewUrl(item.url);
+          if (fileId) isGoogleDrive = true;
+        }
+
+        const downloadBtnHtml = (isGoogleDrive && fileId) ? `
+          <a href="https://docs.google.com/uc?export=download&id=${fileId}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-secondary); text-decoration: none; font-size: 12px; font-weight: 600; transition: var(--transition-fast);" onmouseover="this.style.background='var(--bg-primary)'; this.style.color='var(--accent-primary)'" onmouseout="this.style.background='white'; this.style.color='var(--text-secondary)'">
+            <i class="ph ph-download-simple"></i> 다운로드
+          </a>
+        ` : '';
+
+        mediaContainer.innerHTML = `
+          <div class="document-preview-wrapper" style="border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-card); margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+            <div class="document-header" style="background: var(--bg-card-hover); padding: 12px 20px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <div style="background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                  <i class="${iconClass}"></i>
+                </div>
+                <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.title || '미리보기'}">
+                  <span style="font-weight:500; color:var(--text-muted); margin-right:6px;">[${typeLabel}]</span>${item.title || '미리보기 문서'}
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                ${downloadBtnHtml}
+                <a href="${item.url}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-secondary); text-decoration: none; font-size: 12px; font-weight: 600; transition: var(--transition-fast);" onmouseover="this.style.background='var(--bg-primary)'; this.style.color='var(--accent-primary)'" onmouseout="this.style.background='white'; this.style.color='var(--text-secondary)'">
+                  <i class="ph ph-arrow-square-out"></i> 새 창에서 열기
+                </a>
+              </div>
+            </div>
+            <iframe src="${previewUrl}" width="100%" height="600" style="border: none; display: block; background: #ffffff;"></iframe>
+          </div>
+        `;
       }
     }
 
@@ -1303,4 +1342,29 @@ function openSublist(type, key) {
 
 function closeSublist() {
   document.querySelector('.layout-container').classList.remove('sublist-active');
+}
+
+function getDocumentPreviewUrl(url) {
+  if (!url) return '';
+  
+  // 1. Google Slides
+  const slidesMatch = url.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  if (slidesMatch && slidesMatch[1]) {
+    return `https://docs.google.com/presentation/d/${slidesMatch[1]}/embed?start=false&loop=false&delayms=3000`;
+  }
+  
+  // 2. Google Docs
+  const docsMatch = url.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
+  if (docsMatch && docsMatch[1]) {
+    return `https://docs.google.com/document/d/${docsMatch[1]}/preview`;
+  }
+
+  // 3. Google Sheets
+  const sheetsMatch = url.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (sheetsMatch && sheetsMatch[1]) {
+    return `https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/preview`;
+  }
+  
+  // 4. Default Google Drive Preview
+  return url.replace('/view?usp=drivesdk', '/preview');
 }
