@@ -783,7 +783,7 @@ function openMixDetail(item) {
     if (item.url) {
       if (item.type && item.type.toUpperCase() === 'AUDIO') {
         const fileId = getGoogleDriveFileId(item.url);
-        const streamUrl = fileId ? `https://docs.google.com/uc?export=download&id=${fileId}` : item.url;
+        const streamUrl = fileId ? `https://docs.google.com/uc?export=download&id=${fileId}&confirm=t` : item.url;
         const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
 
         mediaContainer.innerHTML = `
