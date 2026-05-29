@@ -784,20 +784,171 @@ function openMixDetail(item) {
       if (item.type && item.type.toUpperCase() === 'AUDIO') {
         const fileId = getGoogleDriveFileId(item.url);
         const streamUrl = fileId ? `https://docs.google.com/uc?export=download&id=${fileId}` : item.url;
+        const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
+
         mediaContainer.innerHTML = `
-          <div class="audio-player-container" style="background: var(--bg-card-hover); padding: 20px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-default); margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-sm);">
+          <div class="custom-audio-player" style="background: var(--bg-card-hover); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-default); margin-bottom: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 16px;">
+            <!-- Audio Info -->
             <div class="audio-info" style="display: flex; align-items: center; gap: 16px; width: 100%;">
               <div class="audio-icon" style="width: 48px; height: 48px; border-radius: 50%; background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
                 <i class="ph-fill ph-headphones"></i>
               </div>
               <div class="audio-title-sec" style="overflow: hidden; flex: 1; display: flex; flex-direction: column; gap: 2px;">
-                <div class="audio-filename" style="font-weight: 700; font-size: 15px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title || '팟캐스트 오디오'}</div>
+                <div class="audio-filename" style="font-weight: 700; font-size: 15px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.title || '팟캐스트 오디오'}">${item.title || '팟캐스트 오디오'}</div>
                 <div class="audio-subtext" style="font-size: 12px; color: var(--text-muted);">${fileId ? 'Google Drive 오디오 스트림' : '오디오 스트림'}</div>
               </div>
             </div>
-            <audio src="${streamUrl}" controls style="width: 100%; border-radius: 8px; outline: none;"></audio>
+
+            <!-- Hidden Native Audio -->
+            <audio id="mix-audio-element" src="${streamUrl}" preload="metadata" style="display: none;"></audio>
+
+            <!-- Custom Controls -->
+            <div class="player-controls-row" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <!-- Playback Rate & Skip Back -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <select id="audio-speed-select" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-default); background: white; color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; outline: none;">
+                  <option value="0.5">0.5x</option>
+                  <option value="1.0" selected>1.0x</option>
+                  <option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option>
+                  <option value="1.75">1.75x</option>
+                  <option value="2.0">2.0x</option>
+                </select>
+                <button id="btn-audio-rewind" style="height: 32px; padding: 0 10px; border: 1px solid var(--border-default); background: white; color: var(--text-secondary); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: var(--transition-fast);" title="10초 뒤로">
+                  <i class="ph ph-arrow-counter-clockwise" style="font-size: 14px;"></i> 10s
+                </button>
+              </div>
+
+              <!-- Play/Pause -->
+              <button id="btn-audio-play" style="width: 48px; height: 48px; border: none; background: var(--accent-primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); transition: var(--transition-fast);" title="재생">
+                <i class="ph-fill ph-play" id="play-icon" style="margin-left: 2px;"></i>
+              </button>
+
+              <!-- Skip Forward & Volume Toggle -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="btn-audio-forward" style="height: 32px; padding: 0 10px; border: 1px solid var(--border-default); background: white; color: var(--text-secondary); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: var(--transition-fast);" title="10초 앞으로">
+                  10s <i class="ph ph-arrow-clockwise" style="font-size: 14px;"></i>
+                </button>
+                <button id="btn-audio-mute" style="width: 32px; height: 32px; border: 1px solid var(--border-default); background: white; color: var(--text-secondary); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition-fast);" title="음소거">
+                  <i class="ph-fill ph-speaker-high" id="mute-icon" style="font-size: 16px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+              <div style="display: flex; align-items: center; width: 100%; gap: 12px;">
+                <input type="range" id="audio-progress" min="0" max="100" value="0">
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 500;">
+                <span id="audio-time-current">0:00</span>
+                <span id="audio-time-duration">0:00</span>
+              </div>
+            </div>
+            
+            <!-- Fallback Alert (Initially Hidden) -->
+            <div id="audio-fallback-msg" style="display: none; padding: 12px; background: rgba(217, 119, 6, 0.1); border: 1px solid rgba(217, 119, 6, 0.2); border-radius: 8px; color: var(--accent-warning); font-size: 12px; font-weight: 500; align-items: center; gap: 8px;">
+              <i class="ph ph-warning-circle" style="font-size: 16px;"></i>
+              <span>파일 용량이 커 스트리밍이 해제되었습니다. 안전 모드(드라이브 플레이어)로 전환합니다...</span>
+            </div>
           </div>
         `;
+
+        // Wait a tiny bit for elements to mount and bind controls
+        setTimeout(() => {
+          const audio = document.getElementById('mix-audio-element');
+          const playBtn = document.getElementById('btn-audio-play');
+          const playIcon = document.getElementById('play-icon');
+          const rewindBtn = document.getElementById('btn-audio-rewind');
+          const forwardBtn = document.getElementById('btn-audio-forward');
+          const muteBtn = document.getElementById('btn-audio-mute');
+          const muteIcon = document.getElementById('mute-icon');
+          const speedSelect = document.getElementById('audio-speed-select');
+          const progressBar = document.getElementById('audio-progress');
+          const timeCurrent = document.getElementById('audio-time-current');
+          const timeDuration = document.getElementById('audio-time-duration');
+          const fallbackMsg = document.getElementById('audio-fallback-msg');
+
+          if (!audio) return;
+
+          // Play / Pause
+          playBtn.onclick = () => {
+            if (audio.paused) {
+              audio.play().catch(err => console.log("Play failed: ", err));
+            } else {
+              audio.pause();
+            }
+          };
+
+          audio.onplay = () => {
+            playIcon.className = 'ph-fill ph-pause';
+            playIcon.style.marginLeft = '0';
+          };
+
+          audio.onpause = () => {
+            playIcon.className = 'ph-fill ph-play';
+            playIcon.style.marginLeft = '2px';
+          };
+
+          // Skip -10s / +10s
+          rewindBtn.onclick = () => {
+            audio.currentTime = Math.max(0, audio.currentTime - 10);
+          };
+
+          forwardBtn.onclick = () => {
+            audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10);
+          };
+
+          // Playback Rate
+          speedSelect.onchange = (e) => {
+            audio.playbackRate = parseFloat(e.target.value);
+          };
+
+          // Mute / Unmute
+          muteBtn.onclick = () => {
+            audio.muted = !audio.muted;
+            muteIcon.className = audio.muted ? 'ph-fill ph-speaker-slash' : 'ph-fill ph-speaker-high';
+          };
+
+          // Time formatting helper
+          const formatTime = (secs) => {
+            if (isNaN(secs)) return '0:00';
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+          };
+
+          // Update Progress
+          audio.ontimeupdate = () => {
+            if (audio.duration) {
+              const pct = (audio.currentTime / audio.duration) * 100;
+              progressBar.value = pct;
+              progressBar.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${pct}%, var(--border-default) ${pct}%, var(--border-default) 100%)`;
+              timeCurrent.textContent = formatTime(audio.currentTime);
+            }
+          };
+
+          audio.onloadedmetadata = () => {
+            timeDuration.textContent = formatTime(audio.duration);
+          };
+
+          // Seek
+          progressBar.oninput = (e) => {
+            if (audio.duration) {
+              const pct = parseFloat(e.target.value);
+              audio.currentTime = (pct / 100) * audio.duration;
+            }
+          };
+
+          // Error Fallback - VERY IMPORTANT
+          audio.onerror = () => {
+            console.warn("Direct stream failed, falling back to Google Drive preview iframe.");
+            fallbackMsg.style.display = 'flex';
+            setTimeout(() => {
+              mediaContainer.innerHTML = `<iframe src="${previewUrl}" width="100%" height="200" allow="autoplay" style="border-radius:12px; border:none; margin-bottom: 20px;"></iframe>`;
+            }, 1500); // Wait 1.5s to show warning message, then swap
+          };
+        }, 50);
       } else {
         // Document, Slide, HTML, PDF 등 모든 웹 문서 처리
         let previewUrl = item.url;
