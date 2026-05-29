@@ -782,10 +782,22 @@ function openMixDetail(item) {
     
     if (item.url) {
       if (item.type && item.type.toUpperCase() === 'AUDIO') {
-        // 드라이브 링크가 다운로드 형식이거나 preview 형식일 때 오디오 태그 지원이 브라우저에 따라 다름.
-        // 드라이브 URL을 iframe으로 바로 띄우는 것이 안전함.
-        const previewUrl = item.url.replace('/view?usp=drivesdk', '/preview');
-        mediaContainer.innerHTML = `<iframe src="${previewUrl}" width="100%" height="200" allow="autoplay" style="border-radius:12px; border:none; margin-bottom: 20px;"></iframe>`;
+        const fileId = getGoogleDriveFileId(item.url);
+        const streamUrl = fileId ? `https://docs.google.com/uc?export=download&id=${fileId}` : item.url;
+        mediaContainer.innerHTML = `
+          <div class="audio-player-container" style="background: var(--bg-card-hover); padding: 20px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-default); margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-sm);">
+            <div class="audio-info" style="display: flex; align-items: center; gap: 16px; width: 100%;">
+              <div class="audio-icon" style="width: 48px; height: 48px; border-radius: 50%; background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
+                <i class="ph-fill ph-headphones"></i>
+              </div>
+              <div class="audio-title-sec" style="overflow: hidden; flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div class="audio-filename" style="font-weight: 700; font-size: 15px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title || '팟캐스트 오디오'}</div>
+                <div class="audio-subtext" style="font-size: 12px; color: var(--text-muted);">${fileId ? 'Google Drive 오디오 스트림' : '오디오 스트림'}</div>
+              </div>
+            </div>
+            <audio src="${streamUrl}" controls style="width: 100%; border-radius: 8px; outline: none;"></audio>
+          </div>
+        `;
       } else if (item.type && (item.type.toUpperCase() === 'MIND-MAP-HTML' || item.type.toUpperCase() === 'HTML')) {
         const fileId = getGoogleDriveFileId(item.url);
         if (fileId) {
