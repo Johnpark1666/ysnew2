@@ -680,7 +680,7 @@ window.handleImageError = (img) => {
 };
 
 // 상세 로직 및 Apps Script 호출 로직은 기존 기능 유지
-function openDetail(id) {
+function openDetail(id, keepMixActive = false) {
   currentDetailId = String(id);
   const item = allData.find(d => String(d.ID) === currentDetailId);
   if (!item) return;
@@ -744,15 +744,20 @@ function openDetail(id) {
   }, 50);
 
   const container = document.getElementById('layout-container');
-  container.classList.remove('mix-detail-active');
+  if (!keepMixActive) {
+    container.classList.remove('mix-detail-active');
+  }
   container.classList.add('detail-active');
   document.body.classList.add('detail-open');
   detailPane.scrollTop = 0;
 }
 
 function closeDetail() {
-  document.getElementById('layout-container').classList.remove('detail-active');
-  document.body.classList.remove('detail-open');
+  const container = document.getElementById('layout-container');
+  container.classList.remove('detail-active');
+  if (!container.classList.contains('mix-detail-active')) {
+    document.body.classList.remove('detail-open');
+  }
   currentDetailId = null;
 }
 
@@ -1040,8 +1045,8 @@ function openMixDetail(item) {
       // 클릭 시 해당 원본의 상세 페이지 열기 (이미 openDetail 함수가 있음)
       if (sourceItem) {
         card.onclick = () => {
-          closeMixDetail(); // 믹스 디테일 닫고
-          openDetail(sourceItem.ID); // 원본 디테일 열기
+          // 믹스 디테일을 닫지 않고 원본 디테일을 오른쪽에 함께 띄웁니다.
+          openDetail(sourceItem.ID, true); 
         };
         const imgUrl = sourceItem.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
         const pubDate = sourceItem.PublishDate ? String(sourceItem.PublishDate).substring(0, 10) : '-';
@@ -1087,8 +1092,11 @@ function openMixDetail(item) {
 }
 
 function closeMixDetail() {
-  document.getElementById('layout-container').classList.remove('mix-detail-active');
-  document.body.classList.remove('detail-open');
+  const container = document.getElementById('layout-container');
+  container.classList.remove('mix-detail-active');
+  if (!container.classList.contains('detail-active')) {
+    document.body.classList.remove('detail-open');
+  }
   const detailPane = document.getElementById('pane-mix-detail');
   if (detailPane) {
     detailPane.classList.remove('open');
