@@ -978,6 +978,18 @@ function openMixDetail(item) {
           if (fileId) isGoogleDrive = true;
         }
 
+        let iframeStyle = 'border: none; display: block; background: #ffffff; width: 100%;';
+        let iframeHeightAttr = 'height="600"';
+
+        if (typeUpper.includes('SLIDE') || typeUpper.includes('DECK')) {
+          iframeStyle += ' aspect-ratio: 16 / 9; height: auto;';
+          iframeHeightAttr = '';
+        } else if (typeUpper.includes('PDF')) {
+          iframeHeightAttr = 'height="850"';
+        } else if (typeUpper.includes('HTML') || typeUpper.includes('MAP')) {
+          iframeHeightAttr = 'height="700"';
+        }
+
         const downloadBtnHtml = (isGoogleDrive && fileId) ? `
           <a href="https://docs.google.com/uc?export=download&id=${fileId}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-secondary); text-decoration: none; font-size: 12px; font-weight: 600; transition: var(--transition-fast);" onmouseover="this.style.background='var(--bg-primary)'; this.style.color='var(--accent-primary)'" onmouseout="this.style.background='white'; this.style.color='var(--text-secondary)'">
             <i class="ph ph-download-simple"></i> 다운로드
@@ -1002,7 +1014,7 @@ function openMixDetail(item) {
                 </a>
               </div>
             </div>
-            <iframe src="${previewUrl}" width="100%" height="600" style="border: none; display: block; background: #ffffff;"></iframe>
+            <iframe src="${previewUrl}" ${iframeHeightAttr} style="${iframeStyle}"></iframe>
           </div>
         `;
       }
