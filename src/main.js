@@ -758,6 +758,7 @@ function openDetail(id, keepMixActive = false) {
     document.getElementById('m-summary').innerHTML = String(item.Summary || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     document.getElementById('m-analysis').innerHTML = String(item.Analysis || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     document.getElementById('m-insights').innerHTML = String(item.Insights || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    document.getElementById('m-implications').innerHTML = String(item.Implications || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
     const mReadBtn = document.getElementById('m-btn-read');
     const mFavBtn = document.getElementById('m-btn-fav');
