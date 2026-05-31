@@ -411,7 +411,7 @@ function loadMore() {
 function getFilteredData() {
   let data = [];
   if (currentTab === 'github') {
-    data = githubData;
+    data = githubData.filter(item => !isTrue(item.Read));
   } else if (currentTab === 'unread') {
     data = allData.filter(item => !isTrue(item.Read));
   } else if (currentTab === 'favorite') {
@@ -493,9 +493,9 @@ function renderGrid(append = false, startIndex = 0) {
 
 
   if (filteredData.length === 0 && !append) {
-    const emptyIcon = currentTab === 'unread' ? 'ph-envelope-open' : (currentTab === 'favorite' ? 'ph-star' : 'ph-folder-simple-minus');
-    const emptyTitle = currentTab === 'unread' ? '모두 확인했습니다' : (currentTab === 'favorite' ? '즐겨찾기가 없습니다' : '이 카테고리에 영상이 없습니다');
-    const emptyDesc = currentTab === 'unread' ? '새로운 콘텐츠가 들어오면 여기에 표시됩니다.' : (currentTab === 'favorite' ? '마음에 드는 콘텐츠에 별표를 눌러보세요.' : '');
+    const emptyIcon = currentTab === 'unread' ? 'ph-envelope-open' : (currentTab === 'favorite' ? 'ph-star' : (currentTab === 'github' ? 'ph-github-logo' : 'ph-folder-simple-minus'));
+    const emptyTitle = currentTab === 'unread' ? '모두 확인했습니다' : (currentTab === 'favorite' ? '즐겨찾기가 없습니다' : (currentTab === 'github' ? '저장소를 모두 확인했습니다' : '이 카테고리에 영상이 없습니다'));
+    const emptyDesc = currentTab === 'unread' ? '새로운 콘텐츠가 들어오면 여기에 표시됩니다.' : (currentTab === 'favorite' ? '마음에 드는 콘텐츠에 별표를 눌러보세요.' : (currentTab === 'github' ? '새로운 깃허브 프로젝트가 들어오면 여기에 표시됩니다.' : ''));
 
     const emptyState = document.createElement('div');
     emptyState.className = 'empty-state';
@@ -1184,7 +1184,7 @@ window.handleMarkRead = async (id, btn, event) => {
   item.Read = true;
   updateStats();
 
-  const isUnreadTab = (currentTab === 'unread');
+  const isUnreadTab = (currentTab === 'unread' || currentTab === 'github');
   if (isUnreadTab) {
     renderGrid();
     if (currentDetailId === String(id)) {
