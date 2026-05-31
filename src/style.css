@@ -217,6 +217,15 @@ body {
     border-left: 1px solid var(--border-default);
   }
 
+  .layout-container.tab-unread.detail-active #pane-detail,
+  .layout-container.tab-favorite.detail-active #pane-detail,
+  .layout-container.tab-github.detail-active #pane-detail {
+    flex: 0 0 910px !important;
+    width: 910px !important;
+    min-width: 910px !important;
+    max-width: 910px !important;
+  }
+
   .layout-container.mix-detail-active #pane-mix-detail {
     flex: 0 0 1450px !important;
     width: 1450px !important;

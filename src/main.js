@@ -48,6 +48,8 @@ window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initYouTubeAuth();
   window.addEventListener('resize', updateFloatingToolbar);
+  const container = document.getElementById('layout-container');
+  if (container) container.classList.add('tab-unread');
 });
 
 function initYouTubeAuth() {
@@ -369,6 +371,12 @@ function switchTab(tabName) {
   currentTab = tabName;
   currentCategory = null; 
   currentChannel = null; 
+
+  const container = document.getElementById('layout-container');
+  if (container) {
+    container.className = container.className.replace(/\btab-\S+/g, '').trim();
+    container.classList.add(`tab-${tabName}`);
+  } 
 
 
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
