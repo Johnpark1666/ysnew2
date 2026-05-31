@@ -76,7 +76,7 @@ body {
 
 .nav-tab {
   cursor: pointer;
-  padding: 12px 60px;
+  padding: 10px 18px;
   border-radius: 100px;
   font-weight: 600;
   font-size: 15px;
@@ -85,10 +85,36 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   border: none;
   background: transparent;
-  min-width: 140px; padding: 10px 30px;
+  min-width: 60px;
+}
+
+.tab-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  transition: transform var(--transition-fast);
+}
+
+.nav-tab:hover .tab-icon-img {
+  transform: scale(1.1);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--text-muted);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 1;
 }
 
 .nav-tab:hover {
