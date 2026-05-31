@@ -1105,32 +1105,65 @@ function closeMixDetail() {
 
 window.handleMarkRead = async (id, btn, event) => {
   if (event) event.stopPropagation();
-  const icon = btn.querySelector('.material-icons-round');
+  const item = allData.find(d => String(d.ID) === String(id));
+  if (!item) return;
+
   const originalHtml = btn.innerHTML;
+  const originalOpacity = btn.style.opacity;
+  const originalReadState = item.Read;
 
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ph ph-arrows-clockwise ph-spin"></i> 처리 중...';
+  // 이미 읽음이면 처리하지 않음
+  if (isTrue(originalReadState)) return;
 
-  try {
-    const res = await callGAS({ action: 'markAsRead', id: id });
-    if (res.status === 'success') {
-      const item = allData.find(d => String(d.ID) === String(id));
-      if (item) item.Read = true;
-      updateStats();
-      if (currentTab === 'unread') {
-        renderGrid();
-        if (currentDetailId === String(id)) closeDetail();
-      } else {
-        btn.style.opacity = '0.5';
-        btn.innerHTML = '<i class="ph ph-check"></i> 읽음';
+  // 1. 낙관적 업데이트
+  item.Read = true;
+  updateStats();
+
+  const isUnreadTab = (currentTab === 'unread');
+  if (isUnreadTab) {
+    renderGrid();
+    if (currentDetailId === String(id)) {
+      closeDetail();
+    }
+  } else {
+    btn.style.opacity = '0.5';
+    btn.innerHTML = '<i class="ph ph-check"></i> 읽음';
+    
+    // 상세 보기 창의 읽음 버튼도 업데이트
+    const mReadBtn = document.getElementById('m-btn-read');
+    if (currentDetailId === String(id) && mReadBtn) {
+      mReadBtn.style.opacity = '0.5';
+      mReadBtn.innerHTML = '<i class="ph ph-check"></i> 읽음';
+    }
+  }
+
+  // 2. 비동기 백그라운드 호출
+  callGAS({ action: 'markAsRead', id: id }).then(res => {
+    if (!res || res.status !== 'success') {
+      throw new Error('GAS API returned error status');
+    }
+  }).catch(e => {
+    console.error('읽음 처리 동기화 실패, 롤백 실행:', e);
+    // 3. 실패 시 롤백
+    item.Read = originalReadState;
+    updateStats();
+    if (isUnreadTab) {
+      renderGrid();
+      if (currentDetailId === String(id)) {
+        openDetail(id);
+      }
+    } else {
+      btn.style.opacity = originalOpacity;
+      btn.innerHTML = originalHtml;
+      
+      const mReadBtn = document.getElementById('m-btn-read');
+      if (currentDetailId === String(id) && mReadBtn) {
+        mReadBtn.style.opacity = '1';
+        mReadBtn.innerHTML = '<i class="ph ph-check-circle"></i> 읽음 처리';
       }
     }
-  } catch (e) {
-    alert('읽음 처리 실패');
-    btn.innerHTML = originalHtml;
-  } finally {
-    btn.disabled = false;
-  }
+    alert('읽음 처리 동기화에 실패했습니다.');
+  });
 };
 
 window.handleToggleFav = async (id, btn, event) => {
@@ -1138,35 +1171,68 @@ window.handleToggleFav = async (id, btn, event) => {
   const item = allData.find(d => String(d.ID) === String(id));
   if (!item) return;
 
-  const originalHtml = btn.innerHTML;
-  btn.disabled = true;
-  btn.classList.add('loading');
+  const originalFavState = item.Favorite;
+  const newFavState = !isTrue(originalFavState);
 
-  try {
-    const res = await callGAS({
-      action: 'toggleFavorite',
-      id: id,
-      currentStatus: isTrue(item.Favorite)
-    });
-    if (res.status === 'success') {
+  // 1. 낙관적 업데이트
+  item.Favorite = newFavState;
+  updateStats();
+
+  const originalHtml = btn.innerHTML;
+  const originalClassName = btn.className;
+
+  const updateButtonUI = (buttonEl, isFavVal) => {
+    if (!buttonEl) return;
+    buttonEl.className = `btn-favorite ${isFavVal ? 'active' : ''}`;
+    buttonEl.innerHTML = `<i class="ph ${isFavVal ? 'ph-star ph-fill' : 'ph-star'}"></i>`;
+  };
+
+  // 현재 클릭된 버튼 업데이트
+  updateButtonUI(btn, newFavState);
+
+  // 상세 보기창의 별표 버튼도 함께 업데이트
+  const mFavBtn = document.getElementById('m-btn-fav');
+  if (currentDetailId === String(id) && mFavBtn && mFavBtn !== btn) {
+    updateButtonUI(mFavBtn, newFavState);
+  }
+
+  const isFavoriteTab = (currentTab === 'favorite');
+  if (isFavoriteTab && !newFavState) {
+    renderGrid();
+    if (currentDetailId === String(id)) closeDetail();
+  }
+
+  // 2. 비동기 호출
+  callGAS({
+    action: 'toggleFavorite',
+    id: id,
+    currentStatus: isTrue(originalFavState)
+  }).then(res => {
+    if (res && res.status === 'success') {
       item.Favorite = res.result;
       updateStats();
-      if (currentTab === 'favorite' && !isTrue(item.Favorite)) {
-        renderGrid();
-        if (currentDetailId === String(id)) closeDetail();
-      } else {
-        const isFav = isTrue(item.Favorite);
-        btn.className = `btn-favorite ${isFav ? 'active' : ''}`;
-        btn.innerHTML = `<i class=\"ph ${isFav ? 'ph-star ph-fill' : 'ph-star'}\"></i>`;
+    } else {
+      throw new Error('GAS API returned error status');
+    }
+  }).catch(e => {
+    console.error('즐겨찾기 토글 동기화 실패, 롤백 실행:', e);
+    // 3. 실패 시 롤백
+    item.Favorite = originalFavState;
+    updateStats();
+    
+    updateButtonUI(btn, isTrue(originalFavState));
+    if (currentDetailId === String(id) && mFavBtn && mFavBtn !== btn) {
+      updateButtonUI(mFavBtn, isTrue(originalFavState));
+    }
+
+    if (isFavoriteTab) {
+      renderGrid();
+      if (currentDetailId === String(id)) {
+        openDetail(id);
       }
     }
-  } catch (e) {
-    alert('즐겨찾기 토글 실패');
-    btn.innerHTML = originalHtml;
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove('loading');
-  }
+    alert('즐겨찾기 토글 동기화에 실패했습니다.');
+  });
 };
 
 async function callGAS(params) {
@@ -1333,36 +1399,41 @@ async function handleMarkSelectedRead() {
   
   markBtn.disabled = true;
   markBtn.style.opacity = '0.7';
-  
-  let successCount = 0;
-  
-  for (let i = 0; i < idsToProcess.length; i++) {
-    const id = idsToProcess[i];
-    markBtn.innerHTML = `<i class="ph ph-arrows-clockwise ph-spin"></i> ${i+1}/${idsToProcess.length}`;
-    
-    try {
-      const res = await callGAS({ action: 'markAsRead', id: id });
-      if (res.status === 'success') {
-        const item = allData.find(d => String(d.ID) === String(id));
-        if (item) item.Read = true;
-        successCount++;
-      }
-    } catch (e) {
-      console.error(`Failed to mark read for ID ${id}:`, e);
+  markBtn.innerHTML = `<i class="ph ph-arrows-clockwise ph-spin"></i> 처리 중...`;
+
+  // 원래 상태 백업 (롤백용)
+  const originalStates = idsToProcess.map(id => {
+    const item = allData.find(d => String(d.ID) === String(id));
+    return { id, item, originalRead: item ? item.Read : false };
+  });
+
+  // 1. 낙관적 업데이트
+  idsToProcess.forEach(id => {
+    const item = allData.find(d => String(d.ID) === String(id));
+    if (item) item.Read = true;
+  });
+
+  updateStats();
+  toggleSelectionMode(false); // 선택 모드 종료 및 새로고침
+
+  // 2. 비동기 배치 호출
+  callGAS({ action: 'batchMarkAsRead', ids: idsToProcess }).then(res => {
+    if (!res || res.status !== 'success') {
+      throw new Error('GAS API returned error status');
     }
-  }
-  
-  // 성공 메시지 표시 후 초기화
-  markBtn.innerHTML = `<i class="ph ph-check"></i> 완료 (${successCount})`;
-  
-  setTimeout(() => {
-    markBtn.disabled = false;
-    markBtn.style.opacity = '1';
-    markBtn.innerHTML = originalHtml;
-    
+    console.log('일괄 읽음 동기화 완료:', res.result, '개 업데이트됨');
+  }).catch(e => {
+    console.error('일괄 읽음 동기화 실패, 롤백 실행:', e);
+    // 3. 실패 시 롤백
+    originalStates.forEach(state => {
+      if (state.item) {
+        state.item.Read = state.originalRead;
+      }
+    });
     updateStats();
-    toggleSelectionMode(false); // 선택 모드 종료 및 새로고침
-  }, 1000);
+    renderGrid();
+    alert('일괄 읽음 처리 동기화에 실패했습니다.');
+  });
 }
 
 function getAgeGroup(dateStr) {
