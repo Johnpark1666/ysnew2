@@ -287,7 +287,7 @@ body {
     padding: 6px 10px !important;
     min-width: 60px !important;
     flex: 0 0 auto !important;
-    font-size: 11px;
+    font-size: 11px !important;
     flex-direction: row;
     gap: 4px !important;
     white-space: nowrap;
@@ -1816,6 +1816,37 @@ body {
     display: none !important;
   }
   .layout-container.sublist-active.mix-detail-active #pane-mix-detail {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    border-left: none !important;
+  }
+
+  /* 믹스 상세와 영상 상세가 동시 활성화되거나 어떤 분할 뷰라도 영상 상세가 켜지면 무조건 영상 상세만 100%로 독점 */
+  .layout-container.detail-active .pane-list,
+  .layout-container.detail-active .pane-sublist,
+  .layout-container.detail-active #pane-mix-detail {
+    display: none !important;
+  }
+  .layout-container.detail-active #pane-detail {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    border-left: none !important;
+  }
+
+  /* 믹스 상세가 활성화되었을 때 (영상 상세 미활성화 시) 믹스 상세만 100%로 독점 */
+  .layout-container.mix-detail-active .pane-list,
+  .layout-container.mix-detail-active .pane-sublist {
+    display: none !important;
+  }
+  .layout-container.mix-detail-active #pane-mix-detail {
     flex: 1 1 100% !important;
     width: 100% !important;
     max-width: none !important;
