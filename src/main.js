@@ -17,6 +17,7 @@ let ytPendingRowId = null;
 let allData = [];
 let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
 let mixData = []; // NotebookLM_Mix 데이터
+let githubData = []; // GitHub 시트 데이터
 let searchQuery = '';
 let currentTab = 'unread';
 let currentCategory = null;
@@ -97,8 +98,8 @@ async function fetchData() {
     const obj = JSON.parse(jsonStr[1]);
     const table = obj.table;
     const rows = table.rows;
-    // 헤더(컬럼 레이블) 추출
-    const cols = table.cols.map(c => c.label || "");
+    // 헤더(컬럼 레이블) 추출 (양끝 공백 트리밍 적용)
+    const cols = table.cols.map(c => (c.label || "").trim());
 
     // 2. 데이터를 앱용 객체 배열로 변환
     const rawData = rows.map((row, index) => {
@@ -150,7 +151,38 @@ async function fetchData() {
       }).reverse(); // 최신순으로 정렬
     }
 
-    console.log('실시간 연동 성공:', allData.length, '개의 행, Mix 데이터:', mixData.length, '개');
+    // 4. github 시트 데이터 가져오기
+    const githubResponse = await fetch(`${GVIZ_URL}&sheet=github&t=${Date.now()}`);
+    const githubText = await githubResponse.text();
+    const githubJsonStr = githubText.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
+    if (githubJsonStr) {
+      const githubObj = JSON.parse(githubJsonStr[1]);
+      const githubRows = githubObj.table.rows;
+      const githubCols = githubObj.table.cols.map(c => (c.label || "").trim());
+      githubData = githubRows.map((row, index) => {
+        let item = { rowIndex: index + 2 };
+        row.c.forEach((cell, i) => {
+          const header = githubCols[i];
+          if (header) {
+            item[header] = cell ? (cell.v ?? "") : "";
+            if (typeof item[header] === 'string' && item[header].startsWith('Date(')) {
+              const parts = item[header].replace(/Date\(|\)/g, '').split(',');
+              const y = parts[0];
+              const m = String(parseInt(parts[1]) + 1).padStart(2, '0');
+              const d = String(parseInt(parts[2])).padStart(2, '0');
+              item[header] = `${y}-${m}-${d}`;
+            }
+          }
+        });
+        return item;
+      });
+      githubData = githubData.filter(d => {
+        const id = String(d.ID || d.id || d.Id || d['아이디'] || "").trim();
+        return id !== "";
+      });
+    }
+
+    console.log('실시간 연동 성공:', allData.length, '개의 행, Mix 데이터:', mixData.length, '개, GitHub 데이터:', githubData.length, '개');
     onDataLoaded();
 
   } catch (error) {
@@ -193,6 +225,9 @@ function setupEventListeners() {
   
   const tabMix = document.getElementById('tab-mix');
   if (tabMix) tabMix.onclick = () => switchTab('mix');
+  
+  const tabGithub = document.getElementById('tab-github');
+  if (tabGithub) tabGithub.onclick = () => switchTab('github');
   
   // [Floating Toolbar]
   const toolbar = document.getElementById('floating-toolbar');
@@ -320,6 +355,9 @@ function updateStats() {
   const mixCountEl = document.getElementById('mix-count');
   if (mixCountEl) mixCountEl.textContent = mixData.length;
 
+  const githubUnreadCount = githubData.filter(item => !isTrue(item.Read)).length;
+  const githubCountEl = document.getElementById('github-count');
+  if (githubCountEl) githubCountEl.textContent = githubUnreadCount;
 }
 
 function switchTab(tabName) {
@@ -372,7 +410,9 @@ function loadMore() {
 
 function getFilteredData() {
   let data = [];
-  if (currentTab === 'unread') {
+  if (currentTab === 'github') {
+    data = githubData;
+  } else if (currentTab === 'unread') {
     data = allData.filter(item => !isTrue(item.Read));
   } else if (currentTab === 'favorite') {
     data = allData.filter(item => isTrue(item.Favorite));
@@ -683,7 +723,10 @@ window.handleImageError = (img) => {
 // 상세 로직 및 Apps Script 호출 로직은 기존 기능 유지
 function openDetail(id, keepMixActive = false) {
   currentDetailId = String(id);
-  const item = allData.find(d => String(d.ID) === currentDetailId);
+  let item = allData.find(d => String(d.ID) === currentDetailId);
+  if (!item) {
+    item = githubData.find(d => String(d.ID) === currentDetailId);
+  }
   if (!item) return;
 
   const detailPane = document.getElementById('pane-detail');
@@ -707,7 +750,9 @@ function openDetail(id, keepMixActive = false) {
     mImg.onerror = () => window.handleImageError(mImg);
     mImg.src = item.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
 
-    document.getElementById('m-link').href = item.VideoURL;
+    const mLink = document.getElementById('m-link');
+    mLink.href = item.VideoURL;
+
     document.getElementById('m-summary').innerHTML = String(item.Summary || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     document.getElementById('m-analysis').innerHTML = String(item.Analysis || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     document.getElementById('m-insights').innerHTML = String(item.Insights || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
@@ -718,6 +763,17 @@ function openDetail(id, keepMixActive = false) {
     const isFav = isTrue(item.Favorite);
     const isRead = isTrue(item.Read);
     const isWl = isTrue(item.WatchLater || item['보관함']);
+
+    const isGitHub = String(item.VideoURL || '').includes('github.com');
+    if (isGitHub) {
+      mLink.className = 'btn-github';
+      mLink.innerHTML = '<i class="ph ph-github-logo"></i> GitHub에서 보기';
+      mWlBtn.style.display = 'none';
+    } else {
+      mLink.className = 'btn-youtube';
+      mLink.innerHTML = '<i class="ph-fill ph-play-circle"></i> YouTube에서 보기';
+      mWlBtn.style.display = '';
+    }
 
     mReadBtn.onclick = (e) => handleMarkRead(id, mReadBtn, e);
     if (isRead) {
@@ -1109,7 +1165,10 @@ function closeMixDetail() {
 
 window.handleMarkRead = async (id, btn, event) => {
   if (event) event.stopPropagation();
-  const item = allData.find(d => String(d.ID) === String(id));
+  let item = allData.find(d => String(d.ID) === String(id));
+  if (!item) {
+    item = githubData.find(d => String(d.ID) === String(id));
+  }
   if (!item) return;
 
   const originalHtml = btn.innerHTML;
@@ -1142,7 +1201,11 @@ window.handleMarkRead = async (id, btn, event) => {
   }
 
   // 2. 비동기 백그라운드 호출
-  callGAS({ action: 'markAsRead', id: id }).then(res => {
+  const isGitHub = githubData.some(d => String(d.ID) === String(id));
+  const params = { action: 'markAsRead', id: id };
+  if (isGitHub) params.sheet = 'github';
+
+  callGAS(params).then(res => {
     if (!res || res.status !== 'success') {
       throw new Error('GAS API returned error status');
     }
@@ -1172,7 +1235,10 @@ window.handleMarkRead = async (id, btn, event) => {
 
 window.handleToggleFav = async (id, btn, event) => {
   if (event) event.stopPropagation();
-  const item = allData.find(d => String(d.ID) === String(id));
+  let item = allData.find(d => String(d.ID) === String(id));
+  if (!item) {
+    item = githubData.find(d => String(d.ID) === String(id));
+  }
   if (!item) return;
 
   const originalFavState = item.Favorite;
@@ -1207,11 +1273,15 @@ window.handleToggleFav = async (id, btn, event) => {
   }
 
   // 2. 비동기 호출
-  callGAS({
+  const isGitHub = githubData.some(d => String(d.ID) === String(id));
+  const params = {
     action: 'toggleFavorite',
     id: id,
     currentStatus: isTrue(originalFavState)
-  }).then(res => {
+  };
+  if (isGitHub) params.sheet = 'github';
+
+  callGAS(params).then(res => {
     if (res && res.status === 'success') {
       item.Favorite = res.result;
       updateStats();
@@ -1228,7 +1298,7 @@ window.handleToggleFav = async (id, btn, event) => {
     if (currentDetailId === String(id) && mFavBtn && mFavBtn !== btn) {
       updateButtonUI(mFavBtn, isTrue(originalFavState));
     }
-
+    
     if (isFavoriteTab) {
       renderGrid();
       if (currentDetailId === String(id)) {
@@ -1407,13 +1477,19 @@ async function handleMarkSelectedRead() {
 
   // 원래 상태 백업 (롤백용)
   const originalStates = idsToProcess.map(id => {
-    const item = allData.find(d => String(d.ID) === String(id));
+    let item = allData.find(d => String(d.ID) === String(id));
+    if (!item) {
+      item = githubData.find(d => String(d.ID) === String(id));
+    }
     return { id, item, originalRead: item ? item.Read : false };
   });
 
   // 1. 낙관적 업데이트
   idsToProcess.forEach(id => {
-    const item = allData.find(d => String(d.ID) === String(id));
+    let item = allData.find(d => String(d.ID) === String(id));
+    if (!item) {
+      item = githubData.find(d => String(d.ID) === String(id));
+    }
     if (item) item.Read = true;
   });
 
@@ -1421,7 +1497,10 @@ async function handleMarkSelectedRead() {
   toggleSelectionMode(false); // 선택 모드 종료 및 새로고침
 
   // 2. 비동기 배치 호출
-  callGAS({ action: 'batchMarkAsRead', ids: idsToProcess }).then(res => {
+  const params = { action: 'batchMarkAsRead', ids: idsToProcess };
+  if (currentTab === 'github') params.sheet = 'github';
+
+  callGAS(params).then(res => {
     if (!res || res.status !== 'success') {
       throw new Error('GAS API returned error status');
     }
