@@ -1632,6 +1632,36 @@ body {
   color: var(--text-primary);
 }
 
+/* Stock Dashboard Shortcut Button */
+.btn-stock-dashboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-right: 8px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.btn-stock-dashboard:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+  transform: scale(1.08);
+  box-shadow: var(--shadow-sm);
+}
+
+.stock-dashboard-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
 /* Fix Category Horizontal Scroll Mode */
 .horizontal-scroll-mode {
   display: block;
