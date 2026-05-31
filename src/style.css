@@ -284,12 +284,12 @@ body {
   }
 
   .nav-tab {
-    padding: 8px 12px !important;
-    min-width: 70px !important;
+    padding: 6px 10px !important;
+    min-width: 60px !important;
     flex: 0 0 auto !important;
-    font-size: 13px;
+    font-size: 11px;
     flex-direction: row;
-    gap: 6px !important;
+    gap: 4px !important;
     white-space: nowrap;
   }
 
@@ -367,6 +367,20 @@ body {
   .pane-sublist {
     width: 100% !important;
     max-width: none !important;
+  }
+
+  /* 믹스 상세와 영상 상세가 동시 활성화될 때 모바일 짤림 방지 */
+  .layout-container.mix-detail-active.detail-active #pane-mix-detail {
+    display: none !important;
+  }
+  .layout-container.mix-detail-active.detail-active #pane-detail {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    border-left: none !important;
   }
 }
 
