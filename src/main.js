@@ -415,7 +415,9 @@ function getFilteredData() {
   } else if (currentTab === 'unread') {
     data = allData.filter(item => !isTrue(item.Read));
   } else if (currentTab === 'favorite') {
-    data = allData.filter(item => isTrue(item.Favorite));
+    const ytFavs = allData.filter(item => isTrue(item.Favorite));
+    const githubFavs = githubData.filter(item => isTrue(item.Favorite));
+    data = [...ytFavs, ...githubFavs];
   } else if (currentTab === 'category') {
     if (currentCategory) {
       data = allData.filter(item => !isTrue(item.Read) && String(item.Category || item['카테고리'] || "미분류").trim() === currentCategory);
