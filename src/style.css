@@ -294,8 +294,13 @@ body {
         flex-wrap: nowrap !important;
         align-items: center !important;
         font-size: 11px !important;
-        flex-direction: row;
+        flex-direction: row !important;
         gap: 4px !important;
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+      }
+
+      .nav-tab * {
         white-space: nowrap !important;
       }
 
