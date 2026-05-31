@@ -2154,3 +2154,55 @@ body {
   background: var(--accent-primary-hover);
 }
 
+/* Mobile Specific Styles (Break Point 576px) */
+@media (max-width: 576px) {
+  /* 1. 모바일 뷰에서 검색창 숨김 */
+  .search-group {
+    display: none !important;
+  }
+
+  /* 2. 즐겨찾기 등에서 플로팅 툴바가 밀려서 두껍게 나오지 않도록 방지 */
+  .floating-toolbar {
+    bottom: 16px !important;
+    right: 16px !important;
+    left: 16px !important;
+    display: flex;
+    justify-content: center;
+  }
+
+  .toolbar-content {
+    gap: 6px !important;
+    padding: 6px 10px !important;
+    max-width: 100%;
+    width: max-content;
+  }
+
+  .floating-toolbar .view-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .floating-toolbar .sort-select {
+    padding: 0 4px !important;
+    font-size: 11px !important;
+    max-width: 90px;
+    text-overflow: ellipsis;
+  }
+
+  .floating-toolbar .toolbar-btn {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 모바일 다중 선택 읽음 처리 버튼 최적화 */
+  #btn-mark-selected-read {
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    height: 32px !important;
+  }
+}
+

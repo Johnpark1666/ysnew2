@@ -46,6 +46,7 @@ window.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupEventListeners();
   initYouTubeAuth();
+  window.addEventListener('resize', updateFloatingToolbar);
 });
 
 function initYouTubeAuth() {
@@ -1454,8 +1455,17 @@ function updateFloatingToolbar() {
   const toolbar = document.getElementById('floating-toolbar');
   if (!toolbar) return;
 
-  // Show/Hide logic: Hide in category carousel, show elsewhere
+  const isMobile = window.innerWidth <= 576;
+
+  // Show/Hide logic
+  let shouldHide = false;
   if ((currentTab === 'category' && !currentCategory) || currentTab === 'today') {
+    shouldHide = true;
+  } else if (isMobile && (currentTab === 'channel' || currentTab === 'mix')) {
+    shouldHide = true;
+  }
+
+  if (shouldHide) {
     toolbar.classList.add('hidden');
     return;
   }
