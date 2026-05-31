@@ -694,10 +694,13 @@ function openDetail(id, keepMixActive = false) {
 
   setTimeout(() => {
     document.getElementById('m-title').innerText = item.Title;
-    document.getElementById('m-title-mobile').innerText = item.Title;
     const pubDate = item.PublishDate ? String(item.PublishDate).substring(0, 10) : '-';
     document.getElementById('m-date-text').innerText = pubDate;
-    document.getElementById('m-date-text-mobile').innerText = pubDate;
+
+    const mChannel = document.getElementById('m-channel');
+    if (mChannel) {
+      mChannel.innerText = item.ChannelName || '알 수 없는 채널';
+    }
 
     const mImg = document.getElementById('m-img');
     mImg.onerror = () => window.handleImageError(mImg);

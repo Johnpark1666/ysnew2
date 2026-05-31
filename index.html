@@ -94,11 +94,15 @@
       <div class="detail-header-sticky">
         <div class="modal-header">
           <div class="modal-header-content" style="flex: 1; min-width: 0;">
-            <h2 id="m-title" class="modal-title">제목</h2>
-            <div id="m-date" class="modal-date">
-              <i class="ph ph-calendar-blank"></i>
-              <span id="m-date-text">-</span>
+            <div class="modal-meta-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+              <span id="m-channel" class="modal-channel" style="font-weight: 600; color: var(--accent-primary, #6366f1); font-size: 13px;">채널명</span>
+              <span style="color: var(--border-default, rgba(255,255,255,0.1)); font-size: 11px;">|</span>
+              <div id="m-date" class="modal-date" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted, #9ca3af);">
+                <i class="ph ph-calendar-blank"></i>
+                <span id="m-date-text">-</span>
+              </div>
             </div>
+            <h2 id="m-title" class="modal-title">제목</h2>
           </div>
           <div class="modal-actions-top">
             <button class="close-btn" id="close-detail">
@@ -109,13 +113,6 @@
       </div>
 
       <div class="modal-body">
-        <div class="mobile-title-section">
-          <h2 id="m-title-mobile" class="mobile-title">제목</h2>
-          <div class="mobile-date">
-            <i class="ph ph-calendar-blank"></i>
-            <span id="m-date-text-mobile">-</span>
-          </div>
-        </div>
         <div class="modal-video-section">
           <img id="m-img" class="modal-thumbnail" src="" alt="Video thumbnail">
           <div class="modal-actions-video">
