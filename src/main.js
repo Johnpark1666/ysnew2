@@ -788,11 +788,11 @@ function openDetail(id, keepMixActive = false) {
     const isGitHub = String(item.VideoURL || '').includes('github.com');
     if (isGitHub) {
       mLink.className = 'btn-github';
-      mLink.innerHTML = '<i class="ph ph-github-logo"></i> GitHub에서 보기';
+      mLink.innerHTML = '<i class="ph ph-github-logo"></i> GitHub<span class="desktop-only">에서 보기</span>';
       mWlBtn.style.display = 'none';
     } else {
       mLink.className = 'btn-youtube';
-      mLink.innerHTML = '<i class="ph-fill ph-play-circle"></i> YouTube에서 보기';
+      mLink.innerHTML = '<i class="ph-fill ph-play-circle"></i> YouTube<span class="desktop-only">에서 보기</span>';
       mWlBtn.style.display = '';
     }
 
@@ -802,12 +802,12 @@ function openDetail(id, keepMixActive = false) {
       mReadBtn.innerHTML = '<i class="ph ph-check"></i> 읽음';
     } else {
       mReadBtn.style.opacity = '1';
-      mReadBtn.innerHTML = '<i class="ph ph-check-circle"></i> 읽음 처리';
+      mReadBtn.innerHTML = '<i class="ph ph-check-circle"></i> 읽음<span class="desktop-only"> 처리</span>';
     }
 
     mFavBtn.onclick = (e) => handleToggleFav(id, mFavBtn, e);
     mFavBtn.className = `btn-favorite ${isFav ? 'active' : ''}`;
-    mFavBtn.innerHTML = `<i class=\"ph ${isFav ? 'ph-star ph-fill' : 'ph-star'}\"></i>`;
+    mFavBtn.innerHTML = `<i class="ph ${isFav ? 'ph-star ph-fill' : 'ph-star'}"></i>`;
 
     // Watch Later 버튼 핸들러
     mWlBtn.onclick = (e) => window.handleWatchLater(id, mWlBtn, e);
@@ -816,7 +816,7 @@ function openDetail(id, keepMixActive = false) {
       mWlBtn.innerHTML = '<i class="ph ph-list-checks"></i> 추가됨';
     } else {
       mWlBtn.classList.remove('success');
-      mWlBtn.innerHTML = '<i class="ph ph-list-plus"></i> 보관함 추가';
+      mWlBtn.innerHTML = '<i class="ph ph-list-plus"></i> 보관함<span class="desktop-only"> 추가</span>';
     }
 
     detailBody.style.transition = 'all 0.4s ease';
@@ -1697,11 +1697,14 @@ function openSublist(type, key) {
     const isFav = isTrue(item.Favorite);
 
     card.innerHTML = `
-      <div style="display: flex; gap: 16px; flex: 1; align-items: center; overflow: hidden;">
+      <div class="sublist-card-main" style="display: flex; gap: 16px; flex: 1; align-items: center; overflow: hidden;">
         <img src="${thumb}" class="sublist-thumb" onerror="window.handleImageError(this)">
         <div class="sublist-info" style="flex: 1; min-width: 0;">
           <div class="sublist-title">${item.Title || "제목 없음"}</div>
-          <div class="sublist-date">${item.PublishDate || ""}</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-wrap: wrap; gap: 4px;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--accent-primary); text-transform: uppercase;">${item.ChannelName || ""}</span>
+            <span class="sublist-date">${item.PublishDate ? String(item.PublishDate).substring(0, 10) : ""}</span>
+          </div>
         </div>
       </div>
       <div class="sublist-actions" style="display: flex; gap: 8px; flex-shrink: 0; align-items: center; border-left: 1px solid var(--border-subtle); padding-left: 16px;">
