@@ -881,6 +881,7 @@ body {
 
 .modal-body {
   padding: 24px;
+  padding-bottom: 100px;
 }
 
 .modal-video-section {
