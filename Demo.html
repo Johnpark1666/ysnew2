@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>유튜브 인사이트 클리핑 - 디자인 제안 데모</title>
+  <!-- Google Fonts: Outfit, Inter, Noto Sans KR -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    :root {
+      /* 프리미엄 딥 다크 테마 컬러 시스템 */
+      --bg-dark-base: #090d16;
+      --bg-dark-surface: #111827;
+      --bg-dark-card: #1f2937;
+      --bg-glass-card: rgba(17, 24, 39, 0.7);
+      --border-glow: rgba(99, 102, 241, 0.15);
+      
+      --accent-primary: #6366f1; /* Indigo */
+      --accent-primary-glow: rgba(99, 102, 241, 0.3);
+      --accent-secondary: #ec4899; /* Pink */
+      --accent-warning: #f59e0b; /* Amber */
+      --accent-success: #10b981; /* Emerald */
+      
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+
+      --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --border-radius-lg: 16px;
+      --border-radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', 'Inter', 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark-base);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 배경 그라데이션 장식 */
+    .bg-glow-orb-1 {
+      position: absolute;
+      top: -10%;
+      left: 10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+      filter: blur(50px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .bg-glow-orb-2 {
+      position: absolute;
+      bottom: -10%;
+      right: 10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0) 70%);
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* App Header */
+    .app-header {
+      z-index: 10;
+      background: rgba(9, 13, 22, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      background: linear-gradient(to right, #ffffff, #9ca3af);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 320px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      padding: 10px 16px 10px 42px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: var(--transition-base);
+    }
+
+    .search-input:focus {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 18px;
+    }
+
+    /* Main Container (Sidebar + List + Detail) */
+    .app-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 240px;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: var(--border-radius-sm);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .nav-item i {
+      font-size: 18px;
+    }
+
+    .nav-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      background: rgba(99, 102, 241, 0.08);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      font-weight: 600;
+      border-left: 3px solid var(--accent-primary);
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .nav-badge {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .nav-item.active .nav-badge {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    /* Grid Layout: 3-Pane split */
+    .pane-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .pane-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Card Grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .premium-card {
+      background: var(--bg-glass-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--border-radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition-base);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .premium-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--border-radius-lg);
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .premium-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 12px 30px rgba(99, 102, 241, 0.15);
+    }
+
+    .card-thumbnail-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      background: var(--bg-dark-base);
+    }
+
+    .card-thumbnail-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: var(--transition-base);
+    }
+
+    .premium-card:hover .card-thumbnail-img {
+      transform: scale(1.05);
+    }
+
+    /* 채널 플로팅 배지 */
+    .channel-badge-floating {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .card-info-content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .card-meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text-main);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      height: 40px;
+      transition: var(--transition-base);
+    }
+
+    .premium-card:hover .card-title {
+      color: var(--accent-primary);
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .premium-tag {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Detail Pane (Glassmorphic Slide Panel) */
+    .pane-detail {
+      width: 460px;
+      background: rgba(17, 24, 37, 0.85);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      z-index: 5;
+    }
+
+    .detail-hero {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--bg-dark-base);
+    }
+
+    .detail-hero img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .detail-overlay-actions {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(17, 24, 37, 0.95) 0%, rgba(17, 24, 37, 0) 50%);
+      display: flex;
+      align-items: flex-end;
+      padding: 20px;
+    }
+
+    .detail-main-info {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .detail-channel-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .channel-name-txt {
+      font-weight: 700;
+      color: var(--accent-primary);
+      font-size: 14px;
+    }
+
+    .detail-title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text-main);
+    }
+
+    .detail-actions-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn-action-premium {
+      flex: 1;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border-radius: var(--border-radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .btn-action-premium:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-action-premium.primary-btn {
+      background: var(--accent-primary);
+      border: none;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-action-premium.primary-btn:hover {
+      background: #4f46e5;
+    }
+
+    .btn-icon-only {
+      width: 40px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon-only.active {
+      color: var(--accent-warning);
+      border-color: var(--accent-warning);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    /* Detail Tab Container */
+    .tab-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 16px;
+    }
+
+    .tab-header-row {
+      display: flex;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      margin-bottom: 16px;
+    }
+
+    .tab-btn-premium {
+      flex: 1;
+      background: none;
+      border: none;
+      padding: 12px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition-base);
+    }
+
+    .tab-btn-premium:hover, .tab-btn-premium.active {
+      color: var(--text-main);
+    }
+
+    .tab-btn-premium.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      background: var(--accent-primary);
+      box-shadow: 0 0 10px var(--accent-primary);
+    }
+
+    /* Tab Content Grid Layout for 요약/분석/인사이트 */
+    .card-insight-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--border-radius-sm);
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-main);
+      display: none;
+    }
+
+    .card-insight-box.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 스크롤바 디자인 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <!-- 데코레이션 배경 오브 -->
+  <div class="bg-glow-orb-1"></div>
+  <div class="bg-glow-orb-2"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo">
+        <i class="ph ph-youtube-logo"></i>
+      </div>
+      <div class="brand-title">INSIGHT CLIPPING</div>
+    </div>
+    
+    <div class="search-box">
+      <i class="ph ph-magnifying-glass search-icon"></i>
+      <input type="text" class="search-input" placeholder="검색 또는 키워드 입력...">
+    </div>
+  </header>
+
+  <!-- Container -->
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="nav-item active">
+        <div class="nav-item-left">
+          <i class="ph ph-tray"></i>
+          <span>읽지 않음</span>
+        </div>
+        <span class="nav-badge">42</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-left">
+          <i class="ph-fill ph-star" style="color: var(--accent-warning);"></i>
+          <span>즐겨찾기</span>
+        </div>
+        <span class="nav-badge">12</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-left">
+          <i class="ph ph-folder"></i>
+          <span>카테고리</span>
+        </div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-left">
+          <i class="ph ph-youtube-logo"></i>
+          <span>채널별 보기</span>
+        </div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-left">
+          <i class="ph ph-headphones"></i>
+          <span>믹스 라이브러리</span>
+        </div>
+        <span class="nav-badge">5</span>
+      </div>
+    </aside>
+
+    <!-- Main List Pane -->
+    <main class="pane-list">
+      <div class="pane-header-row">
+        <h2 class="pane-title">
+          <i class="ph ph-sparkle" style="color: var(--accent-primary);"></i>
+          최신 영상 큐레이션
+        </h2>
+      </div>
+
+      <!-- Card Grid -->
+      <div class="card-grid">
+        
+        <!-- Card 1 -->
+        <div class="premium-card" onclick="selectDemoItem(1)">
+          <div class="card-thumbnail-wrapper">
+            <img class="card-thumbnail-img" src="https://i.ytimg.com/vi/PL-uV7fS_eU/hqdefault.jpg" alt="썸네일 1">
+            <span class="channel-badge-floating">토스 Toss</span>
+          </div>
+          <div class="card-info-content">
+            <div class="card-meta-row">
+              <span>2026-05-30</span>
+            </div>
+            <h3 class="card-title">토스가 유행을 타지 않는 금융 UI를 디자인하는 원칙 5가지</h3>
+            <div class="card-tags">
+              <span class="premium-tag">UX/UI</span>
+              <span class="premium-tag">디자인</span>
+              <span class="premium-tag">토스</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="premium-card" onclick="selectDemoItem(2)">
+          <div class="card-thumbnail-wrapper">
+            <img class="card-thumbnail-img" src="https://i.ytimg.com/vi/bXjXzWfP1G0/hqdefault.jpg" alt="썸네일 2">
+            <span class="channel-badge-floating">슈카월드</span>
+          </div>
+          <div class="card-info-content">
+            <div class="card-meta-row">
+              <span>2026-05-29</span>
+            </div>
+            <h3 class="card-title">미국 금리 인하 지연과 글로벌 기술주의 미래 전망 분석</h3>
+            <div class="card-tags">
+              <span class="premium-tag">경제</span>
+              <span class="premium-tag">금리</span>
+              <span class="premium-tag">기술주</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="premium-card" onclick="selectDemoItem(3)">
+          <div class="card-thumbnail-wrapper">
+            <img class="card-thumbnail-img" src="https://i.ytimg.com/vi/W-d7Vv75a4U/hqdefault.jpg" alt="썸네일 3">
+            <span class="channel-badge-floating">EO 이오</span>
+          </div>
+          <div class="card-info-content">
+            <div class="card-meta-row">
+              <span>2026-05-28</span>
+            </div>
+            <h3 class="card-title">인공지능 시대를 선도하는 빅테크 창업가들의 생존 전략 인터뷰</h3>
+            <div class="card-tags">
+              <span class="premium-tag">AI</span>
+              <span class="premium-tag">창업</span>
+              <span class="premium-tag">인터뷰</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Detail Pane -->
+    <aside class="pane-detail" id="demo-detail-pane">
+      <!-- 썸네일 & 플레이어 영역 -->
+      <div class="detail-hero">
+        <img id="detail-img" src="https://i.ytimg.com/vi/PL-uV7fS_eU/hqdefault.jpg" alt="상세">
+        <div class="detail-overlay-actions"></div>
+      </div>
+
+      <!-- 메인 정보 텍스트 -->
+      <div class="detail-main-info">
+        <div class="detail-channel-info">
+          <span class="channel-name-txt" id="detail-channel">토스 Toss</span>
+          <span style="font-size: 12px; color: var(--text-dim);" id="detail-date">2026-05-30</span>
+        </div>
+        <h2 class="detail-title" id="detail-title">토스가 유행을 타지 않는 금융 UI를 디자인하는 원칙 5가지</h2>
+
+        <!-- 액션 버튼 -->
+        <div class="detail-actions-row">
+          <button class="btn-action-premium primary-btn">
+            <i class="ph-fill ph-play-circle" style="font-size: 18px;"></i>
+            유튜브 보기
+          </button>
+          <button class="btn-action-premium">
+            <i class="ph ph-check-circle" style="font-size: 18px;"></i>
+            읽음 처리
+          </button>
+          <button class="btn-action-premium btn-icon-only" id="demo-fav-btn" onclick="toggleFavDemo()">
+            <i class="ph ph-star" style="font-size: 18px;"></i>
+          </button>
+        </div>
+
+        <!-- 요약 / 분석 / 인사이트 탭 인터페이스 -->
+        <div class="tab-section">
+          <div class="tab-header-row">
+            <button class="tab-btn-premium active" onclick="switchDemoTab('summary', this)">요약</button>
+            <button class="tab-btn-premium" onclick="switchDemoTab('analysis', this)">분석</button>
+            <button class="tab-btn-premium" onclick="switchDemoTab('insights', this)">인사이트</button>
+          </div>
+
+          <!-- 탭 콘텐츠 내용 -->
+          <div class="card-insight-box active" id="tab-content-summary">
+            1. <b>일관된 타이포그래피 스케일</b>: 복잡한 금융 수치를 빠르게 파악할 수 있도록 폰트 굵기와 크기의 엄격한 일관성을 고수합니다.<br><br>
+            2. <b>맥락적 단서 제공</b>: 사용자가 오류를 범하기 쉬운 이체 및 서명 단계에 애니메이션 효과를 부여해 실수를 예방합니다.<br><br>
+            3. <b>데이터 밀도 제어</b>: 한 화면에 최대 3가지 정보 단락만 배치하여 인지 부하를 차단합니다.
+          </div>
+
+          <div class="card-insight-box" id="tab-content-analysis">
+            • <b>디자인 일관성의 시장 파급력</b>: 금융 앱 사용자들은 단순 정보 획득보다 '보안 신뢰성'을 높게 평가하며, 정돈된 UI 디자인은 직관적으로 시스템 안정성을 연상시킵니다.<br><br>
+            • <b>모바일 최적화 성과</b>: 한 화면당 데이터 밀도를 극도로 낮춤으로써 50대 이상 시니어 세대의 금융 이탈률을 유의미하게 하락시킨 비즈니스 분석 결과를 제시합니다.
+          </div>
+
+          <div class="card-insight-box" id="tab-content-insights">
+            💡 <b>UI 복잡성 관리 전략</b>: 비즈니스 기능이 증가할수록 화면을 쪼개는 '점진적 공개(Progressive Disclosure)' 디자인 철학을 적용해야 장기 신뢰도를 지킬 수 있습니다.<br><br>
+            💡 <b>고객 중심 피드백 루프</b>: 시스템 내부 동작을 사용자가 쉽게 인지할 수 있는 마이크로 모션으로 풀어내어, 비대면 금융의 감성적 장벽을 해소합니다.
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <script>
+    // 가상 데이터 세트
+    const demoData = {
+      1: {
+        title: "토스가 유행을 타지 않는 금융 UI를 디자인하는 원칙 5가지",
+        channel: "토스 Toss",
+        date: "2026-05-30",
+        img: "https://i.ytimg.com/vi/PL-uV7fS_eU/hqdefault.jpg",
+        summary: "1. <b>일관된 타이포그래피 스케일</b>: 복잡한 금융 수치를 빠르게 파악할 수 있도록 폰트 굵기와 크기의 엄격한 일관성을 고수합니다.<br><br>2. <b>맥락적 단서 제공</b>: 사용자가 오류를 범하기 쉬운 이체 및 서명 단계에 애니메이션 효과를 부여해 실수를 예방합니다.<br><br>3. <b>데이터 밀도 제어</b>: 한 화면에 최대 3가지 정보 단락만 배치하여 인지 부하를 차단합니다.",
+        analysis: "• <b>디자인 일관성의 시장 파급력</b>: 금융 앱 사용자들은 단순 정보 획득보다 '보안 신뢰성'을 높게 평가하며, 정돈된 UI 디자인은 직관적으로 시스템 안정성을 연상시킵니다.<br><br>• <b>모바일 최적화 성과</b>: 한 화면당 데이터 밀도를 극도로 낮춤으로써 50대 이상 시니어 세대의 금융 이탈률을 유의미하게 하락시킨 비즈니스 분석 결과를 제시합니다.",
+        insights: "💡 <b>UI 복잡성 관리 전략</b>: 비즈니스 기능이 증가할수록 화면을 쪼개는 '점진적 공개(Progressive Disclosure)' 디자인 철학을 적용해야 장기 신뢰도를 지킬 수 있습니다.<br><br>💡 <b>고객 중심 피드백 루프</b>: 시스템 내부 동작을 사용자가 쉽게 인지할 수 있는 마이크로 모션으로 풀어내어, 비대면 금융의 감성적 장벽을 해소합니다."
+      },
+      2: {
+        title: "미국 금리 인하 지연과 글로벌 기술주의 미래 전망 분석",
+        channel: "슈카월드",
+        date: "2026-05-29",
+        img: "https://i.ytimg.com/vi/bXjXzWfP1G0/hqdefault.jpg",
+        summary: "1. <b>고금리 장기화 기조</b>: 미국 연준의 매파적 스탠스로 인한 고금리 유지가 전 세계 자본 시장 및 성장주의 밸류에이션 하락 압박을 주고 있습니다.<br><br>2. <b>AI 테크 랠리의 동력</b>: 빅테크 기업들의 인프라 투자 지속이 경기 둔화 우려를 덮고 기술 선도주 중심의 차별화 랠리를 견인 중입니다.",
+        analysis: "• <b>거시경제 시나리오 분석</b>: 과거 금리 인하 기조 초입과 달리, 고인플레이션 제어를 위한 고금리 기조가 2년 이상 누적되며 부채 비율이 높은 한계 기업들의 신용 리스크가 심화되고 있음을 경고합니다.",
+        insights: "💡 <b>성장주의 투자 프레임 변화</b>: 이제는 단순히 미래 성장성만으로 투자를 평가받는 시기는 끝났으며, 고금리 시대에는 현금 흐름 창출력(자사주 매입, 배당 확대 능력)이 최우선 평가 지표입니다."
+      },
+      3: {
+        title: "인공지능 시대를 선도하는 빅테크 창업가들의 생존 전략 인터뷰",
+        channel: "EO 이오",
+        date: "2026-05-28",
+        img: "https://i.ytimg.com/vi/W-d7Vv75a4U/hqdefault.jpg",
+        summary: "1. <b>AGI 경쟁 구도</b>: 대형 언어 모델(LLM)을 개발하는 플랫폼 거인들과, 그 위에서 구체적인 틈새시장을 타겟팅하는 서비스 지향 버티컬 스타트업의 공존 및 생존 전략을 다룹니다.<br><br>2. <b>핵심 리소스 관리</b>: 컴퓨팅 파워 확보와 전력 수급 이슈가 AI 창업가들이 직면한 최대 현안임을 지목합니다.",
+        analysis: "• <b>기술 상용화 속도 분석</b>: 원천 기술 발전 속도에 비해 시장의 비즈니스 프로덕트 실도입 및 ROI 도출은 지연되고 있으며, 이를 극복하기 위해 사용자 경험(UX) 관점의 단순화가 요구됩니다.",
+        insights: "💡 <b>스타트업의 방어선(Moat) 구축</b>: 모델 자체는 범용화되므로 독자적인 양질의 데이터셋을 확보하고, 고객사의 기존 업무 워크플로우에 깊이 밀착하여 스위칭 비용을 높이는 전략이 유일한 생존 방법입니다."
+      }
+    };
+
+    let isFav = false;
+
+    // 데모용 영상 클릭 선택 함수
+    function selectDemoItem(id) {
+      const data = demoData[id];
+      if (!data) return;
+
+      document.getElementById('detail-img').src = data.img;
+      document.getElementById('detail-channel').innerText = data.channel;
+      document.getElementById('detail-date').innerText = data.date;
+      document.getElementById('detail-title').innerText = data.title;
+      
+      document.getElementById('tab-content-summary').innerHTML = data.summary;
+      document.getElementById('tab-content-analysis').innerHTML = data.analysis;
+      document.getElementById('tab-content-insights').innerHTML = data.insights;
+
+      // 탭 첫 번째(요약)로 초기화
+      const firstTabBtn = document.querySelector('.tab-btn-premium');
+      switchDemoTab('summary', firstTabBtn);
+    }
+
+    // 데모용 탭 전환
+    function switchDemoTab(tabType, element) {
+      document.querySelectorAll('.tab-btn-premium').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.card-insight-box').forEach(content => content.classList.remove('active'));
+
+      element.classList.add('active');
+      document.getElementById(`tab-content-${tabType}`).classList.add('active');
+    }
+
+    // 데모용 별표 토글
+    function toggleFavDemo() {
+      isFav = !isFav;
+      const btn = document.getElementById('demo-fav-btn');
+      if (isFav) {
+        btn.classList.add('active');
+        btn.innerHTML = '<i class="ph-fill ph-star" style="font-size: 18px; color: var(--accent-warning);"></i>';
+      } else {
+        btn.classList.remove('active');
+        btn.innerHTML = '<i class="ph ph-star" style="font-size: 18px;"></i>';
+      }
+    }
+  </script>
+</body>
+</html>

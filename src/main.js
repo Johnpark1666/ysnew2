@@ -47,6 +47,7 @@ window.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupEventListeners();
   initYouTubeAuth();
+  initCanvasControllers();
   window.addEventListener('resize', updateFloatingToolbar);
   const container = document.getElementById('layout-container');
   if (container) container.classList.add('tab-unread');
@@ -340,8 +341,9 @@ function setupEventListeners() {
 }
 
 function updateStats() {
+  window.openDetail = openDetail; // Expose openDetail globally as early as possible
   const unreadCount = allData.filter(item => !isTrue(item.Read)).length;
-  const favCount = allData.filter(item => isTrue(item.Favorite)).length;
+  const favCount = allData.filter(item => isTrue(item.Favorite)).length + githubData.filter(item => isTrue(item.Favorite)).length;
 
   // 카테고리 목록 및 개수 계산 (읽지 않은 영상이 있는 카테고리만)
   
@@ -360,6 +362,9 @@ function updateStats() {
   const githubUnreadCount = githubData.filter(item => !isTrue(item.Read)).length;
   const githubCountEl = document.getElementById('github-count');
   if (githubCountEl) githubCountEl.textContent = githubUnreadCount;
+
+  // Update left visuals with dynamic counter, keywords and headlines
+  updateLeftPanelDynamicData();
 }
 
 function switchTab(tabName) {
@@ -732,6 +737,7 @@ window.handleImageError = (img) => {
 
 // 상세 로직 및 Apps Script 호출 로직은 기존 기능 유지
 function openDetail(id, keepMixActive = false) {
+  window.openDetail = openDetail; // Expose globally
   currentDetailId = String(id);
   let item = allData.find(d => String(d.ID) === currentDetailId);
   if (!item) {
@@ -1636,6 +1642,15 @@ function openSublist(type, key) {
   document.querySelector('.layout-container').classList.add('sublist-active');
   document.getElementById('sl-title').textContent = key;
   
+  if (type === 'category') {
+    currentCategory = key;
+    currentChannel = null;
+  } else {
+    currentChannel = key;
+    currentCategory = null;
+  }
+  updateLeftPanelDynamicData();
+  
   const sublistBody = document.getElementById('sublist-body');
   sublistBody.innerHTML = '';
   
@@ -1687,6 +1702,9 @@ function openSublist(type, key) {
 
 function closeSublist() {
   document.querySelector('.layout-container').classList.remove('sublist-active');
+  currentCategory = null;
+  currentChannel = null;
+  updateLeftPanelDynamicData();
 }
 
 function getDocumentPreviewUrl(url) {
@@ -1712,4 +1730,401 @@ function getDocumentPreviewUrl(url) {
   
   // 4. Default Google Drive Preview
   return url.replace('/view?usp=drivesdk', '/preview');
+}
+
+// ==========================================
+// Brutalist Visuals & HTML-in-Canvas Controller
+// ==========================================
+let mainCanvas, mainCtx;
+let bgCanvas, bgCtx;
+let canvasScrollY = 0;
+let isHtmlInCanvasActive = false;
+let canvasAnimationId = null;
+let bgParticles = [];
+
+function initCanvasControllers() {
+  mainCanvas = document.getElementById('main-canvas');
+  bgCanvas = document.getElementById('bg-visual-canvas');
+  
+  if (!mainCanvas || !bgCanvas) return;
+  
+  mainCtx = mainCanvas.getContext('2d');
+  bgCtx = bgCanvas.getContext('2d');
+  
+  // Check browser support for drawElementImage (HTML-in-Canvas)
+  isHtmlInCanvasActive = typeof mainCtx.drawElementImage === 'function';
+  console.log("HTML-in-Canvas support active:", isHtmlInCanvasActive);
+  
+  const grid = document.getElementById('card-grid');
+  const paneList = document.getElementById('pane-list');
+  
+  if (isHtmlInCanvasActive) {
+    mainCanvas.setAttribute('layoutsubtree', '');
+    mainCanvas.appendChild(grid); // Move layout inside canvas context
+    
+    // Add scroll spacer to manage native scrolling
+    let spacer = document.getElementById('scroll-spacer');
+    if (!spacer) {
+      spacer = document.createElement('div');
+      spacer.id = 'scroll-spacer';
+      paneList.appendChild(spacer);
+    }
+    
+    paneList.addEventListener('scroll', () => {
+      canvasScrollY = paneList.scrollTop;
+      requestCanvasPaint();
+    });
+    
+    window.addEventListener('resize', resizeMainCanvas);
+    resizeMainCanvas();
+    startCanvasLoop();
+  } else {
+    // Fallback: hide canvas, display grid as normal CSS Grid
+    mainCanvas.style.display = 'none';
+  }
+  
+  initBgAnimation();
+}
+
+function resizeMainCanvas() {
+  if (!mainCanvas) return;
+  const rect = mainCanvas.parentElement.getBoundingClientRect();
+  mainCanvas.width = rect.width;
+  mainCanvas.height = rect.height;
+  requestCanvasPaint();
+}
+
+function startCanvasLoop() {
+  function renderLoop() {
+    drawMainCanvas();
+    canvasAnimationId = requestAnimationFrame(renderLoop);
+  }
+  canvasAnimationId = requestAnimationFrame(renderLoop);
+}
+
+function drawMainCanvas() {
+  if (!isHtmlInCanvasActive || !mainCanvas) return;
+  
+  mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+  
+  const grid = document.getElementById('card-grid');
+  const cards = document.querySelectorAll('#card-grid .card');
+  const scrollSpacer = document.getElementById('scroll-spacer');
+  
+  if (cards.length === 0) {
+    // If no elements, hide canvas so fallback empty state displays naturally
+    mainCanvas.style.display = 'none';
+    if (grid) grid.style.display = '';
+    return;
+  }
+  
+  mainCanvas.style.display = 'block';
+  if (grid) grid.style.display = 'block';
+  
+  // Render grid background design
+  const dotSpacing = 30;
+  mainCtx.fillStyle = 'rgba(18, 18, 18, 0.05)';
+  for (let x = 0; x < mainCanvas.width; x += dotSpacing) {
+    for (let y = 0; y < mainCanvas.height; y += dotSpacing) {
+      mainCtx.beginPath();
+      mainCtx.arc(x, y - (canvasScrollY % dotSpacing), 1.5, 0, Math.PI * 2);
+      mainCtx.fill();
+    }
+  }
+  
+  const paneList = document.getElementById('pane-list');
+  const paneListWidth = paneList.clientWidth;
+  const isListMode = viewMode === 'list';
+  
+  let totalHeight = 0;
+  const cardWidth = 320;
+  const gap = 24;
+  const padding = 32;
+  const centers = [];
+  
+  if (isListMode) {
+    // List Mode Layout inside Canvas
+    const cardHeight = 140;
+    const startX = padding;
+    const actualWidth = Math.max(400, paneListWidth - padding * 2);
+    
+    cards.forEach((card, index) => {
+      const x = startX;
+      const y = padding + index * (cardHeight + gap);
+      
+      card.classList.add('canvas-managed');
+      card.style.left = `${x}px`;
+      card.style.top = `${y}px`;
+      card.style.width = `${actualWidth}px`;
+      card.style.height = `${cardHeight}px`;
+      
+      const drawY = y - canvasScrollY;
+      if (drawY + cardHeight > 0 && drawY < mainCanvas.height) {
+        centers.push({ x: x + actualWidth / 2, y: drawY + cardHeight / 2 });
+        const transform = mainCtx.drawElementImage(card, x, drawY);
+        card.style.transform = transform.toString();
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+      } else {
+        card.style.transform = 'translate(-9999px, -9999px)';
+        card.style.opacity = '0';
+        card.style.pointerEvents = 'none';
+      }
+    });
+    
+    totalHeight = padding * 2 + cards.length * (cardHeight + gap) - gap;
+  } else {
+    // Grid Mode Layout inside Canvas
+    const cols = Math.max(1, Math.floor(paneListWidth / 360));
+    const totalGridWidth = cols * cardWidth + (cols - 1) * gap;
+    const startX = Math.max(padding, (paneListWidth - totalGridWidth) / 2);
+    const cardHeight = 350;
+    const rows = Math.ceil(cards.length / cols);
+    
+    cards.forEach((card, index) => {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      const x = startX + col * (cardWidth + gap);
+      const y = padding + row * (cardHeight + gap);
+      
+      card.classList.add('canvas-managed');
+      card.style.left = `${x}px`;
+      card.style.top = `${y}px`;
+      card.style.width = `${cardWidth}px`;
+      card.style.height = `${cardHeight}px`;
+      
+      const drawY = y - canvasScrollY;
+      if (drawY + cardHeight > 0 && drawY < mainCanvas.height) {
+        centers.push({ x: x + cardWidth / 2, y: drawY + cardHeight / 2 });
+        const transform = mainCtx.drawElementImage(card, x, drawY);
+        card.style.transform = transform.toString();
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+      } else {
+        card.style.transform = 'translate(-9999px, -9999px)';
+        card.style.opacity = '0';
+        card.style.pointerEvents = 'none';
+      }
+    });
+    
+    totalHeight = padding * 2 + rows * (cardHeight + gap) - gap;
+  }
+  
+  if (scrollSpacer) {
+    scrollSpacer.style.height = `${totalHeight}px`;
+  }
+  
+  // Connect cards visually
+  mainCtx.strokeStyle = 'rgba(79, 70, 229, 0.15)';
+  mainCtx.lineWidth = 2;
+  for (let i = 0; i < centers.length - 1; i++) {
+    const p1 = centers[i];
+    const p2 = centers[i + 1];
+    if (Math.hypot(p1.x - p2.x, p1.y - p2.y) < 500) {
+      mainCtx.beginPath();
+      mainCtx.moveTo(p1.x, p1.y);
+      mainCtx.lineTo(p2.x, p2.y);
+      mainCtx.stroke();
+    }
+  }
+}
+
+function requestCanvasPaint() {
+  if (!canvasAnimationId) {
+    drawMainCanvas();
+  }
+}
+
+function initBgAnimation() {
+  const resizeBg = () => {
+    if (!bgCanvas) return;
+    const rect = bgCanvas.parentElement.getBoundingClientRect();
+    bgCanvas.width = rect.width;
+    bgCanvas.height = rect.height;
+  };
+  window.addEventListener('resize', resizeBg);
+  resizeBg();
+  
+  bgParticles = [];
+  for (let i = 0; i < 20; i++) {
+    bgParticles.push({
+      x: Math.random() * bgCanvas.width,
+      y: Math.random() * bgCanvas.height,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
+      r: Math.random() * 2 + 1
+    });
+  }
+  
+  function draw() {
+    if (!bgCanvas || !bgCtx) return;
+    bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+    
+    // Draw web lines
+    bgCtx.strokeStyle = 'rgba(18, 18, 18, 0.04)';
+    bgCtx.lineWidth = 1;
+    for (let i = 0; i < bgParticles.length; i++) {
+      for (let j = i + 1; j < bgParticles.length; j++) {
+        const dist = Math.hypot(bgParticles[i].x - bgParticles[j].x, bgParticles[i].y - bgParticles[j].y);
+        if (dist < 100) {
+          bgCtx.beginPath();
+          bgCtx.moveTo(bgParticles[i].x, bgParticles[i].y);
+          bgCtx.lineTo(bgParticles[j].x, bgParticles[j].y);
+          bgCtx.stroke();
+        }
+      }
+    }
+    
+    // Draw particle nodes
+    bgCtx.fillStyle = 'rgba(18, 18, 18, 0.2)';
+    bgParticles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      
+      if (p.x < 0 || p.x > bgCanvas.width) p.vx *= -1;
+      if (p.y < 0 || p.y > bgCanvas.height) p.vy *= -1;
+      
+      bgCtx.beginPath();
+      bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      bgCtx.fill();
+    });
+    
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function updateLeftPanelDynamicData() {
+  // 1. Update Status Counter (based on current active tab or category/channel sublist)
+  const counterEl = document.getElementById('visual-unread-count');
+  const labelEl = document.querySelector('.status-counter-box .counter-label');
+  
+  if (counterEl && labelEl) {
+    let count = 0;
+    let label = 'UNREAD CLIPS';
+    
+    switch (currentTab) {
+      case 'unread':
+        count = allData.filter(item => !isTrue(item.Read)).length;
+        label = 'UNREAD CLIPS';
+        break;
+      case 'favorite':
+        const ytFavs = allData.filter(item => isTrue(item.Favorite));
+        const githubFavs = githubData.filter(item => isTrue(item.Favorite));
+        count = ytFavs.length + githubFavs.length;
+        label = 'FAVORITE CLIPS';
+        break;
+      case 'category':
+        if (currentCategory) {
+          count = allData.filter(item => !isTrue(item.Read) && String(item.Category || item['카테고리'] || "미분류").trim() === currentCategory).length;
+          label = `${currentCategory.toUpperCase()} CLIPS`;
+        } else {
+          const categories = [...new Set(allData.filter(item => !isTrue(item.Read)).map(item => String(item.Category || item['카테고리'] || "미분류").trim()))].filter(c => c !== "");
+          count = categories.length;
+          label = 'CATEGORIES';
+        }
+        break;
+      case 'channel':
+        if (currentChannel) {
+          count = allData.filter(item => !isTrue(item.Read) && String(item.ChannelName || "알 수 없음").trim() === currentChannel).length;
+          label = `${currentChannel.toUpperCase()} CLIPS`;
+        } else {
+          const channels = [...new Set(allData.filter(item => !isTrue(item.Read)).map(item => String(item.ChannelName || "알 수 없음").trim()))].filter(c => c !== "");
+          count = channels.length;
+          label = 'CHANNELS';
+        }
+        break;
+      case 'today':
+        count = 'TODAY';
+        label = 'TODAY\'S BOMBOM';
+        break;
+      case 'mix':
+        count = mixData.length;
+        label = 'PODCAST MIXES';
+        break;
+      case 'github':
+        count = githubData.filter(item => !isTrue(item.Read)).length;
+        label = 'GITHUB PROJECTS';
+        break;
+      default:
+        count = 0;
+        label = 'CLIPS';
+    }
+    
+    counterEl.textContent = count;
+    labelEl.textContent = label;
+  }
+  
+  // 2. Extract Tags/Keywords from Unread & Favorites for Horizontal 3-Row Ticker
+  const tagTicker1 = document.getElementById('dynamic-tag-ticker-1');
+  const tagTicker2 = document.getElementById('dynamic-tag-ticker-2');
+  const tagTicker3 = document.getElementById('dynamic-tag-ticker-3');
+  
+  if (tagTicker1 && tagTicker2 && tagTicker3) {
+    const relevantItems = [
+      ...allData.filter(item => !isTrue(item.Read)),
+      ...allData.filter(item => isTrue(item.Favorite)),
+      ...githubData.filter(item => !isTrue(item.Read)),
+      ...githubData.filter(item => isTrue(item.Favorite))
+    ];
+    
+    let keywords = [];
+    relevantItems.forEach(item => {
+      if (item.Keywords) {
+        String(item.Keywords).split(',').forEach(k => {
+          const trimmed = k.trim().toUpperCase();
+          if (trimmed && !keywords.includes(trimmed)) {
+            keywords.push(trimmed);
+          }
+        });
+      }
+    });
+    
+    // Fallback default keywords if sheet contains none
+    if (keywords.length === 0) {
+      keywords = ['AI', 'TECH', 'WORKFLOW', 'CLIPPING', 'NEWS', 'TRENDS', 'ANALYSIS', 'GITHUB', 'PODCAST'];
+    }
+    
+    // Stagger keywords into three rows
+    let kw1 = [], kw2 = [], kw3 = [];
+    keywords.forEach((k, idx) => {
+      if (idx % 3 === 0) kw1.push(k);
+      else if (idx % 3 === 1) kw2.push(k);
+      else kw3.push(k);
+    });
+    
+    const formatKw = (arr) => {
+      if (arr.length === 0) arr = ['CLIPS', 'INSIGHTS', 'NEWS'];
+      const duplicated = [...arr, ...arr, ...arr, ...arr, ...arr, ...arr]; // Multi-duplicate for long scrolling tracks
+      return duplicated.map(k => `<span>${k}</span>`).join('');
+    };
+    
+    tagTicker1.innerHTML = formatKw(kw1);
+    tagTicker2.innerHTML = formatKw(kw2);
+    tagTicker3.innerHTML = formatKw(kw3);
+  }
+  
+  // 3. Extract Latest Video Headlines for Vertical Scrolling
+  const headlinesScroll = document.getElementById('headlines-scroll-list');
+  if (headlinesScroll) {
+    // Combine YouTube and GitHub feeds, sorting by Publish Date descending
+    const combinedFeeds = [...allData, ...githubData].sort((a, b) => (b.PublishDate || "").localeCompare(a.PublishDate || ""));
+    const latestClips = combinedFeeds.slice(0, 10);
+    
+    if (latestClips.length > 0) {
+      const itemsHtml = latestClips.map(clip => {
+        const dateStr = clip.PublishDate ? String(clip.PublishDate).substring(0, 10) : '';
+        const titleText = clip.Title || 'Untitled Clip';
+        return `<div class="headline-item" onclick="openDetail('${clip.ID}')">
+          <div style="font-size: 9px; color: var(--accent-primary); font-weight: 800; margin-bottom: 2px;">${dateStr}</div>
+          <div>${titleText}</div>
+        </div>`;
+      }).join('');
+      
+      // Duplicate list twice to build seamless infinite marquee scrolling
+      headlinesScroll.innerHTML = itemsHtml + itemsHtml + itemsHtml;
+    } else {
+      headlinesScroll.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 24px 0;">NO HEADLINES AVAILABLE</div>';
+    }
+  }
 }
