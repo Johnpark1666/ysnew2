@@ -1344,6 +1344,7 @@ body {
 
   .layout-container {
     height: calc(100vh - 60px) !important;
+    height: calc(100dvh - 60px) !important; /* Use dynamic viewport height if supported */
   }
 
   .floating-toolbar {
@@ -1367,7 +1368,7 @@ body {
   }
 
   .modal-body {
-    padding-bottom: 80px !important; /* Ensure scrolled content is fully visible */
+    padding-bottom: 150px !important; /* Significantly increased padding to prevent bottom tab overlap */
   }
 
   #btn-mark-selected-read {
@@ -1474,6 +1475,7 @@ body {
   /* Sublist styling overrides */
   .sublist-body {
     padding: 12px !important;
+    padding-bottom: 100px !important; /* Ensure sublist cards are not obscured at the bottom */
     gap: 12px !important;
   }
 
