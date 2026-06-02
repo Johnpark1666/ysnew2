@@ -48,6 +48,7 @@ window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initYouTubeAuth();
   initCanvasControllers();
+  initRightPaneResizers();
   window.addEventListener('resize', updateFloatingToolbar);
   const container = document.getElementById('layout-container');
   if (container) container.classList.add('tab-unread');
@@ -262,6 +263,9 @@ function setupEventListeners() {
   };
 
   document.getElementById('close-detail').onclick = () => closeDetail();
+  
+  const closeSublistBtn = document.getElementById('close-sublist');
+  if (closeSublistBtn) closeSublistBtn.onclick = () => closeSublist();
   
   const closeMixDetailBtn = document.getElementById('close-mix-detail');
   if (closeMixDetailBtn) closeMixDetailBtn.onclick = () => closeMixDetail();
@@ -836,6 +840,13 @@ function closeDetail() {
     document.body.classList.remove('detail-open');
   }
   currentDetailId = null;
+  
+  if (container) {
+    container.style.removeProperty('--detail-width');
+    if (typeof resizeMainCanvas === 'function') {
+      resizeMainCanvas();
+    }
+  }
 }
 
 function getGoogleDriveFileId(url) {
@@ -1177,6 +1188,12 @@ function closeMixDetail() {
   const detailPane = document.getElementById('pane-mix-detail');
   if (detailPane) {
     detailPane.classList.remove('open');
+  }
+  if (container) {
+    container.style.removeProperty('--detail-width');
+    if (typeof resizeMainCanvas === 'function') {
+      resizeMainCanvas();
+    }
   }
 }
 
@@ -1701,10 +1718,18 @@ function openSublist(type, key) {
 }
 
 function closeSublist() {
-  document.querySelector('.layout-container').classList.remove('sublist-active');
+  const container = document.querySelector('.layout-container');
+  if (container) {
+    container.classList.remove('sublist-active');
+    container.style.removeProperty('--sublist-width');
+  }
   currentCategory = null;
   currentChannel = null;
   updateLeftPanelDynamicData();
+  
+  if (typeof resizeMainCanvas === 'function') {
+    resizeMainCanvas();
+  }
 }
 
 function getDocumentPreviewUrl(url) {
@@ -2127,4 +2152,69 @@ function updateLeftPanelDynamicData() {
       headlinesScroll.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 24px 0;">NO HEADLINES AVAILABLE</div>';
     }
   }
+}
+
+function initRightPaneResizers() {
+  const container = document.getElementById('layout-container');
+  if (!container) return;
+
+  function setupResizer(resizerId, widthVarName) {
+    const resizer = document.getElementById(resizerId);
+    if (!resizer) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    resizer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isDragging = true;
+      container.classList.add('resizing');
+
+      let paneId = '';
+      if (resizerId === 'sublist-resizer') paneId = 'pane-sublist';
+      else if (resizerId === 'detail-resizer') paneId = 'pane-detail';
+      else if (resizerId === 'mix-detail-resizer') paneId = 'pane-mix-detail';
+
+      const pane = document.getElementById(paneId);
+      startWidth = pane ? pane.clientWidth : (resizerId === 'sublist-resizer' ? 500 : 650);
+      startX = e.clientX;
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    function onMouseMove(e) {
+      if (!isDragging) return;
+      const deltaX = e.clientX - startX;
+      let newWidth = startWidth - deltaX;
+
+      const minWidth = 320;
+      const maxWidth = Math.floor(window.innerWidth * 0.7);
+      if (newWidth < minWidth) newWidth = minWidth;
+      if (newWidth > maxWidth) newWidth = maxWidth;
+
+      container.style.setProperty(widthVarName, newWidth + 'px');
+
+      if (typeof resizeMainCanvas === 'function') {
+        resizeMainCanvas();
+      }
+    }
+
+    function onMouseUp() {
+      if (!isDragging) return;
+      isDragging = false;
+      container.classList.remove('resizing');
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+
+      if (typeof resizeMainCanvas === 'function') {
+        resizeMainCanvas();
+      }
+    }
+  }
+
+  setupResizer('sublist-resizer', '--sublist-width');
+  setupResizer('detail-resizer', '--detail-width');
+  setupResizer('mix-detail-resizer', '--detail-width');
 }

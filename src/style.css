@@ -242,28 +242,39 @@ body {
 
 /* Layout Container */
 .layout-container {
+  --sublist-width: 500px;
+  --detail-width: 650px;
   display: grid;
   grid-template-columns: 240px 1fr 0px;
   width: 100%;
   height: calc(100vh - 70px);
   position: relative;
+}
+
+.layout-container:not(.resizing) {
   transition: grid-template-columns var(--transition-normal);
 }
 
 .layout-container.sublist-active {
-  grid-template-columns: 240px 1fr 500px;
+  grid-template-columns: 240px 1fr var(--sublist-width);
 }
 
 .layout-container.detail-active {
-  grid-template-columns: 240px 1fr 650px;
+  grid-template-columns: 240px 1fr var(--detail-width);
 }
 
 .layout-container.mix-detail-active {
-  grid-template-columns: 240px 1fr 850px;
+  --detail-width: 850px;
+  grid-template-columns: 240px 1fr var(--detail-width);
 }
 
 .layout-container.mix-detail-active.detail-active {
-  grid-template-columns: 240px 1fr 900px;
+  --detail-width: 900px;
+  grid-template-columns: 240px 1fr var(--detail-width);
+}
+
+.layout-container.sublist-active.detail-active {
+  grid-template-columns: 240px 1fr var(--sublist-width) var(--detail-width);
 }
 
 /* Left Pane (Visuals / Circular Ticker) */
@@ -795,8 +806,8 @@ body {
   display: block !important;
 }
 
-/* Hide the sublist pane when the video detail pane is open, so it doesn't wrap to row 2 */
-.layout-container.detail-active #pane-sublist {
+/* Hide the sublist pane when the video detail pane is open, UNLESS the sublist is active too */
+.layout-container.detail-active:not(.sublist-active) #pane-sublist {
   display: none !important;
 }
 
@@ -807,6 +818,26 @@ body {
 
 .layout-container.mix-detail-active #pane-mix-detail {
   display: block !important;
+}
+
+/* Pane Resizer Handle */
+.pane-resizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: calc(100vh - 70px);
+  cursor: col-resize;
+  z-index: 1000;
+  background: transparent;
+  border-left: 2px solid transparent;
+  transition: background var(--transition-fast);
+}
+
+.pane-resizer:hover,
+.layout-container.resizing .pane-resizer {
+  background: rgba(79, 70, 229, 0.1);
+  border-left: 2px solid var(--accent-primary) !important;
 }
 
 .detail-header-sticky {
