@@ -225,8 +225,6 @@ function setupEventListeners() {
   const tabChannel = document.getElementById('tab-channel');
   if (tabChannel) tabChannel.onclick = () => switchTab('channel');
 
-  document.getElementById('tab-today').onclick = () => switchTab('today');
-  
   const tabMix = document.getElementById('tab-mix');
   if (tabMix) tabMix.onclick = () => switchTab('mix');
   
@@ -401,17 +399,7 @@ function switchTab(tabName) {
   closeMixDetail();
 
   const paneList = document.getElementById('pane-list');
-  const paneToday = document.getElementById('pane-today');
-  
-  if (tabName === 'today') {
-    if (paneList) paneList.style.display = 'none';
-    if (paneToday) paneToday.style.display = 'block';
-    updateFloatingToolbar();
-    return;
-  } else {
-    if (paneList) paneList.style.display = '';
-    if (paneToday) paneToday.style.display = 'none';
-  }
+  if (paneList) paneList.style.display = '';
 
   renderGrid();
 }
@@ -1572,7 +1560,7 @@ function updateFloatingToolbar() {
 
   // Show/Hide logic
   let shouldHide = false;
-  if ((currentTab === 'category' && !currentCategory) || currentTab === 'today') {
+  if (currentTab === 'category' && !currentCategory) {
     shouldHide = true;
   } else if (isMobile && (currentTab === 'channel' || currentTab === 'mix')) {
     shouldHide = true;
@@ -2061,10 +2049,6 @@ function updateLeftPanelDynamicData() {
           count = channels.length;
           label = 'CHANNELS';
         }
-        break;
-      case 'today':
-        count = 'TODAY';
-        label = 'TODAY\'S BOMBOM';
         break;
       case 'mix':
         count = mixData.length;
