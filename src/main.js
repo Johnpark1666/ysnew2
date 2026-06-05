@@ -1768,8 +1768,9 @@ function initCanvasControllers() {
   bgCtx = bgCanvas.getContext('2d');
   
   // Check browser support for drawElementImage (HTML-in-Canvas)
-  isHtmlInCanvasActive = typeof mainCtx.drawElementImage === 'function';
-  console.log("HTML-in-Canvas support active:", isHtmlInCanvasActive);
+  // drawElementImage는 비표준 실험적 기능으로, 일부 브라우저에서 실행 중 오류(Uncaught TypeError)를 유발하여 화면이 굳는 원인이 되므로 false로 강제 설정해 안정적인 CSS Grid 뷰가 항상 쓰이도록 합니다.
+  isHtmlInCanvasActive = false;
+  console.log("HTML-in-Canvas support active (disabled for compatibility):", isHtmlInCanvasActive);
   
   const grid = document.getElementById('card-grid');
   const paneList = document.getElementById('pane-list');
