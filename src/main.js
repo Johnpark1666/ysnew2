@@ -744,6 +744,15 @@ function openDetail(id, keepMixActive = false) {
   detailBody.style.transform = 'translateY(10px)';
   detailBody.style.transition = 'none';
 
+  // Reset video section to remove any existing player iframe and show thumbnail
+  const videoSection = document.querySelector('.modal-video-section');
+  if (videoSection) {
+    const iframe = videoSection.querySelector('iframe');
+    if (iframe) iframe.remove();
+    const mImg = document.getElementById('m-img');
+    if (mImg) mImg.style.display = '';
+  }
+
   setTimeout(() => {
     document.getElementById('m-title').innerText = item.Title;
     const pubDate = item.PublishDate ? String(item.PublishDate).substring(0, 10) : '-';
@@ -754,9 +763,12 @@ function openDetail(id, keepMixActive = false) {
       mChannel.innerText = item.ChannelName || '알 수 없는 채널';
     }
 
+    const videoId = String(item.ID || item.id || '').trim();
     const mImg = document.getElementById('m-img');
     mImg.onerror = () => window.handleImageError(mImg);
     mImg.src = item.Image_URL || 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
+    mImg.style.cursor = 'pointer';
+    mImg.onclick = () => playVideoInline(videoId, 0);
 
     const mLink = document.getElementById('m-link');
     mLink.href = item.VideoURL;
@@ -765,6 +777,9 @@ function openDetail(id, keepMixActive = false) {
     document.getElementById('m-analysis').innerHTML = String(item.Analysis || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     document.getElementById('m-insights').innerHTML = String(item.Insights || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     document.getElementById('m-implications').innerHTML = String(item.Implications || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+    // Render timeline accordions
+    renderTimeline(item.Timeline || item.timeline, videoId);
 
     const mReadBtn = document.getElementById('m-btn-read');
     const mFavBtn = document.getElementById('m-btn-fav');
@@ -2205,4 +2220,128 @@ function initRightPaneResizers() {
   setupResizer('sublist-resizer', '--sublist-width');
   setupResizer('detail-resizer', '--detail-width');
   setupResizer('mix-detail-resizer', '--detail-width');
+}
+
+// ==========================================
+// Timeline & Inline Player Helper Functions
+// ==========================================
+
+function playVideoInline(videoId, startSeconds = 0) {
+  const videoSection = document.querySelector('.modal-video-section');
+  if (!videoSection) return;
+  
+  let iframe = videoSection.querySelector('iframe');
+  const startParam = startSeconds > 0 ? `&start=${startSeconds}` : '';
+  
+  if (!iframe) {
+    const mImg = document.getElementById('m-img');
+    if (mImg) mImg.style.display = 'none';
+    
+    iframe = document.createElement('iframe');
+    iframe.className = 'modal-thumbnail';
+    iframe.style.border = 'none';
+    iframe.style.width = '100%';
+    iframe.style.aspectRatio = '16/9';
+    videoSection.insertBefore(iframe, videoSection.firstChild);
+  }
+  
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1${startParam}`;
+}
+
+function timestampToSeconds(ts) {
+  if (!ts) return 0;
+  const parts = ts.replace(/[\[\]]/g, '').split(':').map(Number);
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+  return parts[0] || 0;
+}
+
+function parseTimeline(timelineStr) {
+  if (!timelineStr) return [];
+  const lines = timelineStr.split('\n');
+  const chapters = [];
+  const timeRegex = /\[((?:\d{1,2}:)?\d{1,2}:\d{2})\]/;
+  
+  for (const line of lines) {
+    const match = line.match(timeRegex);
+    if (match) {
+      const timestamp = match[1];
+      let content = line.replace(match[0], '')
+        .replace(/^[\s•\-:|~·#★➔▶\s]+|[\s•\-:|~·#★➔▶\s]+$/g, '')
+        .trim();
+      chapters.push({
+        time: timestamp,
+        content: content
+      });
+    }
+  }
+  return chapters;
+}
+
+function renderTimeline(timelineStr, videoId) {
+  const timelineEl = document.getElementById('m-timeline');
+  const timelineSection = document.getElementById('m-timeline-section');
+  if (!timelineEl) return;
+  
+  const chapters = parseTimeline(timelineStr || '');
+  if (chapters.length === 0) {
+    if (timelineSection) timelineSection.style.display = 'none';
+    timelineEl.innerHTML = '내용 없음';
+    return;
+  }
+  
+  if (timelineSection) timelineSection.style.display = '';
+  
+  let html = `<div class="timeline-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">`;
+  
+  chapters.forEach((ch, idx) => {
+    const seconds = timestampToSeconds(ch.time);
+    
+    html += `
+      <div class="timeline-item" style="border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; overflow: hidden; background: var(--bg-card, #ffffff);">
+        <div class="timeline-item-header" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-card-hover, #f8fafc); cursor: pointer; user-select: none;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-main, #0f172a); min-width: 0; flex: 1;">
+            <button class="timeline-badge" data-seconds="${seconds}" style="background: var(--accent-primary, #ef4444); color: white; border: none; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: monospace; display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;">
+              <i class="ph ph-play-fill" style="font-size: 8px;"></i>${ch.time}
+            </button>
+            <span class="timeline-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%;">${ch.content.split('.')[0]}</span>
+          </div>
+          <i class="ph ph-caret-down timeline-caret" style="font-size: 16px; color: var(--text-muted, #64748b); transition: transform 0.2s; flex-shrink: 0; margin-left: 8px;"></i>
+        </div>
+        <div class="timeline-item-body" style="padding: 12px; font-size: 12px; line-height: 1.6; color: var(--text-muted, #475569); border-top: 1px solid var(--border-color, #e2e8f0); display: none;">
+          ${ch.content}
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  timelineEl.innerHTML = html;
+  
+  const list = timelineEl.querySelector('.timeline-list');
+  if (list) {
+    list.querySelectorAll('.timeline-item').forEach(item => {
+      const header = item.querySelector('.timeline-item-header');
+      const body = item.querySelector('.timeline-item-body');
+      const caret = item.querySelector('.timeline-caret');
+      const playBtn = item.querySelector('.timeline-badge');
+      
+      header.onclick = (e) => {
+        if (e.target.closest('.timeline-badge')) {
+          e.stopPropagation();
+          const secs = parseInt(playBtn.dataset.seconds);
+          playVideoInline(videoId, secs);
+          return;
+        }
+        
+        const isOpen = body.style.display === 'block';
+        body.style.display = isOpen ? 'none' : 'block';
+        caret.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+      };
+    });
+  }
 }
