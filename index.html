@@ -156,6 +156,17 @@
       <div class="modal-body">
         <div class="modal-video-section">
           <img id="m-img" class="modal-thumbnail" src="" alt="Video thumbnail">
+          
+          <div class="content-section" id="m-timeline-section" style="border: none; border-bottom: var(--border-default); margin-bottom: 0; background: var(--bg-secondary); display: none;">
+            <div class="section-header" style="border-bottom: var(--border-default); padding: 12px 20px; background: var(--bg-primary);">
+              <div class="section-icon timeline" style="color: var(--accent-primary); display: flex; align-items: center;">
+                <i class="ph ph-clock-afternoon" style="font-size: 20px;"></i>
+              </div>
+              <span class="section-title">주요 타임라인 (Timeline)</span>
+            </div>
+            <div id="m-timeline" class="section-content timeline-container" style="padding: 16px 20px; max-height: 250px; overflow-y: auto;">내용 없음</div>
+          </div>
+
           <div class="modal-actions-video">
             <a id="m-link" href="#" target="_blank" class="btn-youtube">
               <i class="ph-fill ph-play-circle"></i>
@@ -183,16 +194,6 @@
             <span class="section-title">요약 (Summary)</span>
           </div>
           <div id="m-summary" class="section-content">내용 없음</div>
-        </div>
-
-        <div class="content-section" id="m-timeline-section">
-          <div class="section-header">
-            <div class="section-icon timeline" style="background: var(--bg-card-hover); display: flex; align-items: center; justify-content: center; border-radius: 8px; width: 32px; height: 32px; color: var(--accent-primary);">
-              <i class="ph ph-clock-afternoon" style="font-size: 20px;"></i>
-            </div>
-            <span class="section-title">주요 타임라인 (Timeline)</span>
-          </div>
-          <div id="m-timeline" class="section-content timeline-container">내용 없음</div>
         </div>
 
         <div class="content-section">

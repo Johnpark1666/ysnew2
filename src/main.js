@@ -2294,27 +2294,19 @@ function renderTimeline(timelineStr, videoId) {
     return;
   }
   
-  if (timelineSection) timelineSection.style.display = '';
+  if (timelineSection) timelineSection.style.display = 'block';
   
-  let html = `<div class="timeline-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">`;
+  let html = `<div class="timeline-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">`;
   
   chapters.forEach((ch, idx) => {
     const seconds = timestampToSeconds(ch.time);
     
     html += `
-      <div class="timeline-item" style="border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; overflow: hidden; background: var(--bg-card, #ffffff);">
-        <div class="timeline-item-header" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-card-hover, #f8fafc); cursor: pointer; user-select: none;">
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-main, #0f172a); min-width: 0; flex: 1;">
-            <button class="timeline-badge" data-seconds="${seconds}" style="background: var(--accent-primary, #ef4444); color: white; border: none; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: monospace; display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;">
-              <i class="ph ph-play-fill" style="font-size: 8px;"></i>${ch.time}
-            </button>
-            <span class="timeline-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%;">${ch.content.split('.')[0]}</span>
-          </div>
-          <i class="ph ph-caret-down timeline-caret" style="font-size: 16px; color: var(--text-muted, #64748b); transition: transform 0.2s; flex-shrink: 0; margin-left: 8px;"></i>
-        </div>
-        <div class="timeline-item-body" style="padding: 12px; font-size: 12px; line-height: 1.6; color: var(--text-muted, #475569); border-top: 1px solid var(--border-color, #e2e8f0); display: none;">
-          ${ch.content}
-        </div>
+      <div class="timeline-item" style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.5; padding: 4px 0;">
+        <button class="timeline-badge" data-seconds="${seconds}" style="background: var(--accent-primary, #ef4444); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: monospace; display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; transition: background 0.2s;">
+          <i class="ph ph-play-fill" style="font-size: 8px;"></i>${ch.time}
+        </button>
+        <span class="timeline-content" style="color: var(--text-main, #0f172a); font-weight: 500; word-break: keep-all;">${ch.content}</span>
       </div>
     `;
   });
@@ -2324,24 +2316,14 @@ function renderTimeline(timelineStr, videoId) {
   
   const list = timelineEl.querySelector('.timeline-list');
   if (list) {
-    list.querySelectorAll('.timeline-item').forEach(item => {
-      const header = item.querySelector('.timeline-item-header');
-      const body = item.querySelector('.timeline-item-body');
-      const caret = item.querySelector('.timeline-caret');
-      const playBtn = item.querySelector('.timeline-badge');
-      
-      header.onclick = (e) => {
-        if (e.target.closest('.timeline-badge')) {
-          e.stopPropagation();
-          const secs = parseInt(playBtn.dataset.seconds);
-          playVideoInline(videoId, secs);
-          return;
-        }
-        
-        const isOpen = body.style.display === 'block';
-        body.style.display = isOpen ? 'none' : 'block';
-        caret.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    list.querySelectorAll('.timeline-badge').forEach(btn => {
+      btn.onclick = (e) => {
+        const secs = parseInt(btn.dataset.seconds);
+        playVideoInline(videoId, secs);
       };
+      // hover effect via JS since it is inline style
+      btn.onmouseover = () => btn.style.background = 'var(--accent-primary-hover, #dc2626)';
+      btn.onmouseout = () => btn.style.background = 'var(--accent-primary, #ef4444)';
     });
   }
 }
