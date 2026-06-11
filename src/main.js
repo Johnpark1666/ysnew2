@@ -91,8 +91,13 @@ async function fetchData() {
   document.getElementById('card-grid').innerHTML = '';
 
   try {
-    // 1. 구글 시트 데이터를 직접 가져옴 (캐시 없이 실시간 연동)
-    const response = await fetch(`${GVIZ_URL}&t=${Date.now()}`);
+    // 1~3. 구글 시트 데이터를 병렬(Parallel)로 동시에 가져옴 (캐시 없이 실시간 연동)
+    const [response, mixResponse, githubResponse] = await Promise.all([
+      fetch(`${GVIZ_URL}&t=${Date.now()}`),
+      fetch(`${GVIZ_URL}&sheet=NotebookLM_Mix&t=${Date.now()}`),
+      fetch(`${GVIZ_URL}&sheet=github&t=${Date.now()}`)
+    ]);
+
     const text = await response.text();
 
     // 구글 응답 데이터(JSON)만 추출
@@ -136,8 +141,7 @@ async function fetchData() {
       return id !== "" && id !== "!!BRIEFING_LATEST!!";
     });
 
-    // 3. NotebookLM_Mix 시트 데이터 가져오기
-    const mixResponse = await fetch(`${GVIZ_URL}&sheet=NotebookLM_Mix&t=${Date.now()}`);
+    // 3. NotebookLM_Mix 시트 데이터 처리
     const mixText = await mixResponse.text();
     const mixJsonStr = mixText.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
     if (mixJsonStr) {
@@ -155,8 +159,7 @@ async function fetchData() {
       }).reverse(); // 최신순으로 정렬
     }
 
-    // 4. github 시트 데이터 가져오기
-    const githubResponse = await fetch(`${GVIZ_URL}&sheet=github&t=${Date.now()}`);
+    // 4. github 시트 데이터 처리
     const githubText = await githubResponse.text();
     const githubJsonStr = githubText.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
     if (githubJsonStr) {
