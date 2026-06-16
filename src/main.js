@@ -41,6 +41,7 @@ let sortOrder = 'newest';
 // [렌더링 설정]
 let currentPageSize = 20;
 let currentVisibleCount = 20;
+let currentFilteredCount = 0; // 캐싱된 필터 결과 수 (스크롤 시 O(1) 비교용)
 
 // 초기 데이터 로드
 window.addEventListener('DOMContentLoaded', () => {
@@ -84,6 +85,17 @@ function initYouTubeAuth() {
   }
 }
 
+// 구글 응답 데이터(JSON)만 추출하는 성능 최적화 헬퍼 함수 (정규식 제거)
+function parseGvizJson(text) {
+  const startIdx = text.indexOf('(');
+  const endIdx = text.lastIndexOf(')');
+  if (startIdx === -1 || endIdx === -1) {
+    throw new Error("구글 시트 연동 실패: 데이터 형식이 올바르지 않습니다.");
+  }
+  const jsonStr = text.slice(startIdx + 1, endIdx);
+  return JSON.parse(jsonStr);
+}
+
 async function fetchData() {
   const loader = document.getElementById('loader');
   loader.style.display = 'block';
@@ -91,20 +103,15 @@ async function fetchData() {
   document.getElementById('card-grid').innerHTML = '';
 
   try {
-    // 1~3. 구글 시트 데이터를 병렬(Parallel)로 동시에 가져옴 (캐시 없이 실시간 연동)
-    const [response, mixResponse, githubResponse] = await Promise.all([
-      fetch(`${GVIZ_URL}&t=${Date.now()}`),
-      fetch(`${GVIZ_URL}&sheet=NotebookLM_Mix&t=${Date.now()}`),
-      fetch(`${GVIZ_URL}&sheet=github&t=${Date.now()}`)
+    // 1~3. 구글 시트 데이터를 병렬(Parallel)로 동시에 가져오고 텍스트 변환까지 일괄 병렬 처리 (네트워크 병목 최소화)
+    const [text, mixText, githubText] = await Promise.all([
+      fetch(`${GVIZ_URL}&t=${Date.now()}`).then(r => r.text()),
+      fetch(`${GVIZ_URL}&sheet=NotebookLM_Mix&t=${Date.now()}`).then(r => r.text()),
+      fetch(`${GVIZ_URL}&sheet=github&t=${Date.now()}`).then(r => r.text())
     ]);
 
-    const text = await response.text();
-
-    // 구글 응답 데이터(JSON)만 추출
-    const jsonStr = text.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
-    if (!jsonStr) throw new Error("구글 시트 연동 실패: 데이터 형식이 올바르지 않습니다.");
-
-    const obj = JSON.parse(jsonStr[1]);
+    // 구글 응답 데이터(JSON)만 추출 (정규식 대신 indexOf/slice를 통해 프리징 최소화)
+    const obj = parseGvizJson(text);
     const table = obj.table;
     const rows = table.rows;
     // 헤더(컬럼 레이블) 추출 (양끝 공백 트리밍 적용)
@@ -142,10 +149,8 @@ async function fetchData() {
     });
 
     // 3. NotebookLM_Mix 시트 데이터 처리
-    const mixText = await mixResponse.text();
-    const mixJsonStr = mixText.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
-    if (mixJsonStr) {
-      const mixObj = JSON.parse(mixJsonStr[1]);
+    try {
+      const mixObj = parseGvizJson(mixText);
       const mixRows = mixObj.table.rows;
       mixData = mixRows.map((row, index) => {
         return {
@@ -157,13 +162,13 @@ async function fetchData() {
           title: row.c[4] ? row.c[4].v : ""
         };
       }).reverse(); // 최신순으로 정렬
+    } catch (e) {
+      console.warn("NotebookLM_Mix 데이터 파싱 경고:", e);
     }
 
     // 4. github 시트 데이터 처리
-    const githubText = await githubResponse.text();
-    const githubJsonStr = githubText.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
-    if (githubJsonStr) {
-      const githubObj = JSON.parse(githubJsonStr[1]);
+    try {
+      const githubObj = parseGvizJson(githubText);
       const githubRows = githubObj.table.rows;
       const githubCols = githubObj.table.cols.map(c => (c.label || "").trim());
       githubData = githubRows.map((row, index) => {
@@ -187,6 +192,8 @@ async function fetchData() {
         const id = String(d.ID || d.id || d.Id || d['아이디'] || "").trim();
         return id !== "";
       });
+    } catch (e) {
+      console.warn("github 데이터 파싱 경고:", e);
     }
 
     console.log('실시간 연동 성공:', allData.length, '개의 행, Mix 데이터:', mixData.length, '개, GitHub 데이터:', githubData.length, '개');
@@ -318,11 +325,11 @@ function setupEventListeners() {
     };
   }
 
-  // Infinite Scroll
+  // Infinite Scroll (O(1) 캐싱된 필터 결과 수 비교를 통한 스크롤 버벅임 방지)
   const listPane = document.getElementById('pane-list');
   listPane.onscroll = () => {
     if (listPane.scrollTop + listPane.clientHeight >= listPane.scrollHeight - 100) {
-      if (currentVisibleCount < getFilteredData().length) {
+      if (currentVisibleCount < currentFilteredCount) {
         currentVisibleCount += currentPageSize;
         renderGrid(true, currentVisibleCount - currentPageSize);
       }
@@ -408,8 +415,7 @@ function switchTab(tabName) {
 }
 
 function loadMore() {
-  const filteredData = getFilteredData();
-  if (currentVisibleCount >= filteredData.length) return;
+  if (currentVisibleCount >= currentFilteredCount) return;
 
   const start = currentVisibleCount;
   currentVisibleCount += currentPageSize;
@@ -488,6 +494,7 @@ function renderGrid(append = false, startIndex = 0) {
   }
 
   let filteredData = getFilteredData();
+  currentFilteredCount = filteredData.length;
   
   // 정렬 적용
   if (sortOrder === 'newest') {
@@ -2099,17 +2106,19 @@ function updateLeftPanelDynamicData() {
       ...githubData.filter(item => isTrue(item.Favorite))
     ];
     
-    let keywords = [];
+    const keywordSet = new Set();
     relevantItems.forEach(item => {
       if (item.Keywords) {
         String(item.Keywords).split(',').forEach(k => {
           const trimmed = k.trim().toUpperCase();
-          if (trimmed && !keywords.includes(trimmed)) {
-            keywords.push(trimmed);
+          if (trimmed) {
+            keywordSet.add(trimmed);
           }
         });
       }
     });
+    
+    let keywords = Array.from(keywordSet);
     
     // Fallback default keywords if sheet contains none
     if (keywords.length === 0) {
@@ -2126,7 +2135,12 @@ function updateLeftPanelDynamicData() {
     
     const formatKw = (arr) => {
       if (arr.length === 0) arr = ['CLIPS', 'INSIGHTS', 'NEWS'];
-      const duplicated = [...arr, ...arr, ...arr, ...arr, ...arr, ...arr]; // Multi-duplicate for long scrolling tracks
+      // 대량 데이터일 때 불필요한 DOM 복제를 막고 스크롤 채우기만 가능하도록 듀플리케이션 계수를 동적으로 계산 (총 엘리먼트 수 약 50개 제한)
+      const dupCount = Math.max(2, Math.min(6, Math.floor(50 / arr.length)));
+      let duplicated = [];
+      for (let i = 0; i < dupCount; i++) {
+        duplicated = duplicated.concat(arr);
+      }
       return duplicated.map(k => `<span>${k}</span>`).join('');
     };
     
