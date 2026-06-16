@@ -1,6 +1,15 @@
 import './style.css'
 import { marked } from 'marked';
 
+// 마크다운 파싱 헬퍼 (테이블을 컨테이너로 감싸 브루탈리즘 스타일 및 가로 스크롤 적용)
+function renderMarkdown(text) {
+  if (!text) return '내용 없음';
+  const html = marked.parse(String(text));
+  return html
+    .replace(/<table>/g, '<div class="table-container"><table>')
+    .replace(/<\/table>/g, '</table></div>');
+}
+
 // [설정] 서비스 URL 및 시트 정보
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0tixYjtcjX0YRWK8N2tArYNmx5emY67HkCVlvBnXsehh72bi-bbg/exec';
 const SPREADSHEET_ID = '1ou-Nz0NNChhH4HZ3lq-MwnbuRacbY7MF8IzCya5Ndcg';
@@ -784,10 +793,10 @@ function openDetail(id, keepMixActive = false) {
     const mLink = document.getElementById('m-link');
     mLink.href = item.VideoURL;
 
-    document.getElementById('m-summary').innerHTML = marked.parse(String(item.Summary || '내용 없음'));
-    document.getElementById('m-analysis').innerHTML = marked.parse(String(item.Analysis || '내용 없음'));
-    document.getElementById('m-insights').innerHTML = marked.parse(String(item.Insights || '내용 없음'));
-    document.getElementById('m-implications').innerHTML = marked.parse(String(item.Implications || '내용 없음'));
+    document.getElementById('m-summary').innerHTML = renderMarkdown(item.Summary);
+    document.getElementById('m-analysis').innerHTML = renderMarkdown(item.Analysis);
+    document.getElementById('m-insights').innerHTML = renderMarkdown(item.Insights);
+    document.getElementById('m-implications').innerHTML = renderMarkdown(item.Implications);
 
     // Render timeline accordions
     renderTimeline(item.Timeline || item.timeline, videoId);
