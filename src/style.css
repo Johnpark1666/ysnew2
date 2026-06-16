@@ -1030,6 +1030,66 @@ body {
   color: var(--text-primary);
 }
 
+/* Neo-brutalism Table & List Style inside Section Content */
+.section-content .table-container {
+  overflow-x: auto;
+  border: var(--border-default);
+  box-shadow: var(--shadow-brutal);
+  margin: 20px 0;
+  background: var(--bg-secondary);
+}
+
+.section-content table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.section-content th,
+.section-content td {
+  padding: 12px 16px;
+  border-bottom: var(--border-default);
+  color: var(--text-primary);
+}
+
+.section-content th {
+  background-color: var(--bg-card-hover);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.section-content td {
+  font-weight: 500;
+}
+
+.section-content tr:last-child td {
+  border-bottom: none;
+}
+
+.section-content tr:nth-child(even) {
+  background-color: var(--bg-primary);
+}
+
+.section-content ul,
+.section-content ol {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.section-content li {
+  margin: 8px 0;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.section-content a {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  font-weight: 700;
+}
+
 /* Custom Audio Player */
 .custom-audio-player {
   border: var(--border-default) !important;

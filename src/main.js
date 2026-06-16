@@ -1,4 +1,5 @@
 import './style.css'
+import { marked } from 'marked';
 
 // [설정] 서비스 URL 및 시트 정보
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0tixYjtcjX0YRWK8N2tArYNmx5emY67HkCVlvBnXsehh72bi-bbg/exec';
@@ -783,10 +784,10 @@ function openDetail(id, keepMixActive = false) {
     const mLink = document.getElementById('m-link');
     mLink.href = item.VideoURL;
 
-    document.getElementById('m-summary').innerHTML = String(item.Summary || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    document.getElementById('m-analysis').innerHTML = String(item.Analysis || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    document.getElementById('m-insights').innerHTML = String(item.Insights || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    document.getElementById('m-implications').innerHTML = String(item.Implications || '내용 없음').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    document.getElementById('m-summary').innerHTML = marked.parse(String(item.Summary || '내용 없음'));
+    document.getElementById('m-analysis').innerHTML = marked.parse(String(item.Analysis || '내용 없음'));
+    document.getElementById('m-insights').innerHTML = marked.parse(String(item.Insights || '내용 없음'));
+    document.getElementById('m-implications').innerHTML = marked.parse(String(item.Implications || '내용 없음'));
 
     // Render timeline accordions
     renderTimeline(item.Timeline || item.timeline, videoId);
