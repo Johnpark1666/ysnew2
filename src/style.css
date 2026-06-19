@@ -1074,15 +1074,72 @@ body {
 
 .section-content ul,
 .section-content ol {
-  margin: 16px 0;
-  padding-left: 24px;
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
 }
 
 .section-content li {
+  padding: 10px 0 10px 16px;
   margin: 8px 0;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--text-secondary);
+  border-left-width: 4px;
+  border-left-style: solid;
+  border-left-color: var(--accent-primary);
 }
+
+.section-content li strong {
+  font-weight: 700;
+}
+
+/* ===== Markdown h3 rendered by marked.parse() ===== */
+.section-content h3 {
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 22px 0 12px 0;
+  border: 2px solid var(--border-color);
+  box-shadow: 3px 3px 0 var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+.section-content h3:first-child {
+  margin-top: 0;
+}
+.section-content h3::before {
+  content: "📌";
+  font-size: 13px;
+}
+
+.section-content strong {
+  font-weight: 700;
+}
+
+/* ===== 섹션별 컬러 시스템 ===== */
+/* Summary (요약) — Teal */
+#m-summary h3 { background: #0f766e; }
+#m-summary li { border-left-color: #0f766e; }
+#m-summary strong { color: #0f766e; }
+
+/* Analysis (분석) — Violet */
+#m-analysis h3 { background: #6d28d9; }
+#m-analysis li { border-left-color: #6d28d9; }
+#m-analysis strong { color: #6d28d9; }
+
+/* Insights (인사이트) — Amber */
+#m-insights h3 { background: #b45309; }
+#m-insights li { border-left-color: #b45309; }
+#m-insights strong { color: #b45309; }
+
+/* Implications (시사점) — Emerald */
+#m-implications h3 { background: #059669; }
+#m-implications li { border-left-color: #059669; }
+#m-implications strong { color: #059669; }
 
 .section-content a {
   color: var(--accent-primary);
