@@ -770,6 +770,18 @@ body {
 .list-row-icon {
   font-size: 24px;
   color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.category-png-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
 }
 
 .list-row-title {

@@ -698,10 +698,12 @@ function renderCategoryList() {
   grid.className = "vertical-list-mode";
 
   const CATEGORY_ICONS = {
-    '정치/국제': '🌍', '경제/금융': '📈', '창업/사업': '💼',
-    'AI/테크': '🤖', '게임': '🎮', '자기계발': '📚',
-    '엔터테인먼트': '🎬', '역사/인문': '📜', '사회/이슈': '🏛',
-    '스포츠': '🏅', '라이프스타일': '☕',
+    '정치/국제': '/icon/news.png', '경제/금융': '/icon/economy.png',
+    '창업/사업': '/icon/business.png', 'AI/테크': '/icon/ai.png',
+    '게임': '/icon/game.png', '자기계발': '/icon/education.png',
+    '엔터테인먼트': '/icon/entertainment.png', '역사/인문': '📜',
+    '사회/이슈': '/icon/society.png', '스포츠': '🏅',
+    '라이프스타일': '/icon/lifestyle.png',
   };
 
   const categories = {};
@@ -716,13 +718,16 @@ function renderCategoryList() {
   const fragment = document.createDocumentFragment();
   catList.forEach(c => {
     const icon = CATEGORY_ICONS[c] || '📁';
+    const iconHtml = icon.startsWith('/icon/')
+      ? `<img src="${icon}" alt="${c}" class="category-png-icon">`
+      : `<span style="font-size:22px">${icon}</span>`;
     const card = document.createElement('div');
     card.className = 'list-row-item';
     card.onclick = () => openSublist('category', c);
     
     card.innerHTML = `
       <div class="list-row-left">
-        <div class="list-row-icon" style="font-size: 22px;">${icon}</div>
+        <div class="list-row-icon">${iconHtml}</div>
         <div class="list-row-title">${c}</div>
       </div>
       <div class="list-row-right">
