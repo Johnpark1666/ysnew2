@@ -552,7 +552,7 @@ export function renderConnect(container, { allData, githubData }) {
     ec.style.display='none'; dc.style.display='block';
     dc.innerHTML = `<div class="vlist-header"><span class="back" onclick="cnHideYtDetail()">←</span><span class="title">${title}</span><span class="count">${items.length}</span></div>
       ${items.slice(0,30).map((v,i) => `<div class="vitem" onclick="cnShowYtVid(${i})" data-ytidx="${i}">
-        <div class="vitem-thumb">🎬</div>
+        <div class="vitem-thumb"><img src="${v.Image_URL||''}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" onerror="this.style.display='none';this.parentNode.innerHTML='🎬'"></div>
         <div class="vitem-info"><div class="vitem-title">${v.Title||'제목 없음'}</div>
         <div class="vitem-meta"><span>${v.ChannelName||''}</span><span class="sep">·</span><span>${v.PublishDate||''}</span></div></div></div>`
       ).join('')}`;
@@ -579,7 +579,7 @@ export function renderConnect(container, { allData, githubData }) {
     if (!dc) return;
     dc.innerHTML = `<div style="padding:14px;">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;font-size:10px;font-weight:700;color:var(--accent);" onclick="cnShowChVids('${(v.ChannelName||'').replace(/'/g, "\\'")}')">← ${v.ChannelName||''} 목록</div>
-      <div style="width:100%;height:90px;background:var(--bg);border:var(--border);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:8px;">🎬</div>
+      <div style="width:100%;height:90px;background:var(--bg);border:var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;">${v.Image_URL ? `<img src="${v.Image_URL}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentNode.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;\\'>🎬</div>'">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;">🎬</div>'}</div>
       <div style="font-size:13px;font-weight:800;margin-bottom:2px;line-height:1.3;">${v.Title||''}</div>
       <div style="font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">${v.ChannelName||''} · ${v.PublishDate||''}</div>
       <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
@@ -627,7 +627,7 @@ export function renderConnect(container, { allData, githubData }) {
     if (ec) ec.style.display='none'; if (dc) { dc.style.display='block';
       dc.innerHTML = `<div style="padding:14px;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;font-size:10px;font-weight:700;color:var(--accent);" onclick="cnHideGhDetail()">← 목록으로</div>
-        <div style="width:100%;height:80px;background:var(--bg);border:var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;">📦</div>
+        <div style="width:100%;height:80px;background:var(--bg);border:var(--border);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:24px;">${item.Image_URL ? `<img src="${item.Image_URL}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentNode.innerHTML='📦'">` : '📦'}</div>
         <div style="font-size:13px;font-weight:800;margin:8px 0 2px;">${item.Title||''}</div>
         <div style="font-size:10px;color:var(--text-dim);font-weight:500;margin-bottom:6px;">${(item.Summary||'').slice(0,100)}</div>
         <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">${String(item.Keywords||'').split(',').slice(0,5).map(k=>k.trim()).filter(Boolean).map(k =>
