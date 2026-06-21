@@ -634,7 +634,6 @@ export function renderConnect(container, { allData, githubData }) {
     // 저장소에 현재 항목 저장 (읽음/즐겨찾기 콜백용)
     window._cnCurrentVid = v;
   };
-  };
   window.cnMarkReadFromConnect = function(id) {
     const item = allData.find(d => String(d.ID) === String(id));
     if (item) { item.Read = true; window._cnCurrentVid = item; }
