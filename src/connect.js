@@ -658,10 +658,32 @@ export function renderConnect(container, { allData, githubData }) {
       <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(34,211,238,0.2);color:#0891b2;">📊</span>분석 (Analysis)</div><div class="cn-dsec-b">${v.Analysis||'내용 없음'}</div></div>
       <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(52,211,153,0.2);color:#059669;">💡</span>인사이트 (Insights)</div><div class="cn-dsec-b">${v.Insights||'내용 없음'}</div></div>
       ${v.Implications ? `<div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(217,119,6,0.2);color:#d97706;">🔮</span>시사점 (Implications)</div><div class="cn-dsec-b">${v.Implications}</div></div>` : ''}
+      ${renderCnTimeline(v.Timeline || v.timeline, v.VideoURL || '')}
     </div>`;
     // 저장소에 현재 항목 저장 (읽음/즐겨찾기 콜백용)
     window._cnCurrentVid = v;
   };
+  function renderCnTimeline(timelineStr, videoUrl) {
+    if (!timelineStr) return '';
+    if (typeof parseTimeline !== 'function') return '';
+    const chapters = parseTimeline(timelineStr);
+    if (chapters.length === 0) return '';
+    let html = `<div style="height:1px;background:var(--border);margin:12px 0;"></div>
+      <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(239,68,68,0.2);color:#dc2626;">⏱</span>타임라인 (Timeline)</div>
+      <div class="cn-dsec-b" style="padding:8px 0;"><div class="timeline-list" style="display:flex;flex-direction:column;gap:8px;">`;
+    chapters.forEach(ch => {
+      let seconds = 0;
+      if (typeof timestampToSeconds === 'function') {
+        seconds = timestampToSeconds(ch.time);
+      }
+      html += `<div class="timeline-item" style="display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;padding:3px 0;">
+        <span class="timeline-badge" style="background:#ef4444;color:white;padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;font-family:monospace;flex-shrink:0;cursor:pointer;" onclick="${videoUrl ? `window.open('${videoUrl}&t=${seconds}s','_blank')` : ''}">▶ ${ch.time}</span>
+        <span style="color:var(--text-primary);font-weight:500;word-break:keep-all;">${ch.content}</span>
+      </div>`;
+    });
+    html += `</div></div></div>`;
+    return html;
+  }
   window.cnMarkReadFromConnect = function(id) {
     const item = allData.find(d => String(d.ID) === String(id));
     if (item) { item.Read = true; window._cnCurrentVid = item; }
