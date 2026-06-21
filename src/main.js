@@ -723,8 +723,9 @@ function renderCategoryList() {
   const fragment = document.createDocumentFragment();
   catList.forEach(c => {
     const icon = CATEGORY_ICONS[c] || '📁';
+    const baseUrl = import.meta.env.BASE_URL || '/';
     const iconHtml = icon.startsWith('/icon/')
-      ? `<img src="${icon}" alt="${c}" class="category-png-icon">`
+      ? `<img src="${baseUrl.replace(/\/$/, '')}${icon}" alt="${c}" class="category-png-icon">`
       : `<span style="font-size:22px">${icon}</span>`;
     const card = document.createElement('div');
     card.className = 'list-row-item';
