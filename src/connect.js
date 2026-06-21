@@ -82,8 +82,8 @@ export function renderConnect(container, { allData, githubData }) {
     <div class="connect-wrap">
       <!-- Mode Toggle -->
       <div class="connect-mode-toggle">
-        <div class="connect-mode-btn active" data-mode="youtube">▶ 유튜브 요약</div>
-        <div class="connect-mode-btn" data-mode="github">◆ GitHub Trending</div>
+        <div class="connect-mode-btn active" data-mode="yt">▶ 유튜브 요약</div>
+        <div class="connect-mode-btn" data-mode="gh">◆ GitHub Trending</div>
       </div>
 
       <div class="connect-section active" id="connect-yt">
