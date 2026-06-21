@@ -377,13 +377,17 @@ export function renderConnect(container, { allData, githubData }) {
     const ctx = canvas.getContext('2d'); ctx.scale(2,2);
     const W = wrap.clientWidth, H = 380;
 
-    // Build nodes
-    const catNodes = allCats.map(c => ({ id: c, type: 'category', group: c, r: 12,
-      x: W*(0.1+Math.random()*0.8), y: H*(0.1+Math.random()*0.8), vx:0, vy:0 }));
-    const chNodes = sortedChs.slice(0,12).map(([ch]) => ({ id: ch, type: 'channel', group: chPriCat[ch]||'기타', r: 6 + (chData[ch].count)*0.5,
-      x: W*(0.1+Math.random()*0.8), y: H*(0.1+Math.random()*0.8), vx:0, vy:0 }));
-    const kwNodes = allKws.slice(0,40).map(k => ({ id: k, type: 'keyword', group: kwCat[k]||'기타', r: 3 + (kwCount[k]||1)*2,
-      x: W*(0.1+Math.random()*0.8), y: H*(0.1+Math.random()*0.8), vx:0, vy:0 }));
+    // Build nodes — Obsidian-style 동심원 방사형 배치
+    const cx = W * 0.5, cy = H * 0.5;
+    const catNodes = allCats.map((c, i) => ({ id: c, type: 'category', group: c, r: 12,
+      x: cx + Math.cos(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*8,
+      y: cy + Math.sin(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*8, vx:0, vy:0 }));
+    const chNodes = sortedChs.slice(0,12).map(([ch], i) => ({ id: ch, type: 'channel', group: chPriCat[ch]||'기타', r: 6 + (chData[ch].count)*0.5,
+      x: cx + Math.cos(i/12*Math.PI*2)*W*0.30 + (Math.random()-0.5)*12,
+      y: cy + Math.sin(i/12*Math.PI*2)*W*0.30 + (Math.random()-0.5)*12, vx:0, vy:0 }));
+    const kwNodes = allKws.slice(0,40).map((k, i) => ({ id: k, type: 'keyword', group: kwCat[k]||'기타', r: 3 + (kwCount[k]||1)*2,
+      x: cx + Math.cos(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*20,
+      y: cy + Math.sin(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*20, vx:0, vy:0 }));
 
     const nodes = [...catNodes, ...chNodes, ...kwNodes];
     const nodeMap = {}; nodes.forEach(n => nodeMap[n.id] = n);
