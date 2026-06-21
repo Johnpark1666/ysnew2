@@ -698,12 +698,17 @@ function renderCategoryList() {
   grid.className = "vertical-list-mode";
 
   const CATEGORY_ICONS = {
-    '정치/국제': '/icon/news.png', '경제/금융': '/icon/economy.png',
-    '창업/사업': '/icon/business.png', 'AI/테크': '/icon/ai.png',
-    '게임': '/icon/game.png', '자기계발': '/icon/education.png',
-    '엔터테인먼트': '/icon/entertainment.png', '역사/인문': '📜',
-    '사회/이슈': '/icon/society.png', '스포츠': '🏅',
-    '라이프스타일': '/icon/lifestyle.png',
+    '뉴스/정치': '/icon/news.png',
+    '경제/비즈니스': '/icon/business.png',
+    '경제/금융': '/icon/economy.png',
+    '자기계발/교육': '/icon/education.png',
+    '엔터테인먼트': '/icon/entertainment.png',
+    'AI/테크': '/icon/ai.png',
+    '사회/이슈': '/icon/society.png',
+    '게임': '/icon/game.png',
+    'IT/기술': '💻',
+    '스포츠': '🏅',
+    '스포츠/레저': '🏅',
   };
 
   const categories = {};
