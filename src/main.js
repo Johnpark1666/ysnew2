@@ -2373,8 +2373,9 @@ function timestampToSeconds(ts) {
 
 function parseTimeline(timelineStr) {
   if (!timelineStr) return [];
-  // Strip markdown bold (**) which can get embedded inside timestamps like [00:**00]
-  const cleaned = timelineStr.replace(/\*\*/g, '');
+  // Strip HTML tags (<b>, </b>, etc.) and markdown bold (**) 
+  // that can get embedded inside timestamps like <b>[00:</b>00] or [00:**00]
+  const cleaned = timelineStr.replace(/<[^>]+>/g, '').replace(/\*\*/g, '');
   const lines = cleaned.split('\n');
   const chapters = [];
   const timeRegex = /\[((?:\d{1,2}:)?\d{1,2}:\d{2})\]/;
