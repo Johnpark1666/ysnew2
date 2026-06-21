@@ -1700,12 +1700,22 @@ body {
   border-right: 2px solid #121212;
 }
 .connect-mode-btn:last-child { border-right: none; }
-.connect-mode-btn[data-mode="youtube"] { background: #ff0000; color: white; }
-.connect-mode-btn[data-mode="youtube"]:not(.active) { background: #fff; color: #ff0000; }
-.connect-mode-btn[data-mode="youtube"]:not(.active):hover { background: #ff0000; color: white; }
-.connect-mode-btn[data-mode="github"] { background: #000; color: white; }
-.connect-mode-btn[data-mode="github"]:not(.active) { background: #fff; color: #000; }
-.connect-mode-btn[data-mode="github"]:not(.active):hover { background: #000; color: white; }
+.connect-mode-btn[data-mode="yt"] { background: #ff0000; color: white; }
+.connect-mode-btn[data-mode="yt"]:not(.active) { background: #fff; color: #ff0000; }
+.connect-mode-btn[data-mode="yt"]:not(.active):hover { background: #ff0000; color: white; }
+.connect-mode-btn[data-mode="gh"] { background: #000; color: white; }
+.connect-mode-btn[data-mode="gh"]:not(.active) { background: #fff; color: #000; }
+.connect-mode-btn[data-mode="gh"]:not(.active):hover { background: #000; color: white; }
+/* 필터 토글 버튼 */
+.cn-filter-btn {
+  padding: 11px 14px; font-size: 11px; font-weight: 800;
+  cursor: pointer; user-select: none; transition: 0.15s;
+  border-right: 2px solid #121212;
+  background: #f1f5f9; color: #475569;
+  display: flex; align-items: center; gap: 4px;
+}
+.cn-filter-btn.active { background: #4f46e5; color: white; }
+.cn-filter-btn:hover:not(.active) { background: #e2e8f0; }
 
 .connect-section { display: none; }
 .connect-section.active { display: block; }

@@ -21,12 +21,20 @@ function hashColor(name) {
   return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
 }
 
+// ─── 리렌더링 컨텍스트 저장 ───
+let _cnCtx = null;
+
 // ─── 메인 렌더러 ───
 export function renderConnect(container, { allData, githubData }) {
+  // 컨텍스트 저장 (토글 리렌더링용)
+  _cnCtx = { container, allData, githubData };
+
+  const showUnreadOnly = window._cnFilterUnread || false;
+
 
   // ── 데이터 가공 ──
-  const ytItems = allData.filter(d => d.ID);
-  const ghItems = githubData.filter(d => d.ID);
+  const ytItems = allData.filter(d => d.ID && (!showUnreadOnly || !isTrue(d.Read)));
+  const ghItems = githubData.filter(d => d.ID && (!showUnreadOnly || !isTrue(d.Read)));
 
   // YouTube: 채널/카테고리/키워드 추출
   const chData = {};
@@ -99,6 +107,7 @@ export function renderConnect(container, { allData, githubData }) {
     <div class="connect-wrap">
       <!-- Mode Toggle -->
       <div class="connect-mode-toggle">
+        <div class="cn-filter-btn ${showUnreadOnly ? 'active' : ''}" onclick="cnToggleUnreadFilter()">${showUnreadOnly ? '📋 읽지않음' : '📋 전체'}</div>
         <div class="connect-mode-btn active" data-mode="yt">▶ 유튜브 요약</div>
         <div class="connect-mode-btn" data-mode="gh">◆ GitHub Trending</div>
       </div>
@@ -690,6 +699,14 @@ export function renderConnect(container, { allData, githubData }) {
   renderFav();
   renderYtGraph();
   renderGh();
+
+  // ── 안읽음 토글 함수 ──
+  window.cnToggleUnreadFilter = function() {
+    window._cnFilterUnread = !window._cnFilterUnread;
+    if (_cnCtx) {
+      renderConnect(_cnCtx.container, { allData: _cnCtx.allData, githubData: _cnCtx.githubData });
+    }
+  };
 
   // ── 모드 전환 ──
   container.querySelectorAll('.connect-mode-btn').forEach(btn => {
