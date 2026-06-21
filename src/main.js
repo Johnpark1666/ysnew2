@@ -247,6 +247,9 @@ function setupEventListeners() {
 
   const tabMix = document.getElementById('tab-mix');
   if (tabMix) tabMix.onclick = () => switchTab('mix');
+
+  const tabNetwork = document.getElementById('tab-network');
+  if (tabNetwork) tabNetwork.onclick = () => switchTab('network');
   
   const tabGithub = document.getElementById('tab-github');
   if (tabGithub) tabGithub.onclick = () => switchTab('github');
@@ -381,6 +384,9 @@ function updateStats() {
   const mixCountEl = document.getElementById('mix-count');
   if (mixCountEl) mixCountEl.textContent = mixData.length;
 
+  const networkCountEl = document.getElementById('network-count');
+  if (networkCountEl) networkCountEl.textContent = '0';
+
   const githubUnreadCount = githubData.filter(item => !isTrue(item.Read)).length;
   const githubCountEl = document.getElementById('github-count');
   if (githubCountEl) githubCountEl.textContent = githubUnreadCount;
@@ -487,6 +493,12 @@ function renderGrid(append = false, startIndex = 0) {
   
   if (currentTab === 'mix') {
     renderMixGrid();
+    updateFloatingToolbar();
+    return;
+  }
+
+  if (currentTab === 'network') {
+    renderNetworkPlaceholder();
     updateFloatingToolbar();
     return;
   }
@@ -690,6 +702,19 @@ function renderMixGrid() {
     fragment.appendChild(card);
   });
   grid.appendChild(fragment);
+}
+
+function renderNetworkPlaceholder() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = `
+    <div class="empty-state" style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:120px 24px;text-align:center;">
+      <div class="empty-icon" style="font-size:48px;color:var(--text-muted);margin-bottom:16px;">
+        <i class="ph ph-globe"></i>
+      </div>
+      <div class="empty-title" style="font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;">네트워크</div>
+      <div class="empty-description" style="margin-top:8px;font-size:14px;color:var(--text-muted);font-weight:500;">준비 중인 탭입니다</div>
+    </div>
+  `;
 }
 
 function renderCategoryList() {
