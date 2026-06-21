@@ -638,6 +638,17 @@ function renderGrid(append = false, startIndex = 0) {
   grid.appendChild(fragment);
 }
 
+// 믹스 유형별 알약 색상
+function getMixTypeColor(type) {
+  const t = (type || '').toUpperCase();
+  if (t === 'AUDIO') return '#0891b2';
+  if (t.includes('HTML') || t.includes('MAP')) return '#7c3aed';
+  if (t.includes('PDF')) return '#dc2626';
+  if (t.includes('DOC') || t.includes('DOCX')) return '#2563eb';
+  if (t.includes('VIDEO')) return '#ea580c';
+  return '#4f46e5';
+}
+
 function renderMixGrid() {
   const grid = document.getElementById('card-grid');
   grid.innerHTML = "";
@@ -682,6 +693,11 @@ function renderMixGrid() {
     
     card.innerHTML = `
       <div class="card-thumbnail mix-thumbnail" style="display:flex; align-items:center; justify-content:center; background: var(--bg-card-hover); position: relative; aspect-ratio: 16/9; overflow: hidden; width: 100%;">
+        <!-- 유형 알약 태그 -->
+        <span style="position:absolute;top:10px;left:10px;z-index:2;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.03em;display:flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,0,0,0.15);
+          background:${getMixTypeColor(item.type)};color:white;">
+          <i class="ph ${typeIcon}" style="font-size:12px;"></i> ${(item.type||'').toUpperCase()}
+        </span>
         ${imgUrl ? `<img src="${imgUrl}" alt="${item.title}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
         <div class="mix-fallback-icon" style="display: ${imgUrl ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; height:100%; font-size: 40px; color: var(--accent-primary); position: absolute; top:0; left:0; background: var(--bg-card-hover);">
           <i class="ph ${typeIcon}"></i>
