@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>인사이트 클리핑 — 디자인 검수 v2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  <style>
+    /* ============================================================
+       디자인 시스템 v2 — SofT Brutalism
+       ============================================================ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #f4f4f7;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f0f0f5;
+      --bg-elevated: #ffffff;
+
+      --text-primary: #111111;
+      --text-secondary: #2e2e2e;
+      --text-muted: #7a7a85;
+
+      --accent-primary: #4f46e5;
+      --accent-primary-hover: #3b31c4;
+      --accent-primary-subtle: rgba(79, 70, 229, 0.08);
+      --accent-warning: #e85d2c;
+      --accent-success: #0f9d6e;
+      --accent-danger: #dc2626;
+
+      /* Section colors — refined palette */
+      --color-summary: #0d7a6a;
+      --color-analysis: #6d28d9;
+      --color-insights: #b45309;
+      --color-implications: #047857;
+
+      --border-color: #1a1a1a;
+      --border-default: 2px solid var(--border-color);
+      --border-subtle: 1px solid rgba(26, 26, 26, 0.12);
+      --border-light: 1px solid rgba(26, 26, 26, 0.06);
+
+      --shadow-sm: 2px 2px 0px var(--border-color);
+      --shadow-md: 4px 4px 0px var(--border-color);
+      --shadow-lg: 6px 6px 0px var(--border-color);
+      --shadow-hover: 8px 8px 0px rgba(79, 70, 229, 0.5);
+
+      --radius-none: 0px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --transition-fast: 0.2s var(--ease-out);
+      --transition-normal: 0.35s var(--ease-out);
+    }
+
+    body {
+      font-family: 'Noto Sans KR', 'Outfit', 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+
+    /* ============================================================
+       HEADER — Refined navigation
+       ============================================================ */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--bg-secondary);
+      border-bottom: var(--border-default);
+    }
+    .header-content {
+      display: flex; align-items: center;
+      height: 64px; padding: 0 20px;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      padding-right: 24px;
+      border-right: var(--border-default);
+      height: 64px;
+    }
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: var(--accent-primary);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 900;
+      border: 2px solid var(--border-color);
+    }
+    .brand-text {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800; font-size: 15px;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+    .brand-text span { color: var(--accent-primary); }
+
+    /* Search */
+    .search-group {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 20px;
+      border-left: var(--border-default);
+      height: 64px; flex: 1; max-width: 340px;
+    }
+    .search-icon { font-size: 18px; color: var(--text-muted); }
+    #search-input {
+      border: none; background: transparent;
+      font-size: 14px; font-weight: 500;
+      font-family: inherit;
+      width: 100%; outline: none;
+      color: var(--text-primary);
+    }
+    #search-input::placeholder { color: var(--text-muted); }
+
+    /* Nav Tabs */
+    .nav-tabs {
+      display: flex; height: 100%; align-items: center;
+      margin-left: auto;
+    }
+    .nav-tab {
+      cursor: pointer; height: 64px;
+      padding: 0 18px;
+      font-weight: 700; font-size: 13px;
+      letter-spacing: 0.03em;
+      color: var(--text-muted);
+      transition: var(--transition-fast);
+      display: flex; align-items: center; gap: 8px;
+      border: none; background: transparent;
+      border-left: var(--border-default);
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-tab:last-child { border-right: var(--border-default); }
+
+    .nav-tab .tab-icon { font-size: 18px; transition: var(--transition-fast); }
+    .nav-tab .badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--text-muted);
+      color: white;
+      font-size: 10px; font-weight: 800;
+      padding: 1px 6px; min-width: 18px; height: 18px;
+      transition: var(--transition-fast);
+    }
+    .nav-tab:hover {
+      color: var(--text-primary);
+      background: var(--accent-primary-subtle);
+    }
+    .nav-tab:hover .badge { background: var(--accent-primary); }
+
+    .nav-tab.active {
+      color: var(--accent-primary);
+    }
+    .nav-tab.active::after {
+      content: '';
+      position: absolute; bottom: 0; left: 8px; right: 8px;
+      height: 3px;
+      background: var(--accent-primary);
+      border-radius: 2px 2px 0 0;
+    }
+    .nav-tab.active .badge { background: var(--accent-primary); display: none; }
+    #unread-count, .badge.warning { background: var(--accent-warning) !important; }
+
+    /* Stock Dashboard link */
+    .btn-stock-dashboard {
+      display: flex; align-items: center; justify-content: center;
+      height: 64px; width: 64px;
+      border-left: var(--border-default);
+      color: var(--text-muted);
+      font-size: 22px;
+      transition: var(--transition-fast);
+    }
+    .btn-stock-dashboard:hover { color: var(--accent-primary); background: var(--accent-primary-subtle); }
+
+    /* ============================================================
+       LAYOUT — 3-column grid
+       ============================================================ */
+    .layout-container {
+      display: grid;
+      grid-template-columns: 220px 1fr 0px;
+      width: 100%;
+      height: calc(100vh - 64px);
+      margin-top: 64px;
+      position: relative;
+      transition: grid-template-columns 0.4s var(--ease-out);
+    }
+    .layout-container.detail-active {
+      grid-template-columns: 220px 1fr 620px;
+    }
+
+    /* ============================================================
+       LEFT PANE — Visuals
+       ============================================================ */
+    .pane-visuals {
+      border-right: var(--border-default);
+      background: var(--bg-secondary);
+      display: flex; flex-direction: column;
+      height: 100%; overflow: hidden;
+    }
+
+    /* Tag Ticker */
+    .visual-top {
+      height: 160px;
+      border-bottom: var(--border-default);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      justify-content: space-evenly;
+      padding: 8px 0;
+      background: var(--bg-secondary);
+    }
+    .tag-ticker-row {
+      overflow: hidden; white-space: nowrap;
+      width: 100%; height: 42px;
+      display: flex; align-items: center;
+      padding: 0 12px;
+    }
+    .tag-ticker-track {
+      display: inline-flex; gap: 24px;
+      animation: marqueeLeft 400s linear infinite;
+    }
+    .tag-ticker-row:nth-child(2) .tag-ticker-track {
+      animation: marqueeRight 450s linear infinite;
+    }
+    .tag-ticker-row:nth-child(3) .tag-ticker-track {
+      animation: marqueeLeft 500s linear infinite;
+    }
+    .tag-ticker-track span {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-weight: 700; font-size: 12px;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+    }
+    .tag-ticker-track span .tag-dot {
+      width: 6px; height: 6px;
+      background: var(--accent-primary);
+      display: inline-block;
+    }
+
+    @keyframes marqueeLeft {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+    @keyframes marqueeRight {
+      0% { transform: translate3d(-50%, 0, 0); }
+      100% { transform: translate3d(0, 0, 0); }
+    }
+
+    /* Counter */
+    .visual-middle {
+      height: 160px; position: relative;
+      border-bottom: var(--border-default);
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .status-counter-box { text-align: center; }
+    .counter-number {
+      font-family: 'Outfit', monospace;
+      font-size: 64px; font-weight: 900;
+      line-height: 1; color: var(--text-primary);
+      letter-spacing: -0.05em;
+    }
+    .counter-number .counter-plus {
+      font-size: 32px;
+      color: var(--accent-primary);
+      vertical-align: super;
+    }
+    .counter-label {
+      font-size: 9px; font-weight: 800;
+      letter-spacing: 0.2em; color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* Headlines */
+    .visual-bottom {
+      flex: 1; display: flex; flex-direction: column;
+      padding: 14px; overflow: hidden;
+      background: var(--bg-secondary);
+    }
+    .headlines-header {
+      font-size: 10px; font-weight: 800;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(26,26,26,0.1);
+      padding-bottom: 8px; margin-bottom: 10px;
+    }
+    .headlines-list-wrapper { flex: 1; overflow: hidden; position: relative; }
+    .headlines-scroll-track {
+      display: flex; flex-direction: column; gap: 10px;
+      position: absolute; width: 100%;
+      animation: marqueeVert 60s linear infinite;
+    }
+    @keyframes marqueeVert {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
+    .headline-item {
+      font-size: 11px; font-weight: 600;
+      line-height: 1.35; color: var(--text-secondary);
+      cursor: pointer; padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition-fast);
+    }
+    .headline-item:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--accent-primary);
+      color: var(--text-primary);
+    }
+
+    /* ============================================================
+       CENTER PANE — Feed
+       ============================================================ */
+    .pane-list {
+      height: 100%; overflow-y: auto;
+      background: var(--bg-primary);
+      position: relative;
+    }
+
+    /* Card Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 28px;
+      position: relative;
+      z-index: 2;
+    }
+    .grid.list-mode {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    /* ---- Card ---- */
+    .card {
+      background: var(--bg-card);
+      border: var(--border-default);
+      display: flex; flex-direction: column;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+      outline: none;
+      overflow: hidden;
+    }
+    .card:hover {
+      transform: translate(-4px, -4px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card-thumbnail {
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      border-bottom: var(--border-default);
+      background: var(--bg-primary);
+      position: relative;
+    }
+    .card-thumbnail img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s var(--ease-out);
+    }
+    .card:hover .card-thumbnail img { transform: scale(1.03); }
+
+    .card-content { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+    .card-channel {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent-primary);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-channel .channel-dot {
+      width: 4px; height: 4px;
+      background: var(--accent-primary);
+      display: inline-block;
+    }
+    .card-date {
+      font-size: 10px; color: var(--text-muted);
+      font-weight: 600; margin-left: auto;
+    }
+
+    .card-title {
+      font-size: 14px; font-weight: 800;
+      line-height: 1.4; color: var(--text-primary);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: keep-all;
+    }
+    .card-desc {
+      font-size: 12px; font-weight: 500;
+      line-height: 1.5; color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      margin-top: auto;
+    }
+    .card-tag {
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      font-size: 9px; font-weight: 700;
+      padding: 2px 7px;
+      border: 1px solid rgba(26,26,26,0.15);
+    }
+
+    .card-actions {
+      display: flex; border-top: var(--border-default); height: 44px;
+    }
+    .card-actions button {
+      flex: 1; border: none; background: transparent;
+      font-size: 11px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 6px;
+      height: 100%; transition: var(--transition-fast);
+      color: var(--text-muted);
+    }
+    .card-actions button:hover { color: white; }
+    .card-actions .btn-read:hover { background: var(--accent-success); }
+    .card-actions .btn-save:hover { background: var(--accent-primary); }
+    .card-actions .btn-fav { width: 44px; border-left: var(--border-default); flex: none; }
+    .card-actions .btn-fav:hover,
+    .card-actions .btn-fav.active { color: var(--accent-warning); background: transparent; }
+
+    /* Card category stripe */
+    .card-stripe {
+      width: 100%; height: 3px;
+      flex-shrink: 0;
+    }
+
+    /* List mode */
+    .grid.list-mode .card { flex-direction: row; min-height: 120px; }
+    .grid.list-mode .card-thumbnail { width: 200px; height: auto; border-bottom: none; border-right: var(--border-default); }
+    .grid.list-mode .card-content { padding: 12px 16px; }
+    .grid.list-mode .card-actions { border-top: none; border-left: var(--border-default); flex-direction: column; width: 100px; }
+    .grid.list-mode .card-actions .btn-fav { border-left: none; border-top: var(--border-default); width: 100%; }
+
+    /* Category / Channel list */
+    .vertical-list-mode {
+      display: flex; flex-direction: column;
+      border-top: var(--border-default);
+      background: var(--bg-secondary);
+    }
+    .list-row-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 28px;
+      border-bottom: var(--border-default);
+      cursor: pointer;
+      transition: all 0.25s var(--ease-out);
+    }
+    .list-row-item:hover {
+      background: var(--accent-primary-subtle);
+      padding-left: 36px;
+    }
+    .list-row-left { display: flex; align-items: center; gap: 14px; }
+    .list-row-icon { font-size: 22px; color: var(--accent-primary); }
+    .list-row-title { font-size: 16px; font-weight: 800; }
+    .list-row-right { display: flex; align-items: center; gap: 12px; }
+    .list-row-count {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+    }
+
+    /* ============================================================
+       RIGHT PANE — Detail
+       ============================================================ */
+    .pane-detail {
+      background: var(--bg-secondary);
+      border-left: var(--border-default);
+      height: 100%; overflow-y: auto;
+      display: none; position: relative;
+    }
+    .layout-container.detail-active .pane-detail { display: block; }
+
+    .detail-header-sticky {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg-secondary);
+      border-bottom: var(--border-default);
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 20px 24px 16px;
+    }
+    .modal-meta-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .modal-channel {
+      font-weight: 800; color: var(--accent-primary);
+      font-size: 12px; letter-spacing: 0.05em;
+    }
+    .modal-date {
+      font-size: 11px; color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .modal-title {
+      font-size: 18px; font-weight: 800; line-height: 1.35;
+    }
+    .close-btn {
+      width: 36px; height: 36px;
+      border: var(--border-default);
+      background: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; transition: var(--transition-fast);
+      flex-shrink: 0;
+    }
+    .close-btn:hover { background: var(--text-primary); color: white; }
+
+    .modal-body { padding: 20px 24px 80px; }
+
+    /* Video section */
+    .modal-video-section {
+      border: var(--border-default);
+      background: var(--bg-primary);
+      margin-bottom: 20px;
+      display: flex; flex-direction: column;
+    }
+    .modal-thumbnail {
+      width: 100%; aspect-ratio: 16/9;
+      object-fit: cover; display: block;
+    }
+
+    .modal-actions-video {
+      display: flex; height: 46px;
+    }
+    .modal-actions-video .btn-youtube {
+      flex: 2; height: 100%; border: none; background: var(--accent-danger);
+      color: white; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; cursor: pointer; transition: var(--transition-fast);
+    }
+    .modal-actions-video .btn-youtube:hover { background: #b91c1c; }
+    .modal-actions-video .btn-read-detail {
+      flex: 1.5; height: 100%; border: none; background: transparent;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; border-right: var(--border-default);
+      transition: var(--transition-fast); color: var(--text-muted);
+    }
+    .modal-actions-video .btn-read-detail:hover { background: var(--accent-success); color: white; }
+    .modal-actions-video .btn-fav-detail {
+      width: 46px; height: 100%; border: none; background: transparent;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); transition: var(--transition-fast);
+    }
+    .modal-actions-video .btn-fav-detail:hover { color: var(--accent-warning); }
+
+    /* Content sections */
+    .content-section {
+      border: var(--border-default);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      background: var(--bg-primary);
+      border-bottom: var(--border-default);
+    }
+    .section-icon {
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .section-title {
+      font-weight: 800; font-size: 13px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Section color themes */
+    .content-section.summary .section-header { border-left: 4px solid var(--color-summary); }
+    .content-section.analysis .section-header { border-left: 4px solid var(--color-analysis); }
+    .content-section.insights .section-header { border-left: 4px solid var(--color-insights); }
+    .content-section.implications .section-header { border-left: 4px solid var(--color-implications); }
+
+    .section-content {
+      padding: 16px 20px;
+      font-size: 14px; line-height: 1.7;
+      color: var(--text-secondary);
+      word-break: keep-all;
+    }
+
+    /* Markdown content styling */
+    .section-content h3 {
+      font-size: 13px; font-weight: 800;
+      padding: 8px 12px; margin: 16px 0 10px;
+      border: 2px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      display: inline-flex; align-items: center; gap: 6px;
+      color: #ffffff;
+    }
+    .section-content h3:first-child { margin-top: 0; }
+    .section-content h3::before { content: "📌"; font-size: 12px; }
+
+    .content-section.summary .section-content h3 { background: var(--color-summary); }
+    .content-section.analysis .section-content h3 { background: var(--color-analysis); }
+    .content-section.insights .section-content h3 { background: var(--color-insights); }
+    .content-section.implications .section-content h3 { background: var(--color-implications); }
+
+    .section-content ul, .section-content ol {
+      list-style: none; padding: 0; margin: 8px 0;
+    }
+    .section-content li {
+      padding: 8px 0 8px 14px;
+      margin: 6px 0;
+      line-height: 1.65;
+      border-left: 3px solid;
+      border-left-color: var(--accent-primary);
+      font-size: 13px;
+    }
+    .section-content li strong { font-weight: 700; }
+    .section-content li + li { margin-top: 1px; }
+    .section-content b, .section-content strong { font-weight: 800; }
+
+    .content-section.summary .section-content li { border-left-color: var(--color-summary); }
+    .content-section.analysis .section-content li { border-left-color: var(--color-analysis); }
+    .content-section.insights .section-content li { border-left-color: var(--color-insights); }
+    .content-section.implications .section-content li { border-left-color: var(--color-implications); }
+
+    /* Table inside content */
+    .section-content .table-container {
+      overflow-x: auto;
+      border: var(--border-default);
+      box-shadow: var(--shadow-sm);
+      margin: 16px 0;
+    }
+    .section-content table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .section-content th, .section-content td {
+      padding: 10px 14px;
+      border-bottom: var(--border-default);
+      text-align: left;
+    }
+    .section-content th {
+      background: var(--bg-primary);
+      font-weight: 800; font-size: 11px; letter-spacing: 0.05em;
+    }
+    .section-content tr:last-child td { border-bottom: none; }
+    .section-content tr:nth-child(even) td { background: var(--bg-primary); }
+
+    /* ============================================================
+       FLOATING TOOLBAR
+       ============================================================ */
+    .floating-toolbar {
+      position: fixed; bottom: 24px; right: 24px;
+      z-index: 500;
+    }
+    .toolbar-content {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg-secondary);
+      border: var(--border-default);
+      padding: 6px 12px;
+      box-shadow: var(--shadow-md);
+    }
+    .toolbar-divider { width: 2px; height: 22px; background: var(--border-color); }
+    .toolbar-btn {
+      width: 34px; height: 34px;
+      border: var(--border-default);
+      background: white; color: var(--text-primary);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: var(--transition-fast);
+      font-size: 14px;
+    }
+    .toolbar-btn:hover, .toolbar-btn.active { background: var(--text-primary); color: white; }
+    .sort-select {
+      border: none; background: transparent;
+      font-weight: 700; font-size: 11px; text-transform: uppercase;
+      cursor: pointer; outline: none; padding: 0 4px;
+    }
+
+    /* ============================================================
+       LOADER / EMPTY STATES
+       ============================================================ */
+    .loader {
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; padding: 80px 24px; text-align: center;
+    }
+    .loader-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--text-primary);
+      border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text {
+      font-weight: 700; font-size: 13px;
+      letter-spacing: 0.05em; color: var(--text-muted);
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 1024px) {
+      .layout-container { display: block !important; }
+      .pane-visuals { display: none !important; }
+      .pane-detail {
+        position: fixed !important; top: 64px; left: 0;
+        width: 100% !important; height: calc(100vh - 64px) !important;
+        z-index: 200; border-left: none !important;
+      }
+    }
+    @media (max-width: 768px) {
+      .header { height: 0 !important; border-bottom: none !important; }
+      .header-content { height: 0 !important; padding: 0 !important; }
+      .search-group, .brand { display: none !important; }
+      .nav-tabs {
+        position: fixed; bottom: 0; left: 0;
+        width: 100%; height: 56px;
+        background: var(--bg-secondary); border-top: var(--border-default);
+        z-index: 1000;
+        display: flex; justify-content: space-around; align-items: center;
+      }
+      .nav-tab { height: 56px !important; border-left: none !important; flex: 1; padding: 0 !important; flex-direction: column; gap: 2px !important; }
+      .nav-tab:last-child { border-right: none !important; }
+      .nav-tab.active::after { display: none; }
+      .nav-tab .tab-icon { font-size: 16px; }
+      .nav-tab .badge { position: absolute; top: 4px; right: 8px; font-size: 8px; min-width: 14px; height: 14px; }
+      .btn-stock-dashboard { height: 56px !important; width: 56px !important; flex: 1; border-left: none !important; }
+      .layout-container { height: calc(100vh - 56px) !important; margin-top: 0 !important; }
+      .pane-detail { top: 0 !important; height: calc(100vh - 56px) !important; }
+      .grid { padding: 16px; gap: 14px; grid-template-columns: 1fr !important; }
+      .floating-toolbar { bottom: 72px !important; right: 12px !important; }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER
+       ============================================================ -->
+  <header class="header">
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="ph ph-lightning"></i>
+        </div>
+        <div class="brand-text">인사이트<span>클리핑</span></div>
+      </div>
+
+      <div class="search-group">
+        <i class="ph ph-magnifying-glass search-icon"></i>
+        <input type="text" id="search-input" placeholder="제목, 채널, 키워드 검색..." autocomplete="off">
+      </div>
+
+      <div class="nav-tabs">
+        <a href="#" class="btn-stock-dashboard" title="주식 대시보드">
+          <i class="ph ph-chart-line"></i>
+        </a>
+        <button class="nav-tab active" id="tab-unread">
+          <i class="ph ph-envelope-open tab-icon"></i>
+          <span class="badge" id="unread-count">12</span>
+        </button>
+        <button class="nav-tab" id="tab-favorite">
+          <i class="ph ph-star tab-icon"></i>
+          <span class="badge" id="fav-count">3</span>
+        </button>
+        <button class="nav-tab" id="tab-category">
+          <i class="ph ph-folder tab-icon"></i>
+          <span class="badge" id="category-count">7</span>
+        </button>
+        <button class="nav-tab" id="tab-channel">
+          <i class="ph ph-user-circle tab-icon"></i>
+          <span class="badge" id="channel-count">5</span>
+        </button>
+        <button class="nav-tab" id="tab-mix">
+          <i class="ph ph-magic-wand tab-icon"></i>
+          <span class="badge" id="mix-count">4</span>
+        </button>
+        <button class="nav-tab" id="tab-github">
+          <i class="ph ph-github-logo tab-icon"></i>
+          <span class="badge warning" id="github-count">2</span>
+        </button>
+        <button class="nav-tab" id="btn-refresh">
+          <i class="ph ph-arrows-clockwise tab-icon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       MAIN LAYOUT
+       ============================================================ -->
+  <main id="layout-container" class="layout-container">
+
+    <!-- LEFT PANEL -->
+    <div id="pane-visuals" class="pane-visuals">
+      <!-- Tag Ticker -->
+      <div class="visual-top">
+        <div class="tag-ticker-row">
+          <div class="tag-ticker-track" id="ticker-1"></div>
+        </div>
+        <div class="tag-ticker-row">
+          <div class="tag-ticker-track" id="ticker-2"></div>
+        </div>
+        <div class="tag-ticker-row">
+          <div class="tag-ticker-track" id="ticker-3"></div>
+        </div>
+      </div>
+
+      <!-- Counter -->
+      <div class="visual-middle">
+        <div class="status-counter-box">
+          <div class="counter-number">12<span class="counter-plus">+</span></div>
+          <div class="counter-label">NEW CLIPS TODAY</div>
+        </div>
+      </div>
+
+      <!-- Headlines -->
+      <div class="visual-bottom">
+        <div class="headlines-header">LATEST HEADLINES</div>
+        <div class="headlines-list-wrapper">
+          <div class="headlines-scroll-track" id="headlines-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL: Card Grid -->
+    <div id="pane-list" class="pane-list">
+      <div id="loader" class="loader" style="display:none;">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">데이터를 불러오는 중...</div>
+      </div>
+      <div id="card-grid" class="grid"></div>
+    </div>
+
+    <!-- RIGHT PANEL: Detail -->
+    <div id="pane-detail" class="pane-detail">
+      <div class="detail-header-sticky">
+        <div class="modal-header">
+          <div class="modal-header-content" style="flex:1; min-width:0;">
+            <div class="modal-meta-header">
+              <span class="modal-channel" id="det-channel">📺 채널명</span>
+              <span style="color:var(--text-muted);font-size:10px;">|</span>
+              <span class="modal-date">
+                <i class="ph ph-calendar-blank"></i>
+                <span id="det-date">2026-06-21</span>
+              </span>
+            </div>
+            <h2 class="modal-title" id="det-title">영상 제목이 여기에 표시됩니다</h2>
+          </div>
+          <button class="close-btn" id="close-detail"><i class="ph ph-x"></i></button>
+        </div>
+      </div>
+      <div class="modal-body" id="detail-body"></div>
+    </div>
+
+  </main>
+
+  <!-- Floating Toolbar -->
+  <div class="floating-toolbar" id="floating-toolbar">
+    <div class="toolbar-content">
+      <button class="toolbar-btn active" data-view="grid" title="그리드"><i class="ph ph-squares-four"></i></button>
+      <button class="toolbar-btn" data-view="list" title="목록"><i class="ph ph-list"></i></button>
+      <div class="toolbar-divider"></div>
+      <select class="sort-select">
+        <option value="newest">최신순</option>
+        <option value="oldest">오래된순</option>
+      </select>
+      <div class="toolbar-divider"></div>
+      <button class="toolbar-btn" title="맨 위로" id="btn-top"><i class="ph ph-arrow-up"></i></button>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // SAMPLE DATA
+    // ============================================================
+    const categories = [
+      { id: 'politics', icon: '🌍', label: '정치/국제', count: 28 },
+      { id: 'economy', icon: '📈', label: '경제/금융', count: 45 },
+      { id: 'ai', icon: '🤖', label: 'AI/테크', count: 33 },
+      { id: 'business', icon: '💼', label: '창업/사업', count: 12 },
+      { id: 'self', icon: '📚', label: '자기계발', count: 18 },
+      { id: 'society', icon: '🏛', label: '사회/이슈', count: 22 },
+      { id: 'lifestyle', icon: '☕', label: '라이프스타일', count: 9 },
+    ];
+
+    const channels = [
+      { name: '김영한의 경제학교', icon: '💰', count: 34 },
+      { name: 'AI 연구소', icon: '🤖', count: 28 },
+      { name: '와글와글', icon: '📰', count: 22 },
+      { name: '주식하는 개발자', icon: '📊', count: 17 },
+      { name: '책 읽는 CEO', icon: '📚', count: 13 },
+    ];
+
+    const cards = [
+      {
+        id: 1, category: 'economy',
+        channel: '김영한의 경제학교',
+        title: '파월 의장, 9월 빅컷 시사… 2년물 금리 3%선 붕괴',
+        desc: '연준 파월 의장이 잭슨홀 연설에서 9월 50bp 인하 가능성을 강하게 시사했습니다.',
+        date: '2026-06-21', tags: ['연준', '금리인하', '파월', '美경제'],
+        read: false, fav: false,
+        detail: {
+          summary: '• 연준 파월 의장이 9월 FOMC에서 50bp(빅컷) 금리 인하 가능성을 시사<br>• 2년물 국채 금리가 3%선 아래로 붕괴하며 시장의 기대 반영<br>• 인플레이션이 목표치 2%에 근접했음을 근거로 제시',
+          analysis: '• <b>금리 선물 시장</b>: 9월 빅컷 확률 78%로 급등 (전주 32%)<br>• <b>달러 약세</b>: 달러 인덱스 102선까지 하락, 주요 통화 대비 약세<br>• <b>주식 시장</b>: 기술주 중심 강세, 나스닥 전일비 +2.3% 상승',
+          insights: '• 과거 1995년 소프트랜딩 당시 연준은 3회 연속 인하 단행<br>• 노동시장 냉각 속도가 예상보다 빠르다는 신호로 해석 가능<br>• 대선을 앞둔 정치적 압박도 인하 결정에 영향을 미쳤을 가능성',
+          implications: '• 한국은행도 4분기 기준금리 인하 가능성 ↑<br>• 달러 약세는 원화 강세 → 수출 기업 환차손 리스크<br>• 성장주·테크 섹터에 단기적 긍정적, 금융주 마진 압박'
+        }
+      },
+      {
+        id: 2, category: 'ai',
+        channel: 'AI 연구소',
+        title: 'Claude 5, 멀티모달 추론 능력 GPT-5 추월… AGI 앞당기나',
+        desc: 'Anthropic이 공개한 Claude 5가 멀티모달 추론 벤치마크에서 GPT-5를 처음으로 앞질렀습니다.',
+        date: '2026-06-20', tags: ['Claude5', 'AGI', '멀티모달', 'Anthropic'],
+        read: false, fav: true,
+        detail: {
+          summary: '• Anthropic Claude 5, MMLU-Pro 및 멀티모달 추론에서 GPT-5 최초 추월<br>• 자체 개발한 하이브리드 MoE 아키텍처로 추론 효율 40% 개선<br>• 장기 컨텍스트 200K 토큰에서도 일관된 추론 성능 유지',
+          analysis: '• <b>벤치마크 점수</b>: MMLU-Pro 89.7% (GPT-5: 87.2%), MMMU 83.1% (GPT-5: 81.5%)<br>• <b>추론 속도</b>: 동일 태스크 대비 1.8배 빠른 응답 속도<br>• <b>비용</b>: GPT-5 대비 토큰당 비용 35% 낮음',
+          insights: '• 추론 능력 향상이 AGI 도달 시점을 1-2년 앞당길 수 있다는 전망<br>• Claude의 안전성 중심 접근이 성능 경쟁에서도 통함을 증명<br>• 오픈소스 모델과의 격차가 다시 벌어질 가능성',
+          implications: '• 엔터프라이즈 AI 도입 가속화 — 추론 신뢰도가 임계점 돌파<br>• 데이터센터 GPU 수요 추가 폭발 → 엔비디아 실적 전망 상향<br>• 규제 당국의 AI 안전성 평가 기준 강화 압박'
+        }
+      },
+      {
+        id: 3, category: 'economy',
+        channel: '주식하는 개발자',
+        title: '엔비디아, 10:1 액면 분할 발표… 개인 투자자 유입 기대',
+        desc: 'NVDA 주당 1,200달러 돌파, 액면 분할로 접근성 개선. 사상 최고가 행진 지속.',
+        date: '2026-06-20', tags: ['엔비디아', '액면분할', 'AI반도체'],
+        read: false, fav: false,
+        detail: {
+          summary: '• 엔비디아(NVDA) 10:1 액면 분할 발표, 7월 15일부터 거래 예정<br>• 주당 $1,247에서 약 $125 수준으로 조정, 소액 투자자 접근성 ↑<br>• 블랙웰(B200) 품절 사태로 데이터센터 부문 매출 전망치 상향',
+          analysis: '• <b>액면 분할 효과</b>: 아마존/애플 사례 참조 시 분할 후 6개월 평균 +18%<br>• <b>실적</b>: 데이터센터 매출 전년比 +210%, B200 생산량 2배 확대<br>• <b>밸류에이션</b>: FWD PER 34배 — 성장률 대비 합리적',
+          insights: '• 개인 투자자 순매수 1위 종목, 분할 후 추가 수급 기대<br>• TSMC CoWoS-L 패키징 공급 병목이 유일한 하방 리스크',
+          implications: '• AI 반도체 섹터 전반적 재평가 모멘텀<br>• HBM 시장 선점한 SK하이닉스 수혜 전망<br>• AMD MI400 출시에도 당분간 점유율 격차 유지'
+        }
+      },
+      {
+        id: 4, category: 'ai',
+        channel: '와글와글',
+        title: '오픈AI, 검색 엔진 SearchGPT 전격 공개… 구글 독점 깨지나',
+        desc: 'ChatGPT 기반 검색 엔진 SearchGPT가 베타 오픈. 실시간 정보 + 생성형 AI 결합.',
+        date: '2026-06-19', tags: ['OpenAI', 'SearchGPT', '검색엔진'],
+        read: false, fav: false,
+        detail: {
+          summary: '• OpenAI SearchGPT 베타 출시, ChatGPT 플러스 사용자 우선 제공<br>• 실시간 웹 검색 + 생성형 AI 응답 결합한 하이브리드 검색 환경<br>• Bing을 백엔드 검색 인덱스로 활용, GPT-5 실시간 추론 엔진 탑재',
+          analysis: '• <b>시장 반응</b>: 구글 주가 시간외 -4.2%, Alphabet 시총 $120B 증발<br>• <b>사용자</b>: 첫날 300만 명 가입, 트래픽 급증으로 일시적 장애 발생<br>• <b>품질</b>: 정보 정확도 94%, 출처 신뢰도 평가에서 구글 대비 +5%p',
+          insights: '• 검색 시장 25년 만의 판도 변화 — 구글 독점 체제 균열 시작<br>• Perplexity 등 스타트업에겐 위협적 — 자금력과 데이터 규모 차이',
+          implications: '• 광고 시장 재편: 검색 광고 → AI 기반 추천 광고로 전환 가속<br>• 콘텐츠 퍼블리셔 트래픽 30% 이상 감소 가능성<br>• MS의 검색 시장 부활: Bing 지분 가치 재평가'
+        }
+      },
+      {
+        id: 5, category: 'politics',
+        channel: '와글와글',
+        title: 'G7, AI 안전 협정 체결… 초거대 AI 모델 규제 첫 걸음',
+        desc: 'G7 정상회의에서 AI 안전에 대한 국제 협정이 최초로 체결되었습니다.',
+        date: '2026-06-18', tags: ['G7', 'AI규제', '국제협정'],
+        read: false, fav: true,
+        detail: {
+          summary: '• G7 정상, AI 안전 프레임워크 공동 선언문 채택<br>• 10^26 FLOPs 이상 초거대 AI 모델에 대한 의무적 안전 평가 도입<br>• 연간 2회 정기 안전 보고서 제출 의무화',
+          analysis: '• <b>규제 범위</b>: GPT-5, Claude 5 등 차세대 모델에 직접 적용<br>• <b>준수 기간</b>: 24개월 유예기간 후 본격 시행<br>• <b>과태료</b>: 글로벌 매출의 최대 6%',
+          insights: '• EU AI Act보다 더 포괄적인 국제 규제의 첫 사례<br>• 중국·러시아 등 비G7 국가와의 조화가 향후 관건',
+          implications: '• AI 기업들의 규제 컴플라이언스 비용 증가<br>• 캐나다·호주 등 G7+ 국가들도 동참 예정<br>• 안전 평가 산업(Red-teaming 등) 급성장 전망'
+        }
+      },
+      {
+        id: 6, category: 'self',
+        channel: '책 읽는 CEO',
+        title: '딥워크: 주 4일제보다 중요한 몰입의 기술 2026年版',
+        desc: '생산성 연구 10년의 결론 — 진짜 몰입이 근무 시간보다 중요하다.',
+        date: '2026-06-17', tags: ['딥워크', '생산성', '몰입'],
+        read: false, fav: false,
+        detail: {
+          summary: '• 딥워크(Deep Work) 4시간이 일반 근무 8시간을 능가하는 생산성<br>• 몰입 상태 진입 시간 평균 23분 — 한 번 방해받으면 회복에 25분 추가 소요<br>• 상위 1% 지식 근로자의 공통점: 하루 3-4시간 딥워크 세션 확보',
+          analysis: '• <b>생산성 격차</b>: 주 40시간(표준) vs 주 20시간(딥워크) → 1.8배 차이<br>• <b>방해 요소</b>: 슬랙/카톡 평균 6.3초 간격으로 집중 파괴<br>• <b>완료율</b>: 딥워크 세션 할당 시 프로젝트 완료율 3.2배 증가',
+          insights: '• REM 수면과 유사한 뇌파 패턴 — 학습 효율과 직접적 연관<br>• 주 4일제보다 딥워크 4시간 보장이 생산성 향상에 더 효과적',
+          implications: '• 조직 문화 변화 필요: \"응답 시간\"보다 \"방해 금지 시간\"이 중요<br>• 오픈 오피스 → 딥워크 부스 도입 트렌드 가속화'
+        }
+      }
+    ];
+
+    const mixes = [
+      { title: 'AI 반도체 산업 완전 분석 — NVDA, AMD, INTC 비교', date: '2026-06-21', sources: 5 },
+      { title: '2026 하반기 거시경제 전망 — 금리, 환율, 원자재', date: '2026-06-19', sources: 4 },
+      { title: '스타트업 생존 전략 시리즈: 시리즈 A에서 EXIT까지', date: '2026-06-17', sources: 6 },
+      { title: 'AI 에이전트 미래 — 2030년까지의 로드맵', date: '2026-06-15', sources: 3 },
+    ];
+
+    const tags = [
+      'AI', '금리', '반도체', 'FOMC', 'AGI', '엔비디아', '파월', '인플레이션',
+      '검색엔진', 'G7', '규제', '딥워크', '생산성', '스타트업', '부동산',
+      'ETF', '퀀트', '배당', '성장주', '가치주', '채권', '환율'
+    ];
+
+    const headlines = [
+      '파월 의장, 9월 빅컷 시사… 2년물 금리 3%선 붕괴',
+      'Claude 5, 멀티모달 추론 GPT-5 추월',
+      '엔비디아 10:1 액면 분할 발표',
+      'SearchGPT 전격 공개… 구글 독점 깨지나',
+      'G7, AI 안전 협정 체결',
+      '연준, 9월 빅컷 확률 78%로 급등',
+      'TSMC 3nm 공정 생산량 2배 확대',
+      '블랙웰 B200 품절 사태 지속',
+      '딥워크의 힘 — 주 4일제보다 중요한 몰입',
+      '한은도 4분기 금리 인하 시그널',
+    ];
+
+    // ============================================================
+    // RENDER FUNCTIONS
+    // ============================================================
+    const colorMap = {
+      economy: '#0d7a6a',
+      ai: '#6d28d9',
+      politics: '#b45309',
+      business: '#047857',
+      self: '#0f766e',
+      society: '#d97706',
+      lifestyle: '#0891b2'
+    };
+
+    function renderCards() {
+      const grid = document.getElementById('card-grid');
+      grid.innerHTML = cards.map(c => {
+        const color = colorMap[c.category] || '#4f46e5';
+        return `
+          <div class="card" data-id="${c.id}" onclick="openDetail(${c.id})">
+            <div class="card-stripe" style="background:${color}"></div>
+            <div class="card-thumbnail">
+              <img src="https://picsum.photos/seed/${c.id}320/320/180" alt="" loading="lazy"
+                   onerror="this.style.display='none';this.parentElement.style.background='var(--bg-primary)'">
+            </div>
+            <div class="card-content">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="card-channel">
+                  <span class="channel-dot"></span>${c.channel}
+                </span>
+                <span class="card-date">${c.date.slice(5)}</span>
+              </div>
+              <div class="card-title">${c.fav ? '⭐ ' : ''}${c.title}</div>
+              <div class="card-desc">${c.desc}</div>
+              <div class="card-tags">
+                ${c.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="btn-read" onclick="event.stopPropagation();this.innerHTML='<i class=\\'ph ph-check\\'></i>읽음';this.style.background='var(--accent-success)';this.style.color='white'">
+                <i class="ph ph-check-circle"></i>읽음
+              </button>
+              <button class="btn-save" onclick="event.stopPropagation();">
+                <i class="ph ph-list-plus"></i>보관
+              </button>
+              <button class="btn-fav ${c.fav ? 'active' : ''}" onclick="event.stopPropagation();this.classList.toggle('active')">
+                <i class="ph ph-star"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCategories() {
+      const grid = document.getElementById('card-grid');
+      grid.innerHTML = `
+        <div class="vertical-list-mode" style="grid-column:1/-1;">
+          ${categories.map(c => `
+            <div class="list-row-item" onclick="alert('${c.label} 필터 활성화')">
+              <div class="list-row-left">
+                <span class="list-row-icon">${c.icon}</span>
+                <span class="list-row-title">${c.label}</span>
+              </div>
+              <div class="list-row-right">
+                <span class="list-row-count">${c.count}개</span>
+                <i class="ph ph-caret-right" style="color:var(--text-muted)"></i>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openDetail(id) {
+      const c = cards.find(x => x.id === id);
+      if (!c) return;
+      document.getElementById('det-channel').textContent = c.channel;
+      document.getElementById('det-date').textContent = c.date;
+      document.getElementById('det-title').textContent = c.title;
+
+      const d = c.detail;
+      document.getElementById('detail-body').innerHTML = `
+        <div class="modal-video-section">
+          <img class="modal-thumbnail" src="https://picsum.photos/seed/d${id}640/360" alt=""
+               onerror="this.style.display='none'">
+          <div class="modal-actions-video">
+            <a class="btn-youtube" href="#" target="_blank"><i class="ph-fill ph-play-circle"></i>YouTube</a>
+            <button class="btn-read-detail"><i class="ph ph-check-circle"></i>읽음</button>
+            <button class="btn-fav-detail"><i class="ph ph-star"></i></button>
+          </div>
+        </div>
+        <div class="content-section summary">
+          <div class="section-header"><span class="section-icon">📋</span><span class="section-title">요약 (Summary)</span></div>
+          <div class="section-content">${d.summary}</div>
+        </div>
+        <div class="content-section analysis">
+          <div class="section-header"><span class="section-icon">🔍</span><span class="section-title">분석 (Analysis)</span></div>
+          <div class="section-content">${d.analysis}</div>
+        </div>
+        <div class="content-section insights">
+          <div class="section-header"><span class="section-icon">💡</span><span class="section-title">인사이트 (Insights)</span></div>
+          <div class="section-content">${d.insights}</div>
+        </div>
+        <div class="content-section implications">
+          <div class="section-header"><span class="section-icon">🎯</span><span class="section-title">시사점 (Implications)</span></div>
+          <div class="section-content">${d.implications}</div>
+        </div>
+      `;
+
+      document.getElementById('layout-container').classList.add('detail-active');
+    }
+
+    // Close detail
+    document.getElementById('close-detail').addEventListener('click', () => {
+      document.getElementById('layout-container').classList.remove('detail-active');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') document.getElementById('layout-container').classList.remove('detail-active');
+    });
+
+    // Ticker populate
+    function populateTicker() {
+      for (let r = 1; r <= 3; r++) {
+        const el = document.getElementById(`ticker-${r}`);
+        let content = '';
+        for (let i = 0; i < 8; i++) {
+          const shuffled = [...tags].sort(() => (i * 7 + r * 3) % tags.length - i);
+          shuffled.slice(0, 14).forEach(t => {
+            content += `<span><span class="tag-dot"></span>${t}</span>`;
+          });
+        }
+        el.innerHTML = content;
+      }
+    }
+
+    // Headlines populate
+    function populateHeadlines() {
+      const el = document.getElementById('headlines-list');
+      el.innerHTML = [...headlines, ...headlines].map(h =>
+        `<div class="headline-item">${h}</div>`
+      ).join('');
+    }
+
+    // View toggle
+    document.querySelectorAll('[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('card-grid').classList.toggle('list-mode', btn.dataset.view === 'list');
+      });
+    });
+
+    // Back to top
+    document.getElementById('btn-top').addEventListener('click', () => {
+      document.getElementById('pane-list').scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Refresh
+    document.getElementById('btn-refresh').addEventListener('click', function() {
+      const icon = this.querySelector('.tab-icon');
+      icon.style.animation = 'spin 0.8s linear infinite';
+      setTimeout(() => icon.style.animation = '', 1200);
+    });
+
+    // Tab switching
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        if (this.id === 'btn-refresh') return;
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('layout-container').classList.remove('detail-active');
+
+        if (this.id === 'tab-category') { renderCategories(); return; }
+        renderCards();
+      });
+    });
+
+    // Init
+    populateTicker();
+    populateHeadlines();
+    renderCards();
+  </script>
+</body>
+</html>

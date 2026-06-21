@@ -1,5 +1,6 @@
 import './style.css'
 import { marked } from 'marked';
+import { renderConnect } from './connect.js';
 
 // 마크다운 파싱 헬퍼 (테이블을 컨테이너로 감싸 브루탈리즘 스타일 및 가로 스크롤 적용)
 function renderMarkdown(text) {
@@ -498,7 +499,7 @@ function renderGrid(append = false, startIndex = 0) {
   }
 
   if (currentTab === 'network') {
-    renderNetworkPlaceholder();
+    renderConnect(document.getElementById('card-grid'), { allData, githubData });
     updateFloatingToolbar();
     return;
   }

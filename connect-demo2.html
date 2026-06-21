@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>커넥트 v3 — 디자인 검수</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #f6f6f8;
+      --bg-card: #ffffff;
+      --bg-hover: #f1f1f4;
+      --bg-active: #e8e7f5;
+      --text: #121212;
+      --text-dim: #767676;
+      --accent: #4f46e5;
+      --accent-hover: #3b31c4;
+      --border: 2px solid #121212;
+      --shadow: 4px 4px 0px #121212;
+      --shadow-sm: 2px 2px 0px #121212;
+      --transition: 0.15s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+
+    body {
+      font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1440px; margin: 0 auto;
+      padding: 16px 20px;
+    }
+
+    /* ── Mode Toggle ── */
+    .mode-toggle {
+      display: flex;
+      margin-bottom: 12px;
+      border: var(--border);
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 11px 16px;
+      text-align: center;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+      border-right: var(--border);
+    }
+    .mode-btn:last-child { border-right: none; }
+    .mode-btn[data-mode="youtube"] {
+      background: #ff0000; color: white;
+    }
+    .mode-btn[data-mode="youtube"]:not(.active) {
+      background: var(--bg-card); color: #ff0000;
+    }
+    .mode-btn[data-mode="youtube"]:not(.active):hover {
+      background: #ff0000; color: white;
+    }
+    .mode-btn[data-mode="github"] {
+      background: #000000; color: white;
+    }
+    .mode-btn[data-mode="github"]:not(.active) {
+      background: var(--bg-card); color: #000000;
+    }
+    .mode-btn[data-mode="github"]:not(.active):hover {
+      background: #000000; color: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: var(--border);
+      overflow: hidden;
+    }
+    .card-h {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 14px;
+      border-bottom: var(--border);
+      background: var(--bg);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.05em;
+    }
+    .card-h .icon { font-size: 15px; }
+    .card-h .badge {
+      margin-left: auto;
+      background: var(--accent); color: white;
+      font-size: 9px; padding: 1px 7px;
+      border: 1px solid #121212;
+    }
+    .card-b { padding: 12px 14px; }
+    .card-b.slim { padding: 0; }
+    .card-b.pad8 { padding: 8px 10px; }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    .stat-item {
+      padding: 14px 10px;
+      text-align: center;
+      border-right: var(--border);
+      cursor: default;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-family: 'Outfit', monospace;
+      font-size: 26px; font-weight: 900;
+      line-height: 1; letter-spacing: -0.05em;
+    }
+    .stat-num.accent { color: var(--accent); }
+    .stat-label {
+      font-size: 8px; font-weight: 800; color: var(--text-dim);
+      letter-spacing: 0.12em; margin-top: 5px;
+    }
+
+    /* ── Network Graph ── */
+    .graph-wrap {
+      position: relative; width: 100%; height: 420px;
+      background: var(--bg);
+      overflow: hidden;
+    }
+    .graph-wrap canvas { width: 100%; height: 100%; display: block; }
+    .graph-hint {
+      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: var(--text-dim); font-weight: 700;
+      background: var(--bg-card); padding: 3px 10px;
+      border: var(--border);
+      pointer-events: none; white-space: nowrap;
+      box-shadow: var(--shadow-sm);
+    }
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      padding: 8px 12px;
+      border-top: var(--border);
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 9px; font-weight: 700; color: var(--text-dim);
+    }
+    .legend-dot { width: 7px; height: 7px; display: inline-block; border: 1px solid rgba(18,18,18,0.3); }
+    .legend-toggle {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 9px; font-weight: 800; color: var(--text-dim);
+      padding: 2px 6px; border: 1px solid #121212;
+      transition: var(--transition); user-select: none;
+    }
+    .legend-toggle.active { background: var(--accent); color: white; }
+    .legend-toggle:hover:not(.active) { background: var(--bg-hover); }
+
+    /* ── Hot Keywords / Tags ── */
+    .hot-grid {
+      display: flex; flex-wrap: wrap; gap: 5px;
+    }
+    .hot-tag {
+      border: var(--border);
+      padding: 5px 10px;
+      font-size: 10px; font-weight: 800;
+      display: flex; align-items: center; gap: 5px;
+      transition: var(--transition);
+      cursor: pointer;
+      user-select: none;
+    }
+    .hot-tag:hover {
+      box-shadow: var(--shadow-sm);
+      transform: translate(-1px, -1px);
+      background: var(--bg-hover);
+    }
+    .hot-tag.active { background: var(--accent); color: white; box-shadow: var(--shadow-sm); transform: translate(-1px, -1px); }
+    .hot-tag .count {
+      background: var(--accent); color: white;
+      font-size: 8px; padding: 0 4px;
+      border: 1px solid #121212;
+      min-width: 16px; height: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hot-tag.active .count { background: white; color: var(--accent); }
+
+    /* ── Bar Chart ── */
+    .bar-list { display: flex; flex-direction: column; gap: 4px; }
+    .bar-row {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; transition: var(--transition);
+      padding: 2px 0;
+    }
+    .bar-row:hover { background: var(--bg-hover); }
+    .bar-row.active { background: var(--bg-active); }
+    .ch-avatar {
+      width: 20px; height: 20px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 800; color: white;
+      flex-shrink: 0; border: 1px solid #121212;
+    }
+    .ch-avatar-img {
+      width: 20px; height: 20px; border-radius: 50%;
+      flex-shrink: 0; border: 1px solid #121212;
+      object-fit: cover;
+    }
+    .bar-label {
+      width: 90px; font-size: 10px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex-shrink: 0; letter-spacing: 0.02em;
+    }
+    .bar-track {
+      flex: 1; height: 16px;
+      border: 1px solid #121212; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; display: flex; align-items: center; padding-left: 5px;
+      font-size: 8px; font-weight: 800; color: white;
+      transition: width 0.3s;
+    }
+    .bar-count { font-size: 10px; font-weight: 800; color: var(--text-dim); width: 22px; text-align: right; flex-shrink: 0; }
+
+    /* ── Donut ── */
+    .donut-wrap { display: flex; align-items: center; gap: 12px; }
+    .donut-canvas { flex-shrink: 0; }
+    .cat-legend { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .cat-row {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 9px; font-weight: 700;
+    }
+    .cat-dot { width: 7px; height: 7px; flex-shrink: 0; border: 1px solid rgba(18,18,18,0.3); }
+    .cat-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cat-pct { color: var(--text-dim); font-size: 8px; }
+
+    /* ── Detail Panel ── */
+    .detail-panel {
+      grid-row: span 3;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .detail-empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 20px; color: var(--text-dim); text-align: center;
+    }
+    .detail-empty .big-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.3; }
+    .detail-empty .hint { font-size: 11px; font-weight: 700; }
+    .detail-empty .sub-hint { font-size: 9px; margin-top: 4px; opacity: 0.7; }
+    .detail-scroll { flex: 1; overflow-y: auto; padding: 0; }
+
+    .vlist-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 12px; background: var(--bg);
+      border-bottom: 1px solid #e2e2e8;
+    }
+    .vlist-header .title { font-size: 11px; font-weight: 800; }
+    .vlist-header .back { font-size: 16px; cursor: pointer; padding: 0 4px; user-select: none; transition: var(--transition); }
+    .vlist-header .back:hover { color: var(--accent); }
+    .vlist-header .count { margin-left: auto; font-size: 9px; color: var(--text-dim); font-weight: 700; }
+
+    .vitem {
+      display: flex; gap: 10px; padding: 10px 12px;
+      border-bottom: 1px solid #ececf0;
+      cursor: pointer; transition: var(--transition);
+    }
+    .vitem:hover { background: var(--bg-hover); }
+    .vitem-thumb {
+      width: 60px; height: 40px;
+      background: var(--bg); border: 1px solid #e2e2e8;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .vitem-info { flex: 1; min-width: 0; }
+    .vitem-title { font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+    .vitem-meta { font-size: 8px; color: var(--text-dim); font-weight: 600; display: flex; gap: 6px; align-items: center; }
+    .vitem-meta .sep { opacity: 0.4; }
+
+    .full-width { grid-column: 1 / -1; }
+
+    /* ── Shared sections ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── GitHub specific ── */
+    .lang-donut-wrap { display: flex; align-items: center; gap: 12px; }
+    .gh-repo-list { display: flex; flex-direction: column; gap: 5px; }
+    .gh-repo-row {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 0;
+      border-bottom: 1px solid #ececf0;
+      cursor: pointer; transition: var(--transition);
+    }
+    .gh-repo-row:hover { background: var(--bg-hover); }
+    .gh-repo-name { flex: 1; font-size: 10px; font-weight: 700; }
+    .gh-repo-meta { font-size: 8px; color: var(--text-dim); font-weight: 600; display: flex; gap: 4px; align-items: center; }
+    .gh-repo-stars { font-size: 9px; font-weight: 800; color: #b45309; }
+    .gh-lang-dot { width: 7px; height: 7px; border: 1px solid #121212; display: inline-block; }
+
+    .repo-card {
+      border: var(--border); padding: 10px;
+      margin-bottom: 6px;
+      cursor: pointer; transition: var(--transition);
+    }
+    .repo-card:hover { box-shadow: var(--shadow-sm); transform: translate(-2px,-2px); }
+    .repo-card-name { font-size: 11px; font-weight: 800; }
+    .repo-card-desc { font-size: 9px; color: var(--text-dim); font-weight: 500; margin: 3px 0; }
+    .repo-card-meta { font-size: 8px; font-weight: 700; display: flex; gap: 8px; color: var(--text-dim); }
+
+    @media (max-width: 1000px) {
+      .grid { grid-template-columns: 1fr; }
+      .detail-panel { grid-row: auto; max-height: 400px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Mode Toggle -->
+  <div class="mode-toggle">
+    <div class="mode-btn active" data-mode="youtube" onclick="switchMode('youtube')">▶ 유튜브 요약</div>
+    <div class="mode-btn" data-mode="github" onclick="switchMode('github')">◆ GitHub Trending</div>
+  </div>
+
+  <!-- ── YOUTUBE SECTION ── -->
+  <div class="section active" id="section-youtube">
+
+    <!-- YouTube KPI -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="stats-row">
+        <div class="stat-item"><div class="stat-num accent">11</div><div class="stat-label">구독 채널</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:#b45309;">23%</div><div class="stat-label">안읽음 비율</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:#e8590c;">22</div><div class="stat-label">★ 즐겨찾기</div></div>
+        <div class="stat-item"><div class="stat-num accent">89</div><div class="stat-label">TOTAL 요약</div></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">🕸️</span> 키워드 연결망 <span class="badge">노드 클릭</span></div>
+          <div class="card-b slim">
+            <div class="graph-wrap" id="yt-graph-wrap">
+              <canvas id="yt-graph-canvas"></canvas>
+              <div class="graph-hint" id="yt-graph-hint">🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭</div>
+            </div>
+          </div>
+          <div class="legend" id="yt-graph-legend"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">🔥</span> 핫 키워드 <span class="badge">클릭</span></div>
+          <div class="card-b"><div class="hot-grid" id="yt-hot-keywords"></div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+          <div class="card">
+            <div class="card-h"><span class="icon">📊</span> 채널 활동 <span class="badge">클릭</span></div>
+            <div class="card-b"><div class="bar-list" id="yt-channel-bars"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="icon">🏷️</span> 카테고리 분포</div>
+            <div class="card-b">
+              <div class="donut-wrap">
+                <canvas class="donut-canvas" id="yt-donut-canvas" width="90" height="90"></canvas>
+                <div class="cat-legend" id="yt-cat-legend"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">★</span> 즐겨찾기 분석 <span class="badge" style="background:#e8590c;">Fav</span></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
+            <div class="card-b" style="border-right:var(--border);">
+              <div style="font-size:10px;font-weight:800;margin-bottom:6px;">🏷️ 카테고리 선호도</div>
+              <div class="bar-list" id="yt-fav-cat"></div>
+            </div>
+            <div class="card-b">
+              <div style="font-size:10px;font-weight:800;margin-bottom:6px;">🏷️ Fav 키워드</div>
+              <div class="hot-grid" id="yt-fav-kw"></div>
+            </div>
+          </div>
+          <div style="border-top:var(--border);padding:10px 14px;">
+            <div style="font-size:10px;font-weight:800;margin-bottom:4px;">📺 즐겨찾는 채널</div>
+            <div id="yt-fav-ch" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">🔗</span> 채널 유사도</div>
+          <div class="card-b"><div class="ch-grid" id="yt-ch-sim"></div></div>
+        </div>
+      </div>
+
+      <!-- YouTube Detail Panel -->
+      <div class="card detail-panel">
+        <div class="card-h"><span class="icon">🔍</span> 상세 패널 <span style="margin-left:auto;font-size:9px;font-weight:700;color:var(--text-dim);">유튜브</span></div>
+        <div class="detail-scroll" id="yt-detail-scroll">
+          <div class="detail-empty" id="yt-detail-empty">
+            <div class="big-icon">👆</div>
+            <div class="hint">키워드 · 채널 · 노드를 클릭하세요</div>
+            <div class="sub-hint">해당 항목의 영상 목록과 상세 정보 확인</div>
+          </div>
+          <div id="yt-detail-content" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GITHUB SECTION ── -->
+  <div class="section" id="section-github">
+
+    <!-- GitHub KPI -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="stats-row">
+        <div class="stat-item"><div class="stat-num accent">23</div><div class="stat-label">트렌딩 저장소</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:#0d7a6a;">18</div><div class="stat-label">분석 완료</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:#6d28d9;">7</div><div class="stat-label">사용 언어</div></div>
+        <div class="stat-item"><div class="stat-num accent">12</div><div class="stat-label">이번주 신규</div></div>
+      </div>
+      <div class="stats-row" style="border-top:var(--border);">
+        <div class="stat-item"><div class="stat-num" style="color:#b45309;">★ 4.2K</div><div class="stat-label">오늘의 별</div></div>
+        <div class="stat-item"><div class="stat-num">Python</div><div class="stat-label">#1 언어</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:#0d7a6a;">92%</div><div class="stat-label">분석 커버리지</div></div>
+        <div class="stat-item"><div class="stat-num accent">3</div><div class="stat-label">미분석</div></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <!-- GitHub Network Graph -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">🕸️</span> 저장소 연결망 <span class="badge">노드 클릭</span></div>
+          <div class="card-b slim">
+            <div class="graph-wrap" id="gh-graph-wrap">
+              <canvas id="gh-graph-canvas"></canvas>
+              <div class="graph-hint" id="gh-graph-hint">🔍 100% · 휠 확대축소 · 언어별 색상</div>
+            </div>
+          </div>
+          <div class="legend" id="gh-graph-legend"></div>
+        </div>
+
+        <!-- Trending Repos -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">🔥</span> 트렌딩 저장소 <span class="badge">오늘</span></div>
+          <div class="card-b"><div id="gh-trending-repos"></div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+          <div class="card">
+            <div class="card-h"><span class="icon">📊</span> 언어별 분포</div>
+            <div class="card-b">
+              <div class="bar-list" id="gh-lang-bars"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="icon">🏆</span> 별점 TOP</div>
+            <div class="card-b"><div class="bar-list" id="gh-star-bars"></div></div>
+          </div>
+        </div>
+
+        <!-- Categories / Topics -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">🏷️</span> 인기 토픽 <span class="badge">클릭</span></div>
+          <div class="card-b"><div class="hot-grid" id="gh-topics"></div></div>
+        </div>
+
+        <!-- GitHub Favorites -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">★</span> 즐겨찾기 분석 <span class="badge" style="background:#e8590c;">Fav</span></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
+            <div class="card-b" style="border-right:var(--border);">
+              <div style="font-size:10px;font-weight:800;margin-bottom:6px;">📊 언어 선호도</div>
+              <div class="bar-list" id="gh-fav-lang"></div>
+            </div>
+            <div class="card-b">
+              <div style="font-size:10px;font-weight:800;margin-bottom:6px;">🏆 Top 저장소</div>
+              <div class="bar-list" id="gh-fav-repos"></div>
+            </div>
+          </div>
+          <div style="border-top:var(--border);padding:10px 14px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <div style="font-size:10px;font-weight:800;margin-bottom:4px;">🏷️ Fav 토픽</div>
+                <div class="hot-grid" id="gh-fav-topics"></div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:800;margin-bottom:4px;">📈 최근 트렌드</div>
+                <div id="gh-fav-trend" style="font-size:9px;font-weight:700;color:var(--text-dim);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repo Similarity -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-h"><span class="icon">🔗</span> 저장소 유사도</div>
+          <div class="card-b"><div class="ch-grid" id="gh-repo-sim"></div></div>
+        </div>
+      </div>
+
+      <!-- GitHub Detail Panel -->
+      <div class="card detail-panel">
+        <div class="card-h"><span class="icon">🔍</span> 상세 패널 <span style="margin-left:auto;font-size:9px;font-weight:700;color:var(--text-dim);">GitHub</span></div>
+        <div class="detail-scroll" id="gh-detail-scroll">
+          <div class="detail-empty" id="gh-detail-empty">
+            <div class="big-icon">👆</div>
+            <div class="hint">저장소 · 언어 · 토픽을 클릭하세요</div>
+            <div class="sub-hint">분석 리포트와 인사이트 확인</div>
+          </div>
+          <div id="gh-detail-content" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Mode Switch ──
+  function switchMode(mode) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${mode}`).classList.add('active');
+    // Re-render graphs after switch (canvas needs resize)
+    if (mode === 'youtube') renderYtGraph();
+    else renderGhGraph();
+  }
+
+  // ── DATA ──
+
+  const ytCatColors = {
+    '경제/금융':'#0d7a6a','AI/테크':'#6d28d9','정치/국제':'#b45309','사회/이슈':'#d97706',
+    '자기계발':'#0f766e','창업/사업':'#047857','엔터테인먼트':'#0891b2','라이프스타일':'#a16207',
+  };
+  const ytBarColors = ['#4f46e5','#6d28d9','#0d7a6a','#b45309','#d97706','#0891b2','#047857','#9333ea','#0f766e','#a16207'];
+
+  const ytChannels = {
+    '매경 월가월부': { count: 9, cats: { '경제/금융': 6, '정치/국제': 3 }, kw: ['금리','연준','파월','빅컷','인플레이션','채권','달러','FOMC'] },
+    '비디오머그':     { count: 7, cats: { '사회/이슈': 3, '엔터테인먼트': 2, '정치/국제': 2 }, kw: ['AI','규제','플랫폼','저작권','뉴스','유튜브','미디어'] },
+    '14F 일사에프':   { count: 5, cats: { 'AI/테크': 3, '경제/금융': 2 }, kw: ['AI','스타트업','투자','VC','스케일업','IR'] },
+    '한경 글로벌마켓': { count: 5, cats: { '경제/금융': 4, '정치/국제': 1 }, kw: ['금리','환율','유가','무역','관세','원자재'] },
+    'CNBC':           { count: 4, cats: { '경제/금융': 3, 'AI/테크': 1 }, kw: ['금리','S&P500','나스닥','소비','GDP','고용'] },
+    '크랩 KLAB':      { count: 4, cats: { 'AI/테크': 2, '자기계발': 1, '사회/이슈': 1 }, kw: ['AI','개발','LLM','파이썬','프롬프트','API'] },
+    '머니코믹스':     { count: 3, cats: { '경제/금융': 2, '창업/사업': 1 }, kw: ['주식','ETF','배당','연금','퇴직','복리'] },
+    'WSJ':            { count: 3, cats: { '경제/금융': 2, '정치/국제': 1 }, kw: ['금리','정치','관세','반도체','공급망'] },
+    'PLUS TV':        { count: 2, cats: { '라이프스타일': 1, '엔터테인먼트': 1 }, kw: ['여행','맛집','일상','카메라','에세이'] },
+    '지식한입':       { count: 2, cats: { '자기계발': 1, '사회/이슈': 1 }, kw: ['심리학','습관','뇌과학','생산성','집중'] },
+    'ITSUB잇섭':      { count: 2, cats: { 'AI/테크': 2 }, kw: ['갤럭시','아이폰','스마트폰','가젯','리뷰','폴더블'] },
+  };
+  const ytFavCh = ['매경 월가월부','크랩 KLAB','머니코믹스','14F 일사에프','CNBC'];
+
+  // ── GitHub Data ──
+  const ghLangColors = {
+    'Python':'#3572A5','TypeScript':'#3178C6','JavaScript':'#f7df1e','Rust':'#dea584',
+    'Go':'#00ADD8','Swift':'#F05138','Kotlin':'#A97BFF','C++':'#f34b7d',
+    'Java':'#b07219','Ruby':'#701516',
+  };
+  const ghLangOrder = ['Python','TypeScript','JavaScript','Rust','Go','Swift','Kotlin'];
+
+  const ghRepos = [
+    { name: 'deepseek-ai/DeepSeek-V4', lang: 'Python', stars: '12.3K', desc: 'Latest deepseek models v4', topics: ['LLM','AI','딥러닝'] },
+    { name: 'microsoft/TypeScript-7', lang: 'TypeScript', stars: '8.7K', desc: 'TypeScript v7 RFC and prototype', topics: ['타입스크립트','컴파일러'] },
+    { name: 'anthropic/claude-code', lang: 'TypeScript', stars: '6.5K', desc: 'Claude Code CLI agent', topics: ['AI','CLI','에이전트'] },
+    { name: 'astral-sh/uv', lang: 'Rust', stars: '5.2K', desc: 'Fast Python package manager', topics: ['Python','패키지','Rust'] },
+    { name: 'openai/openai-agents', lang: 'Python', stars: '4.8K', desc: 'OpenAI Agents SDK', topics: ['AI','에이전트','SDK'] },
+    { name: 'mishushakov/llm-scraper', lang: 'TypeScript', stars: '3.9K', desc: 'LLM-powered web scraping', topics: ['LLM','스크래핑','자동화'] },
+    { name: '0xPlaygrounds/rig', lang: 'Rust', stars: '3.2K', desc: 'Rust LLM framework', topics: ['Rust','LLM','프레임워크'] },
+    { name: 'golang/go', lang: 'Go', stars: '2.8K', desc: 'Go 1.25 new features', topics: ['Go','컴파일러'] },
+    { name: 'swiftlang/swift-testing', lang: 'Swift', stars: '2.1K', desc: 'Swift testing framework', topics: ['Swift','테스트'] },
+    { name: 'JetBrains/kotlin-multiplatform', lang: 'Kotlin', stars: '1.8K', desc: 'KMP updates 2025', topics: ['Kotlin','멀티플랫폼'] },
+  ];
+
+  const ghTopicCounts = { 'AI': 6, 'LLM': 4, '에이전트': 3, 'Rust': 2, 'Python': 3, '타입스크립트': 2, '컴파일러': 2, 'CLI': 2, 'SDK': 1, '프레임워크': 1 };
+
+  // ── YouTube Renderers ──
+  // Channel avatar colors (consistent hash)
+  const chAvatarColors = {};
+  const avatarPalette = ['#e8590c','#6d28d9','#0d7a6a','#b45309','#0891b2','#047857','#9333ea','#d97706','#0f766e','#a16207','#be123c'];
+  function getChColor(name) {
+    if (!chAvatarColors[name]) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      chAvatarColors[name] = avatarPalette[Math.abs(hash) % avatarPalette.length];
+    }
+    return chAvatarColors[name];
+  }
+
+  function renderYtBars() {
+    const el = document.getElementById('yt-channel-bars');
+    const sorted = Object.entries(ytChannels).sort((a,b) => b[1].count - a[1].count);
+    const max = sorted[0][1].count;
+    el.innerHTML = sorted.map(([name, d], i) => {
+      const avatarUrl = `https://ui-avatars.com/api?name=${encodeURIComponent(name)}&background=${encodeURIComponent(getChColor(name).replace('#',''))}&color=fff&size=32&bold=true&font-size=0.35`;
+      return `<div class="bar-row" onclick="showYtChannelVideos('${name}')">
+        <img src="${avatarUrl}" alt="${name}" class="ch-avatar-img">
+        <span class="bar-label">${name}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(d.count/max)*100}%;background:${ytBarColors[i]};">${d.count > 2 ? d.count : ''}</div></div>
+        <span class="bar-count">${d.count}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function renderYtDonut() {
+    const canvas = document.getElementById('yt-donut-canvas');
+    const ctx = canvas.getContext('2d');
+    const W=90,H=90,cx=45,cy=45,R=38,inner=24;
+    const totals = {};
+    Object.values(ytChannels).forEach(d => Object.entries(d.cats).forEach(([c,n]) => { totals[c]=(totals[c]||0)+n; }));
+    const total = Object.values(totals).reduce((a,b)=>a+b,0);
+    const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+    document.getElementById('yt-cat-legend').innerHTML = sorted.slice(0,7).map(([c,n]) =>
+      `<div class="cat-row"><span class="cat-dot" style="background:${ytCatColors[c]||'#888'}"></span><span class="cat-name">${c}</span><span class="cat-pct">${Math.round(n/total*100)}%</span></div>`
+    ).join('');
+    let start = -Math.PI/2;
+    ctx.clearRect(0,0,W,H);
+    sorted.forEach(([c,n]) => {
+      const a = (n/total)*Math.PI*2;
+      ctx.beginPath(); ctx.arc(cx,cy,R,start,start+a); ctx.arc(cx,cy,inner,start+a,start,true); ctx.closePath();
+      ctx.fillStyle = ytCatColors[c]||'#888'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+      start += a;
+    });
+    ctx.fillStyle = '#121212'; ctx.font = 'bold 14px Outfit, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(total, cx, cy);
+  }
+
+  function renderYtHot() {
+    const el = document.getElementById('yt-hot-keywords');
+    const counts = {};
+    Object.values(ytChannels).forEach(d => d.kw.forEach(k => { counts[k]=(counts[k]||0)+1; }));
+    const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,14);
+    el.innerHTML = top.map(([k,c]) =>
+      `<span class="hot-tag" onclick="showYtKeywordVideos('${k}')">${k} <span class="count">${c}</span></span>`
+    ).join('');
+  }
+
+  function renderYtSim() {
+    const el = document.getElementById('yt-ch-sim');
+    const chs = Object.keys(ytChannels);
+    const sims = [];
+    for(let i=0;i<chs.length;i++) for(let j=i+1;j<chs.length;j++) {
+      const a = ytChannels[chs[i]].kw, b = ytChannels[chs[j]].kw;
+      const inter = a.filter(k=>b.includes(k)).length;
+      const union = new Set([...a,...b]).size;
+      if (union > 0 && inter > 0) sims.push({ a: chs[i], b: chs[j], score: inter/union });
+    }
+    sims.sort((a,b)=>b.score-a.score);
+    el.innerHTML = sims.slice(0,7).map(({a,b,score}) => {
+      const pct = Math.round(score*100);
+      return `<div class="ch-sim-row" style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid #e8e8ec;">
+        <div style="flex:1;font-size:10px;font-weight:700;">${a} <span style="color:var(--accent);">↔</span> ${b}</div>
+        <div style="width:50px;height:10px;border:1px solid #121212;overflow:hidden;"><div style="height:100%;background:var(--accent);width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderYtFav() {
+    // Fav category bars
+    const catEl = document.getElementById('yt-fav-cat');
+    const cats = { '경제/금융': 9, 'AI/테크': 5, '자기계발': 3, '창업/사업': 2, '정치/국제': 2, '사회/이슈': 1 };
+    const maxCat = Math.max(...Object.values(cats));
+    catEl.innerHTML = Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([c,n]) =>
+      `<div class="bar-row" style="cursor:default;"><span class="bar-label" style="width:70px;">${c}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(n/maxCat)*100}%;background:${ytCatColors[c]||'#888'};">${n>2?n:''}</div></div>
+        <span class="bar-count">${n}</span></div>`
+    ).join('');
+
+    // Fav keywords
+    const kwEl = document.getElementById('yt-fav-kw');
+    const favKws = ['AI','금리','LLM','스타트업','배당','ETF','연준','파이썬','개발','투자','복리','뇌과학'];
+    const kwCounts = { 'AI':5, '금리':4, 'LLM':3, '스타트업':2, '배당':2, 'ETF':2, '연준':1, '파이썬':1, '개발':1, '투자':1, '복리':1, '뇌과학':1 };
+    kwEl.innerHTML = Object.entries(kwCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,c]) =>
+      `<span class="hot-tag" style="font-size:8px;padding:3px 7px;" onclick="showYtKeywordVideos('${k}')">${k} <span class="count">${c}</span></span>`
+    ).join('');
+
+    // Fav channels as tags
+    const el = document.getElementById('yt-fav-ch');
+    el.innerHTML = ytFavCh.map(ch => {
+      const count = ytChannels[ch]?.count || 0;
+      return `<span class="hot-tag" style="font-size:8px;padding:3px 8px;" onclick="showYtChannelVideos('${ch}')">${ch} <span class="count">${count}</span></span>`;
+    }).join('');
+  }
+
+  // ── YouTube Network Graph ──
+  let ytGraphRunning = false;
+  function renderYtGraph() {
+    if (ytGraphRunning) return;
+    ytGraphRunning = true;
+    setTimeout(() => { ytGraphRunning = false; }, 500);
+
+    const canvas = document.getElementById('yt-graph-canvas');
+    const wrap = document.getElementById('yt-graph-wrap');
+    if (!canvas || !wrap || wrap.clientWidth === 0) return;
+    canvas.width = wrap.clientWidth * 2; canvas.height = 420 * 2;
+    canvas.style.width = wrap.clientWidth+'px'; canvas.style.height = '420px';
+    const ctx = canvas.getContext('2d'); ctx.scale(2,2);
+    const W = wrap.clientWidth, H = 420;
+
+    // ── Build 3-layer nodes: Category █ Channel □ Keyword ○ ──
+    const allCats = [...new Set(Object.values(ytChannels).flatMap(d => Object.keys(d.cats)))];
+    const allChs = Object.keys(ytChannels);
+    const allKeys = [...new Set(Object.values(ytChannels).flatMap(d => d.kw))];
+
+    // Count keywords per channel
+    const kwCount = {};
+    Object.values(ytChannels).forEach(d => d.kw.forEach(k => { kwCount[k]=(kwCount[k]||0)+1; }));
+
+    // Determine primary category for each channel & keyword
+    const chPriCat = {};
+    Object.entries(ytChannels).forEach(([ch, d]) => {
+      chPriCat[ch] = Object.entries(d.cats).sort((a,b)=>b[1]-a[1])[0][0];
+    });
+    const kwCat = {};
+    Object.entries(ytChannels).forEach(([ch, d]) => {
+      const mc = chPriCat[ch];
+      d.kw.forEach(k => { if(!kwCat[k]) kwCat[k]=mc; });
+    });
+
+    // Counts for category sizing
+    const catCount = {};
+    Object.values(ytChannels).forEach(d => Object.keys(d.cats).forEach(c => { catCount[c]=(catCount[c]||0)+1; }));
+
+    const nodes = [];
+    const nodeMap = {};
+
+    // Category nodes (largest)
+    allCats.forEach(c => {
+      const n = { id: c, type: 'category', group: c, r: 14 + (catCount[c]||1)*2,
+        x: W*(0.1+Math.random()*0.8), y: H*(0.1+Math.random()*0.8), vx:0, vy:0 };
+      nodes.push(n); nodeMap[c] = n;
+    });
+
+    // Channel nodes (medium, square)
+    allChs.forEach(ch => {
+      const cat = chPriCat[ch] || '기타';
+      const n = { id: ch, type: 'channel', group: cat, r: 7 + (ytChannels[ch].count)*0.8,
+        x: W*(0.1+Math.random()*0.8), y: H*(0.1+Math.random()*0.8), vx:0, vy:0 };
+      nodes.push(n); nodeMap[ch] = n;
+    });
+
+    // Keyword nodes (smallest)
+    allKeys.forEach(k => {
+      const cat = kwCat[k] || '기타';
+      const n = { id: k, type: 'keyword', group: cat, r: 3 + (kwCount[k]||1)*2.5,
+        x: W*(0.1+Math.random()*0.8), y: H*(0.1+Math.random()*0.8), vx:0, vy:0 };
+      nodes.push(n); nodeMap[k] = n;
+    });
+
+    // ── Build links ──
+    const links = [];
+    // Category → Channel
+    Object.entries(ytChannels).forEach(([ch, d]) => {
+      Object.keys(d.cats).forEach(c => {
+        if (nodeMap[ch] && nodeMap[c]) links.push({ s: nodeMap[c], t: nodeMap[ch], v: 2, type: 'cat-ch' });
+      });
+    });
+    // Channel → Keyword
+    Object.entries(ytChannels).forEach(([ch, d]) => {
+      d.kw.forEach(k => {
+        if (nodeMap[ch] && nodeMap[k]) links.push({ s: nodeMap[ch], t: nodeMap[k], v: 1, type: 'ch-kw' });
+      });
+    });
+    // Keyword ↔ Keyword (co-occurrence)
+    const kwLinkMap = {};
+    Object.values(ytChannels).forEach(d => {
+      for(let i=0;i<d.kw.length;i++) for(let j=i+1;j<d.kw.length;j++) {
+        const k=[d.kw[i],d.kw[j]].sort().join('__'); kwLinkMap[k]=(kwLinkMap[k]||0)+1;
+      }
+    });
+    Object.entries(kwLinkMap).filter(([_,v])=>v>=1).forEach(([k,v]) => {
+      const [s,t] = k.split('__');
+      if (nodeMap[s] && nodeMap[t]) links.push({ s: nodeMap[s], t: nodeMap[t], v: v, type: 'kw-kw' });
+    });
+
+    if (nodes.length === 0) return;
+
+    const sensitivity = 200;
+    let dragNode=null, offX=0, offY=0, panX=0, panY=0, isPan=false, lmx=0, lmy=0, scale=1.0;
+    let selectedNode = null;
+    let focusMode = false;
+    let showCats = true, showChs = true, showKws = true;
+
+    function isVisible(n) {
+      return (n.type === 'category' && showCats) || (n.type === 'channel' && showChs) || (n.type === 'keyword' && showKws);
+    }
+
+    function m2w(e) {
+      const r=canvas.getBoundingClientRect();
+      return {x:((e.clientX-r.left)*(W/r.width)-panX)/scale, y:((e.clientY-r.top)*(H/r.height)-panY)/scale};
+    }
+
+    function getConnected(node) {
+      const set = new Set([node.id]);
+      links.forEach(l => {
+        if (l.s === node) set.add(l.t.id);
+        if (l.t === node) set.add(l.s.id);
+      });
+      return set;
+    }
+
+    // Calculate orbital position around center for a connected node
+    function getOrbitPos(node, focusNode, index, total) {
+      const angle = (index / total) * Math.PI * 2 - Math.PI/2;
+      const dist = 70 + node.r * 2.5 + (total > 8 ? 20 : 0);
+      return {
+        x: focusNode.x + Math.cos(angle) * dist,
+        y: focusNode.y + Math.sin(angle) * dist
+      };
+    }
+
+    canvas.onwheel = e => {
+      e.preventDefault();
+      const r=canvas.getBoundingClientRect();
+      const mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
+      const f=e.deltaY<0?1.12:0.88, ns=Math.max(0.2,Math.min(5,scale*f));
+      panX=mx-(mx-panX)*(ns/scale); panY=my-(my-panY)*(ns/scale); scale=ns;
+      document.getElementById('yt-graph-hint').textContent=`🔍 ${Math.round(scale*100)}% · 휠 확대축소 · 드래그 · 노드 클릭`;
+    };
+
+    canvas.onmousedown = e => {
+      const w=m2w(e); let closest=null, md=25;
+      nodes.forEach(n=>{const d=Math.sqrt((w.x-n.x)**2+(w.y-n.y)**2);if(d<md){md=d;closest=n;}});
+      if(closest){dragNode=closest;offX=w.x-closest.x;offY=w.y-closest.y;closest.fx=closest.x;closest.fy=closest.y;return;}
+      isPan=true;lmx=e.clientX;lmy=e.clientY;
+    };
+
+    canvas.onmousemove = e => {
+      if(dragNode){const w=m2w(e);dragNode.fx=w.x-offX;dragNode.fy=w.y-offY;}
+      if(isPan){panX+=(e.clientX-lmx)*(W/canvas.getBoundingClientRect().width);panY+=(e.clientY-lmy)*(H/canvas.getBoundingClientRect().height);lmx=e.clientX;lmy=e.clientY;}
+    };
+
+    canvas.onmouseup = () => {
+      if(dragNode){
+        if(Math.abs(dragNode.fx-dragNode.x)<3) {
+          if (selectedNode === dragNode) {
+            // Deselect: return to normal
+            selectedNode = null;
+            focusMode = false;
+            document.getElementById('yt-graph-hint').textContent='🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭';
+          } else {
+            selectedNode = dragNode;
+            focusMode = true;
+            document.getElementById('yt-graph-hint').textContent=`🔍 포커스: ${selectedNode.id} · 다시 클릭 시 해제`;
+            if (selectedNode.type === 'category') showYtCatVideos(selectedNode.id);
+            else if (selectedNode.type === 'channel') showYtChannelVideos(selectedNode.id);
+            else showYtKeywordVideos(selectedNode.id);
+          }
+        }
+        dragNode.fx=null; dragNode.fy=null; dragNode=null;
+      } else {
+        selectedNode = null;
+        focusMode = false;
+        document.getElementById('yt-graph-hint').textContent='🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭';
+      }
+      isPan=false;
+    };
+
+    canvas.onmouseleave = () => {if(dragNode){dragNode.fx=null;dragNode.fy=null;dragNode=null;}isPan=false;};
+
+    function sim() {
+      nodes.forEach(n => {
+        if(n.fx!==undefined){n.x=n.fx;n.y=n.fy;n.vx=0;n.vy=0;return;}
+        let fx=0,fy=0;
+        // Repulsion
+        nodes.forEach(o => {
+          if(n===o) return;
+          const dx=n.x-o.x, dy=n.y-o.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+          const rep = n.type === 'category' || o.type === 'category' ? sensitivity*1.5 : sensitivity;
+          fx += dx/d*rep/(d*d); fy += dy/d*rep/(d*d);
+        });
+        // Attraction along links
+        links.forEach(l => {
+          if(l.s===n||l.t===n){
+            const o = l.s===n ? l.t : l.s;
+            const strength = l.type === 'cat-ch' ? 0.015 : l.type === 'ch-kw' ? 0.01 : 0.006;
+            fx += (o.x-n.x)*strength; fy += (o.y-n.y)*strength;
+          }
+        });
+        // Focus mode: orbit layout
+        if (focusMode && selectedNode) {
+          const connected = getConnected(selectedNode);
+          const isConn = connected.has(n.id);
+          const isSel = n === selectedNode;
+          const centerX = (W/2 - panX) / scale;
+          const centerY = (H/2 - panY) / scale;
+          if (isSel) {
+            // Pull selected node toward center
+            fx += (centerX - n.x) * 0.03;
+            fy += (centerY - n.y) * 0.03;
+            // Damping
+            n.vx *= 0.9; n.vy *= 0.9;
+          } else if (isConn) {
+            // Pull connected nodes toward orbital positions
+            const connNodes = nodes.filter(c => connected.has(c.id) && c !== selectedNode);
+            const idx = connNodes.indexOf(n);
+            const orbit = getOrbitPos(n, selectedNode, idx, connNodes.length);
+            const strength = n.type === 'category' ? 0.04 : n.type === 'channel' ? 0.03 : 0.02;
+            fx += (orbit.x - n.x) * strength;
+            fy += (orbit.y - n.y) * strength;
+          } else {
+            // Push non-connected nodes away from center
+            const dx = n.x - centerX, dy = n.y - centerY;
+            const d = Math.sqrt(dx*dx + dy*dy) || 1;
+            const pushForce = sensitivity * 3 / (d * d);
+            fx += dx/d * Math.min(pushForce, 8);
+            fy += dy/d * Math.min(pushForce, 8);
+          }
+        }
+        n.vx=(n.vx+fx)*0.85; n.vy=(n.vy+fy)*0.85;
+        n.x+=n.vx; n.y+=n.vy;
+        n.x=Math.max(25,Math.min(W-25,n.x)); n.y=Math.max(25,Math.min(H-25,n.y));
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,W,H);
+      ctx.save(); ctx.translate(panX,panY); ctx.scale(scale,scale);
+
+      const connected = selectedNode ? getConnected(selectedNode) : null;
+
+      // ── Draw links ──
+      links.forEach(l => {
+        if (!isVisible(l.s) || !isVisible(l.t)) return;
+        const isConnected = connected && (connected.has(l.s.id) && connected.has(l.t.id));
+        const isSelected = selectedNode && (l.s === selectedNode || l.t === selectedNode);
+        ctx.globalAlpha = (!selectedNode || isConnected) ? (isSelected ? 0.8 : 0.25) : 0.05;
+        ctx.strokeStyle = isSelected ? '#4f46e5' : 'rgba(120,120,140,0.4)';
+        ctx.lineWidth = isSelected ? 2.5 : Math.min(1.5, l.v*0.3);
+        ctx.beginPath(); ctx.moveTo(l.s.x,l.s.y); ctx.lineTo(l.t.x,l.t.y); ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+
+      // ── Draw nodes ──
+      nodes.forEach(n => {
+        if (!isVisible(n)) return;
+        const isSel = n === selectedNode;
+        const isConn = connected && connected.has(n.id);
+        const faded = selectedNode && !isSel && !isConn;
+
+        ctx.globalAlpha = faded ? 0.2 : 1;
+        const r = isSel ? n.r * 1.5 : n.r;
+
+        if (n.type === 'category') {
+          // Category: large circle with thick border
+          ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+          ctx.fillStyle = ytCatColors[n.group]||'#888';
+          ctx.fill();
+          ctx.strokeStyle = isSel ? '#121212' : '#fff';
+          ctx.lineWidth = isSel ? 4 : 2;
+          ctx.stroke();
+          // Label inside
+          ctx.font = `bold ${Math.max(8, r*0.5)}px Outfit,sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#fff';
+          ctx.fillText(n.id.slice(0,4), n.x, n.y);
+        } else if (n.type === 'channel') {
+          // Channel: rounded rect
+          const s = r * 1.6;
+          const cx = n.x, cy = n.y;
+          ctx.fillStyle = ytCatColors[n.group]||'#888';
+          const rad = 4;
+          ctx.beginPath();
+          ctx.moveTo(cx-s+rad, cy-s); ctx.lineTo(cx+s-rad, cy-s);
+          ctx.quadraticCurveTo(cx+s, cy-s, cx+s, cy-s+rad);
+          ctx.lineTo(cx+s, cy+s-rad);
+          ctx.quadraticCurveTo(cx+s, cy+s, cx+s-rad, cy+s);
+          ctx.lineTo(cx-s+rad, cy+s);
+          ctx.quadraticCurveTo(cx-s, cy+s, cx-s, cy+s-rad);
+          ctx.lineTo(cx-s, cy-s+rad);
+          ctx.quadraticCurveTo(cx-s, cy-s, cx-s+rad, cy-s);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = isSel ? '#121212' : '#fff';
+          ctx.lineWidth = isSel ? 3.5 : 1.5;
+          ctx.stroke();
+          // Label
+          ctx.font = `bold ${Math.max(6, r*0.4)}px Outfit,sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#fff';
+          ctx.fillText(n.id.length > 8 ? n.id.slice(0,6)+'…' : n.id, n.x, n.y);
+        } else {
+          // Keyword: small circle
+          ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+          ctx.fillStyle = ytCatColors[n.group]||'#888';
+          ctx.fill();
+          ctx.strokeStyle = isSel ? '#121212' : '#fff';
+          ctx.lineWidth = isSel ? 3.5 : 1.5;
+          ctx.stroke();
+        }
+
+        // Label below for keywords
+        if (n.type === 'keyword') {
+          ctx.font = `${Math.max(6, r*0.45)}px Outfit,sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          ctx.fillStyle = faded ? 'rgba(0,0,0,0.2)' : '#121212';
+          ctx.fillText(n.id, n.x, n.y + r + 2);
+        }
+
+        ctx.globalAlpha = 1;
+      });
+
+      ctx.restore();
+      requestAnimationFrame(()=>{sim();draw();});
+    }
+
+    // Legend with toggle buttons
+    window.toggleYtType = function(type) {
+      if (type === 'category') showCats = !showCats;
+      else if (type === 'channel') showChs = !showChs;
+      else if (type === 'keyword') showKws = !showKws;
+      // Deselect if selected node type is now hidden
+      if (selectedNode && !isVisible(selectedNode)) {
+        selectedNode = null;
+        focusMode = false;
+        document.getElementById('yt-graph-hint').textContent='🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭';
+      }
+      updateLegend();
+    };
+    function updateLegend() {
+      const legendCats = [...new Set(nodes.filter(n=>n.type==='category').map(n=>n.group))];
+      document.getElementById('yt-graph-legend').innerHTML =
+        `<span class="legend-toggle ${showCats?'active':''}" onclick="toggleYtType('category')" style="cursor:pointer;">●카테고리</span>` +
+        legendCats.map(c =>
+          `<span class="legend-item"><span class="legend-dot" style="background:${ytCatColors[c]||'#888'}"></span>${c}</span>`
+        ).join('') +
+        `<span class="legend-toggle ${showChs?'active':''}" onclick="toggleYtType('channel')" style="cursor:pointer;margin-left:4px;">■채널</span>` +
+        `<span class="legend-toggle ${showKws?'active':''}" onclick="toggleYtType('keyword')" style="cursor:pointer;margin-left:4px;">●키워드</span>`;
+    }
+    updateLegend();
+    draw();
+  }
+
+  // ── YouTube Detail Functions ──
+  let ytVideos = [];
+  (function() {
+    const chTitles = {
+      '매경 월가월부': ['FOMC 9월 금리 결정 분석','연준 파월 발언: 인플레이션 전망','美 고용지표 발표 영향','달러 강세 지속','빅컷 시나리오 점검','채권 시장 리뷰','CPI 둔화, 연준 주목','금리 인하 기대','연준 위원 발언 총정리'],
+      '비디오머그': ['AI 규제의 시작','플랫폼 저작권 전쟁','유튜브 알고리즘 변화','뉴스 미디어의 미래','디지털 플랫폼 규제'],
+      '14F 일사에프': ['AI 스타트업 투자 트렌드','스타트업 생태계 보고','글로벌 벤처캐피탈 동향'],
+      '한경 글로벌마켓': ['글로벌 금리 전망','환율 시장 분석','원자재 가격 상승'],
+      'CNBC': ['S&P500 기술적 분석','금리-주식 관계 재조명','GDP 성장률 쇼크'],
+      '크랩 KLAB': ['LLM 성능 비교 분석','Python 파이프라인 자동화','AI 개발 환경 세팅'],
+      '머니코믹스': ['배당 성장주 찾는 법','연금 저축 최적화','복리의 마법'],
+      'WSJ': ['글로벌 관세 전쟁','금리와 지정학적 리스크'],
+      '지식한입': ['습관 형성의 뇌과학','생산성 향상 기술'],
+      'ITSUB잇섭': ['아이폰vs갤럭시 2025','스마트폰 트렌드 분석'],
+    };
+    let id=1;
+    Object.entries(chTitles).forEach(([ch, ts]) => {
+      ts.forEach(t => {
+        const d=ytChannels[ch]; const cats=Object.keys(d.cats); const cat=cats[Math.floor(Math.random()*cats.length)];
+        ytVideos.push({id:id++,title:t,channel:ch,category:cat,keywords:[],date:'2025-'+String(3+Math.floor(Math.random()*7)).padStart(2,'0')+'-'+String(1+Math.floor(Math.random()*28)).padStart(2,'0')});
+      });
+    });
+  })();
+
+  function showYtKeywordVideos(kw) {
+    const items = ytVideos.filter(v => v.title.includes(kw) || v.channel===Object.keys(ytChannels).find(ch=>ytChannels[ch].kw.includes(kw)));
+    if (items.length === 0) return;
+    const el = document.getElementById('yt-detail-content');
+    document.getElementById('yt-detail-empty').style.display='none'; el.style.display='block';
+    el.innerHTML = `<div class="vlist-header"><span class="back" onclick="hideYtDetail()">←</span><span class="title">🔥 "${kw}" 관련 영상</span><span class="count">${items.length}</span></div>
+      ${items.map(v => `<div class="vitem" onclick="showYtVideoDetail(${v.id})"><div class="vitem-thumb">🎬</div><div class="vitem-info"><div class="vitem-title">${v.title}</div><div class="vitem-meta"><span>${v.channel}</span><span class="sep">·</span><span>${v.date}</span></div></div></div>`).join('')}`;
+  }
+  function showYtChannelVideos(ch) {
+    const items = ytVideos.filter(v => v.channel===ch);
+    const el = document.getElementById('yt-detail-content');
+    document.getElementById('yt-detail-empty').style.display='none'; el.style.display='block';
+    el.innerHTML = `<div class="vlist-header"><span class="back" onclick="hideYtDetail()">←</span><span class="title">📺 ${ch}</span><span class="count">${items.length}</span></div>
+      ${items.map(v => `<div class="vitem" onclick="showYtVideoDetail(${v.id})"><div class="vitem-thumb">🎬</div><div class="vitem-info"><div class="vitem-title">${v.title}</div><div class="vitem-meta"><span>${v.category}</span><span class="sep">·</span><span>${v.date}</span></div></div></div>`).join('')}`;
+  }
+  function showYtVideoDetail(id) {
+    const v = ytVideos.find(x=>x.id===id); if(!v) return;
+    const el = document.getElementById('yt-detail-content');
+    el.innerHTML = `<div class="vdetail" style="padding:14px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;font-size:10px;font-weight:700;color:var(--accent);" onclick="showYtChannelVideos('${v.channel}')">← ${v.channel} 목록</div>
+      <div style="width:100%;height:90px;background:var(--bg);border:var(--border);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:8px;">🎬</div>
+      <div style="font-size:13px;font-weight:800;margin-bottom:2px;line-height:1.3;">${v.title}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">${v.channel} · ${v.date}</div>
+      <div style="display:flex;gap:4px;margin-bottom:8px;"><span class="hot-tag" style="font-size:8px;padding:2px 6px;background:${ytCatColors[v.category]||'#888'};color:white;border-color:transparent;">${v.category}</span></div>
+      <div style="height:1px;background:#e2e2e8;margin:8px 0;"></div>
+      <div style="font-size:10px;color:var(--text-dim);font-weight:500;line-height:1.6;">이 영상에서는 <strong>${v.title}</strong>에 대해 ${v.channel}의 인사이트를 중심으로 ${v.category} 관점에서 분석합니다. 최근 업계 동향과 향후 전망에 대한 심층 인사이트를 제공합니다.</div>
+    </div>`;
+  }
+  function showYtCatVideos(cat) {
+    const items = ytVideos.filter(v => v.category === cat);
+    const el = document.getElementById('yt-detail-content');
+    document.getElementById('yt-detail-empty').style.display='none'; el.style.display='block';
+    el.innerHTML = `<div class="vlist-header"><span class="back" onclick="hideYtDetail()">←</span><span class="title">🏷️ ${cat} 영상</span><span class="count">${items.length}</span></div>
+      ${items.map(v => `<div class="vitem" onclick="showYtVideoDetail(${v.id})"><div class="vitem-thumb">🎬</div><div class="vitem-info"><div class="vitem-title">${v.title}</div><div class="vitem-meta"><span>${v.channel}</span><span class="sep">·</span><span>${v.date}</span></div></div></div>`).join('')}`;
+  }
+  function hideYtDetail() {
+    document.getElementById('yt-detail-empty').style.display='flex';
+    document.getElementById('yt-detail-content').style.display='none';
+    document.getElementById('yt-detail-content').innerHTML='';
+  }
+
+  // ── GitHub Renderers ──
+  function renderGhRepos() {
+    const el = document.getElementById('gh-trending-repos');
+    el.innerHTML = ghRepos.map(r =>
+      `<div class="repo-card" onclick="showGhRepoDetail('${r.name}')">
+        <div class="repo-card-name">${r.name}</div>
+        <div class="repo-card-desc">${r.desc}</div>
+        <div class="repo-card-meta">
+          <span style="display:flex;align-items:center;gap:3px;"><span class="gh-lang-dot" style="background:${ghLangColors[r.lang]||'#888'}"></span>${r.lang}</span>
+          <span>★ ${r.stars}</span>
+        </div>
+      </div>`
+    ).join('');
+  }
+
+  function renderGhLangBars() {
+    const el = document.getElementById('gh-lang-bars');
+    const counts = {};
+    ghRepos.forEach(r => { counts[r.lang]=(counts[r.lang]||0)+1; });
+    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    const max = sorted[0][1];
+    el.innerHTML = sorted.map(([lang, count]) =>
+      `<div class="bar-row"><span class="bar-label">${lang}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(count/max)*100}%;background:${ghLangColors[lang]||'#888'};">${count>1?count:''}</div></div>
+        <span class="bar-count">${count}</span>
+      </div>`
+    ).join('');
+  }
+
+  function renderGhStarBars() {
+    const el = document.getElementById('gh-star-bars');
+    const sorted = [...ghRepos].sort((a,b) => parseFloat(b.stars) - parseFloat(a.stars)).slice(0,6);
+    const max = parseFloat(sorted[0].stars);
+    const colors = ['#b45309','#d97706','#f59f0b','#fbbf24','#fcd34d','#fde68a'];
+    el.innerHTML = sorted.map((r, i) =>
+      `<div class="bar-row" onclick="showGhRepoDetail('${r.name}')">
+        <span class="bar-label">${r.name.split('/')[1]}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(parseFloat(r.stars)/max)*100}%;background:${colors[i]};">${r.stars}</div></div>
+      </div>`
+    ).join('');
+  }
+
+  function renderGhTopics() {
+    const el = document.getElementById('gh-topics');
+    const sorted = Object.entries(ghTopicCounts).sort((a,b)=>b[1]-a[1]);
+    el.innerHTML = sorted.map(([t,c]) =>
+      `<span class="hot-tag" onclick="showGhTopicRepos('${t}')">${t} <span class="count">${c}</span></span>`
+    ).join('');
+  }
+
+  function renderGhSim() {
+    const el = document.getElementById('gh-repo-sim');
+    const simPairs = [];
+    for(let i=0;i<ghRepos.length;i++) for(let j=i+1;j<ghRepos.length;j++) {
+      const inter = ghRepos[i].topics.filter(t => ghRepos[j].topics.includes(t)).length;
+      if (inter > 0) simPairs.push({ a: ghRepos[i], b: ghRepos[j], score: inter });
+    }
+    simPairs.sort((a,b)=>b.score-a.score);
+    el.innerHTML = simPairs.slice(0,6).map(({a,b,score}) =>
+      `<div style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid #e8e8ec;">
+        <div style="flex:1;font-size:10px;font-weight:700;">${a.name.split('/')[1]} <span style="color:var(--accent);">↔</span> ${b.name.split('/')[1]}</div>
+        <div style="width:40px;height:10px;border:1px solid #121212;overflow:hidden;"><div style="height:100%;background:var(--accent);width:${score*25}%"></div></div>
+      </div>`
+    ).join('');
+  }
+
+  function renderGhFav() {
+    // Language bars
+    const langEl = document.getElementById('gh-fav-lang');
+    const ghFavLang = { 'Python': 5, 'TypeScript': 4, 'Rust': 3, 'Go': 2 };
+    const maxLang = Math.max(...Object.values(ghFavLang));
+    langEl.innerHTML = Object.entries(ghFavLang).map(([l, n]) =>
+      `<div class="bar-row" style="cursor:default;"><span class="bar-label" style="width:65px;">${l}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(n/maxLang)*100}%;background:${ghLangColors[l]||'#888'};">${n>2?n:''}</div></div>
+        <span class="bar-count">${n}</span></div>`
+    ).join('');
+
+    // Top repos
+    const rEl = document.getElementById('gh-fav-repos');
+    const ghFavRepos = ghRepos.slice(0,5);
+    rEl.innerHTML = ghFavRepos.map(r =>
+      `<div class="bar-row" onclick="showGhRepoDetail('${r.name}')"><span class="bar-label" style="width:80px;font-size:9px;">${r.name.split('/')[1]}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(parseFloat(r.stars)/12)*100}%;background:#b45309;">★</div></div>
+        <span class="bar-count" style="font-size:8px;">${r.stars}</span></div>`
+    ).join('');
+
+    // Fav topics
+    const tEl = document.getElementById('gh-fav-topics');
+    const ghFavTopics = { 'AI': 6, 'LLM': 4, 'Rust': 3, '에이전트': 3, 'Python': 2, '타입스크립트': 2 };
+    tEl.innerHTML = Object.entries(ghFavTopics).map(([t, c]) =>
+      `<span class="hot-tag" style="font-size:8px;padding:3px 7px;" onclick="showGhTopicRepos('${t}')">${t} <span class="count">${c}</span></span>`
+    ).join('');
+
+    // Recent trend
+    const trEl = document.getElementById('gh-fav-trend');
+    const trendItems = [
+      { name: 'claude-code', stars: '6.5K', date: '오늘' },
+      { name: 'DeepSeek-V4', stars: '12.3K', date: '1일 전' },
+      { name: 'openai-agents', stars: '4.8K', date: '2일 전' },
+    ];
+    trEl.innerHTML = trendItems.map(t =>
+      `<div style="display:flex;align-items:center;gap:4px;padding:2px 0;">
+        <span style="font-weight:800;">${t.date}</span>
+        <span style="color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="showGhRepoDetail('${t.name}')">${t.name}</span>
+        <span style="margin-left:auto;color:#b45309;">★${t.stars}</span>
+      </div>`
+    ).join('');
+  }
+
+  // ── GitHub Graph ──
+  function renderGhGraph() {
+    const canvas = document.getElementById('gh-graph-canvas');
+    const wrap = document.getElementById('gh-graph-wrap');
+    if (!canvas || !wrap || wrap.clientWidth === 0) return;
+    canvas.width = wrap.clientWidth * 2; canvas.height = 420 * 2;
+    canvas.style.width = wrap.clientWidth+'px'; canvas.style.height = '420px';
+    const ctx = canvas.getContext('2d'); ctx.scale(2,2);
+    const W = wrap.clientWidth, H = 420;
+
+    const nodes = ghRepos.map((r, i) => ({
+      id: r.name.split('/')[1], group: r.lang, r: 5 + (parseFloat(r.stars)/2000),
+      x: W*(0.15+Math.random()*0.7), y: H*(0.1+Math.random()*0.8), vx:0, vy:0, repo: r
+    }));
+    const nodeMap = {}; nodes.forEach(n => nodeMap[n.id] = n);
+    const links = [];
+    for(let i=0;i<ghRepos.length;i++) for(let j=i+1;j<ghRepos.length;j++) {
+      const inter = ghRepos[i].topics.filter(t => ghRepos[j].topics.includes(t)).length;
+      if (inter > 0) links.push({ s: nodeMap[ghRepos[i].name.split('/')[1]], t: nodeMap[ghRepos[j].name.split('/')[1]], v: inter * 2 });
+    }
+
+    let dragNode=null, offX=0, offY=0, panX=0, panY=0, isPan=false, lmx=0, lmy=0, scale=1.0;
+    function m2w(e) { const r=canvas.getBoundingClientRect(); return {x:((e.clientX-r.left)*(W/r.width)-panX)/scale, y:((e.clientY-r.top)*(H/r.height)-panY)/scale}; }
+    canvas.onwheel = e => {
+      e.preventDefault();
+      const r=canvas.getBoundingClientRect();
+      const mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
+      const f=e.deltaY<0?1.12:0.88, ns=Math.max(0.2,Math.min(5,scale*f));
+      panX=mx-(mx-panX)*(ns/scale);panY=my-(my-panY)*(ns/scale);scale=ns;
+      document.getElementById('gh-graph-hint').textContent=`🔍 ${Math.round(scale*100)}% · 휠 확대축소 · 드래그`;
+    };
+    canvas.onmousedown = e => {
+      const w=m2w(e);let closest=null,md=20;
+      nodes.forEach(n=>{const d=Math.sqrt((w.x-n.x)**2+(w.y-n.y)**2);if(d<md){md=d;closest=n;}});
+      if(closest){dragNode=closest;offX=w.x-closest.x;offY=w.y-closest.y;closest.fx=closest.x;closest.fy=closest.y;return;}
+      isPan=true;lmx=e.clientX;lmy=e.clientY;
+    };
+    canvas.onmousemove = e => {
+      if(dragNode){const w=m2w(e);dragNode.fx=w.x-offX;dragNode.fy=w.y-offY;}
+      if(isPan){panX+=(e.clientX-lmx)*(W/canvas.getBoundingClientRect().width);panY+=(e.clientY-lmy)*(H/canvas.getBoundingClientRect().height);lmx=e.clientX;lmy=e.clientY;}
+    };
+    canvas.onmouseup = () => {if(dragNode){if(Math.abs(dragNode.fx-dragNode.x)<3)showGhRepoDetail(dragNode.repo.name);dragNode.fx=null;dragNode.fy=null;dragNode=null;}isPan=false;};
+    canvas.onmouseleave = () => {if(dragNode){dragNode.fx=null;dragNode.fy=null;dragNode=null;}isPan=false;};
+
+    const sensitivity = 200;
+    function sim() {
+      nodes.forEach(n => {
+        if(n.fx!==undefined){n.x=n.fx;n.y=n.fy;n.vx=0;n.vy=0;return;}
+        let fx=0,fy=0;
+        nodes.forEach(o=>{if(n===o)return;const dx=n.x-o.x,dy=n.y-o.y,d=Math.sqrt(dx*dx+dy*dy)||1;fx+=dx/d*sensitivity/(d*d);fy+=dy/d*sensitivity/(d*d);});
+        links.forEach(l=>{if(l.s===n||l.t===n){const o=l.s===n?l.t:l.s;fx+=(o.x-n.x)*0.006;fy+=(o.y-n.y)*0.006;}});
+        n.vx=(n.vx+fx)*0.85;n.vy=(n.vy+fy)*0.85;n.x+=n.vx;n.y+=n.vy;
+        n.x=Math.max(25,Math.min(W-25,n.x));n.y=Math.max(25,Math.min(H-25,n.y));
+      });
+    }
+    function draw() {
+      ctx.clearRect(0,0,W,H);
+      ctx.save();ctx.translate(panX,panY);ctx.scale(scale,scale);
+      ctx.strokeStyle='rgba(180,180,190,0.3)';
+      links.forEach(l=>{ctx.beginPath();ctx.moveTo(l.s.x,l.s.y);ctx.lineTo(l.t.x,l.t.y);ctx.lineWidth=Math.min(2,l.v*0.5);ctx.stroke();});
+      nodes.forEach(n=>{ctx.font='8px Outfit,sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle='#121212';ctx.fillText(n.id,n.x,n.y-n.r-2);});
+      nodes.forEach(n=>{ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=ghLangColors[n.group]||'#888';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();});
+      ctx.restore();
+      requestAnimationFrame(()=>{sim();draw();});
+    }
+    document.getElementById('gh-graph-legend').innerHTML = [...new Set(nodes.map(n=>n.group))].map(c=>
+      `<span class="legend-item"><span class="legend-dot" style="background:${ghLangColors[c]||'#888'}"></span>${c}</span>`
+    ).join('');
+    draw();
+  }
+
+  // ── GitHub Detail Functions ──
+  function showGhRepoDetail(name) {
+    const r = ghRepos.find(x => x.name === name);
+    if (!r) return;
+    const topics = r.topics.map(t => `<span class="hot-tag" style="font-size:8px;padding:2px 6px;" onclick="showGhTopicRepos('${t}')">${t}</span>`).join('');
+    const el = document.getElementById('gh-detail-content');
+    document.getElementById('gh-detail-empty').style.display='none'; el.style.display='block';
+    el.innerHTML = `<div style="padding:14px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;font-size:10px;font-weight:700;color:var(--accent);" onclick="hideGhDetail()">← 목록으로</div>
+      <div style="width:100%;height:80px;background:var(--bg);border:var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;">📦</div>
+      <div style="font-size:13px;font-weight:800;margin:8px 0 2px;">${r.name}</div>
+      <div style="font-size:10px;color:var(--text-dim);font-weight:500;margin-bottom:6px;">${r.desc}</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+        <span class="hot-tag" style="font-size:8px;padding:2px 8px;background:${ghLangColors[r.lang]||'#888'};color:white;border-color:transparent;">${r.lang}</span>
+        <span class="hot-tag" style="font-size:8px;padding:2px 8px;">★ ${r.stars}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${topics}</div>
+      <div style="height:1px;background:#e2e2e8;margin:8px 0;"></div>
+      <div style="font-size:10px;color:var(--text-dim);font-weight:500;line-height:1.6;">
+        <strong>분석 인사이트:</strong> ${r.name}은(는) ${r.lang} 기반의 프로젝트로, 현재 ★ ${r.stars}의 높은 관심을 받고 있습니다. 
+        주요 토픽으로 ${r.topics.join(', ')} 등을 다루며, 특히 ${r.topics[0]} 분야에서 혁신적인 접근을 보여줍니다.
+      </div>
+    </div>`;
+  }
+  function showGhTopicRepos(topic) {
+    const items = ghRepos.filter(r => r.topics.includes(topic));
+    const el = document.getElementById('gh-detail-content');
+    document.getElementById('gh-detail-empty').style.display='none'; el.style.display='block';
+    el.innerHTML = `<div class="vlist-header"><span class="back" onclick="hideGhDetail()">←</span><span class="title">🏷️ "${topic}" 저장소</span><span class="count">${items.length}</span></div>
+      ${items.map(r => `<div class="vitem" onclick="showGhRepoDetail('${r.name}')"><div class="vitem-thumb">📦</div><div class="vitem-info"><div class="vitem-title">${r.name}</div><div class="vitem-meta"><span style="display:flex;align-items:center;gap:3px;"><span class="gh-lang-dot" style="background:${ghLangColors[r.lang]||'#888'}"></span>${r.lang}</span><span class="sep">·</span><span>★ ${r.stars}</span></div></div></div>`).join('')}`;
+  }
+  function hideGhDetail() {
+    document.getElementById('gh-detail-empty').style.display='flex';
+    document.getElementById('gh-detail-content').style.display='none';
+    document.getElementById('gh-detail-content').innerHTML='';
+  }
+
+  // ── Init ──
+  renderYtBars();
+  renderYtDonut();
+  renderYtHot();
+  renderYtSim();
+  renderYtFav();
+  renderYtGraph();
+
+  renderGhRepos();
+  renderGhLangBars();
+  renderGhStarBars();
+  renderGhTopics();
+  renderGhSim();
+  renderGhFav();
+  renderGhGraph();
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('section-youtube').classList.contains('active')) renderYtGraph();
+    else renderGhGraph();
+  });
+</script>
+</body>
+</html>

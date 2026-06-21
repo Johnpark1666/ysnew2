@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>커넥트 — 디자인 검수</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #f6f6f8;
+      --bg-card: #ffffff;
+      --bg-hover: #f1f1f4;
+      --text: #121212;
+      --text-dim: #767676;
+      --accent: #4f46e5;
+      --accent-hover: #3b31c4;
+      --border: 2px solid #121212;
+      --shadow: 4px 4px 0px #121212;
+      --shadow-sm: 2px 2px 0px #121212;
+      --transition: 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+
+    body {
+      font-family: 'Outfit', 'Noto Sans KR', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* Brutalist Header */
+    .header {
+      background: var(--bg-card);
+      border-bottom: var(--border);
+      padding: 16px 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .header-icon {
+      width: 36px; height: 36px;
+      border: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent); color: white;
+      font-size: 18px;
+    }
+    .header h1 { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .header h1 span { color: var(--accent); }
+    .header .sub { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-left: auto; letter-spacing: 0.03em; }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+      padding: 20px 24px;
+      max-width: 1400px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: var(--border);
+      overflow: hidden;
+    }
+    .card-h {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px;
+      border-bottom: var(--border);
+      background: var(--bg);
+      font-size: 12px; font-weight: 800; letter-spacing: 0.05em;
+    }
+    .card-h .icon { font-size: 16px; }
+    .card-b { padding: 14px 16px; }
+    .card-b.slim { padding: 0; }
+
+    /* Summary Stats Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    .stat-item {
+      padding: 16px;
+      text-align: center;
+      border-right: var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-family: 'Outfit', monospace;
+      font-size: 28px; font-weight: 900;
+      line-height: 1; letter-spacing: -0.05em;
+    }
+    .stat-num.accent { color: var(--accent); }
+    .stat-label {
+      font-size: 9px; font-weight: 800; color: var(--text-dim);
+      letter-spacing: 0.12em; margin-top: 6px;
+    }
+
+    /* Network Graph */
+    .graph-wrap {
+      position: relative; width: 100%; height: 460px;
+      background: var(--bg);
+      overflow: hidden;
+    }
+    .graph-wrap canvas {
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .graph-hint {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      font-size: 10px; color: var(--text-dim); font-weight: 700;
+      background: var(--bg-card); padding: 4px 12px;
+      border: var(--border);
+      pointer-events: none; white-space: nowrap;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Legend */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 10px 14px;
+      border-top: var(--border);
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700; color: var(--text-dim);
+    }
+    .legend-dot { width: 8px; height: 8px; display: inline-block; border: 1px solid #121212; }
+
+    /* Bar Chart */
+    .bar-list { display: flex; flex-direction: column; gap: 5px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; }
+    .bar-label {
+      width: 100px; font-size: 10px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex-shrink: 0; letter-spacing: 0.02em;
+    }
+    .bar-track {
+      flex: 1; height: 18px;
+      border: 1px solid #121212;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      display: flex; align-items: center; padding-left: 6px;
+      font-size: 9px; font-weight: 800; color: white;
+      transition: width 0.5s;
+    }
+    .bar-count {
+      font-size: 10px; font-weight: 800; color: var(--text-dim);
+      width: 24px; text-align: right; flex-shrink: 0;
+    }
+
+    /* Donut */
+    .donut-wrap { display: flex; align-items: center; gap: 14px; }
+    .donut-canvas { flex-shrink: 0; }
+    .cat-legend { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .cat-row {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700;
+    }
+    .cat-dot { width: 8px; height: 8px; flex-shrink: 0; border: 1px solid #121212; }
+    .cat-name { flex: 1; }
+    .cat-pct { color: var(--text-dim); font-size: 9px; }
+
+    /* Matrix */
+    .matrix-wrap { overflow-x: auto; }
+    .matrix { display: flex; flex-direction: column; gap: 2px; font-size: 10px; min-width: 600px; }
+    .matrix-row { display: flex; align-items: center; gap: 4px; }
+    .matrix-ch {
+      width: 110px; font-weight: 700; font-size: 10px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex-shrink: 0; padding: 4px 0;
+    }
+    .matrix-dots { display: flex; gap: 2px; flex: 1; }
+    .matrix-dot {
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; color: white;
+      flex-shrink: 0;
+    }
+    .matrix-dot.empty { background: var(--bg) !important; color: transparent; border: 1px solid #e2e2e8; }
+    .matrix-header .matrix-dot {
+      font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
+      border: 1px solid #121212; border-radius: 0;
+    }
+
+    /* Hot Keywords */
+    .hot-grid {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 12px 0;
+    }
+    .hot-tag {
+      border: var(--border);
+      padding: 6px 12px;
+      font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; gap: 6px;
+      transition: var(--transition);
+      cursor: default;
+    }
+    .hot-tag:hover {
+      box-shadow: var(--shadow-sm);
+      transform: translate(-2px, -2px);
+    }
+    .hot-tag .count {
+      background: var(--accent);
+      color: white;
+      font-size: 9px;
+      padding: 0 5px;
+      border: 1px solid #121212;
+      min-width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Channel Network mini */
+    .ch-grid {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .ch-sim-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #e2e2e8;
+    }
+    .ch-sim-row:last-child { border-bottom: none; }
+    .ch-sim-pair { flex: 1; font-size: 11px; font-weight: 700; }
+    .ch-sim-pair .sim { color: var(--accent); }
+    .ch-sim-bar {
+      width: 60px; height: 12px;
+      border: 1px solid #121212;
+      overflow: hidden;
+    }
+    .ch-sim-fill { height: 100%; background: var(--accent); }
+
+    .full-width { grid-column: 1 / -1; }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .full-width { grid-column: 1; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .stat-item:nth-child(2) { border-right: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon"><i class="ph ph-graph"></i></div>
+  <h1>커넥트<span> — 연결 인사이트</span></h1>
+  <div class="sub">채널 · 키워드 · 카테고리 연결망 분석</div>
+</div>
+
+<!-- Stats Summary -->
+<div class="grid" style="padding-bottom:0;">
+  <div class="card full-width" style="border-bottom:none;">
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-num accent">11</div><div class="stat-label">CHANNELS</div></div>
+      <div class="stat-item"><div class="stat-num">46</div><div class="stat-label">KEYWORDS</div></div>
+      <div class="stat-item"><div class="stat-num">8</div><div class="stat-label">CATEGORIES</div></div>
+      <div class="stat-item"><div class="stat-num accent">87%</div><div class="stat-label">COVERAGE</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- LEFT: Keyword Network -->
+  <div class="card" style="grid-row: span 2;">
+    <div class="card-h"><span class="icon">🕸️</span> 키워드 연결망</div>
+    <div class="card-b slim">
+      <div class="graph-wrap" id="graph-wrap">
+        <canvas id="graph-canvas"></canvas>
+        <div class="graph-hint">🖱 드래그로 이동 · 노드 끌기 가능</div>
+      </div>
+    </div>
+    <div class="legend" id="graph-legend"></div>
+  </div>
+
+  <!-- RIGHT TOP: Channel Activity -->
+  <div class="card">
+    <div class="card-h"><span class="icon">📊</span> 채널 활동 Top</div>
+    <div class="card-b">
+      <div class="bar-list" id="channel-bars"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT MID: Category Distribution -->
+  <div class="card">
+    <div class="card-h"><span class="icon">🏷️</span> 카테고리 분포</div>
+    <div class="card-b">
+      <div class="donut-wrap">
+        <canvas class="donut-canvas" id="donut-canvas" width="100" height="100"></canvas>
+        <div class="cat-legend" id="cat-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM LEFT: Hot Keywords (trending) -->
+  <div class="card">
+    <div class="card-h"><span class="icon">🔥</span> 핫 키워드 <span style="margin-left:auto;font-size:10px;font-weight:500;color:var(--text-dim);">빈도순 TOP</span></div>
+    <div class="card-b">
+      <div class="hot-grid" id="hot-keywords"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM RIGHT: Channel Similarity -->
+  <div class="card">
+    <div class="card-h"><span class="icon">🔗</span> 채널 유사도</div>
+    <div class="card-b">
+      <div class="ch-grid" id="ch-sim"></div>
+    </div>
+  </div>
+
+  <!-- FULL BOTTOM: Channel-Category Matrix -->
+  <div class="card full-width">
+    <div class="card-h"><span class="icon">📋</span> 채널 × 카테고리 매트릭스</div>
+    <div class="card-b slim">
+      <div class="matrix-wrap">
+        <div class="matrix" id="matrix"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Data ──
+  const channelData = {
+    '매경 월가월부': { count: 9, cats: { '경제/금융': 6, '정치/국제': 3 } },
+    '비디오머그':     { count: 7, cats: { '사회/이슈': 3, '엔터테인먼트': 2, '정치/국제': 2 } },
+    '14F 일사에프':   { count: 5, cats: { 'AI/테크': 3, '경제/금융': 2 } },
+    '한경 글로벌마켓': { count: 5, cats: { '경제/금융': 4, '정치/국제': 1 } },
+    'CNBC':           { count: 4, cats: { '경제/금융': 3, 'AI/테크': 1 } },
+    '크랩 KLAB':      { count: 4, cats: { 'AI/테크': 2, '자기계발': 1, '사회/이슈': 1 } },
+    '머니코믹스':     { count: 3, cats: { '경제/금융': 2, '창업/사업': 1 } },
+    'WSJ':            { count: 3, cats: { '경제/금융': 2, '정치/국제': 1 } },
+    'PLUS TV':        { count: 2, cats: { '라이프스타일': 1, '엔터테인먼트': 1 } },
+    '지식한입':       { count: 2, cats: { '자기계발': 1, '사회/이슈': 1 } },
+    'ITSUB잇섭':      { count: 2, cats: { 'AI/테크': 2 } },
+  };
+
+  const catColors = {
+    '경제/금융':'#0d7a6a','AI/테크':'#6d28d9','정치/국제':'#b45309','사회/이슈':'#d97706',
+    '자기계발':'#0f766e','창업/사업':'#047857','엔터테인먼트':'#0891b2','라이프스타일':'#a16207',
+  };
+  const barColors = ['#4f46e5','#6d28d9','#0d7a6a','#b45309','#d97706','#0891b2','#047857','#9333ea','#0f766e','#a16207'];
+
+  const keywordSets = {
+    '매경 월가월부': ['금리','연준','파월','빅컷','인플레이션','채권','달러','FOMC'],
+    '비디오머그': ['AI','규제','플랫폼','저작권','뉴스','유튜브','미디어'],
+    '14F 일사에프': ['AI','스타트업','투자','VC','스케일업','IR'],
+    '한경 글로벌마켓': ['금리','환율','유가','무역','관세','원자재'],
+    'CNBC': ['금리','S&P500','나스닥','소비','GDP','고용'],
+    '크랩 KLAB': ['AI','개발','LLM','파이썬','프롬프트','API'],
+    '머니코믹스': ['주식','ETF','배당','연금','퇴직','복리'],
+    'WSJ': ['금리','정치','관세','반도체','공급망'],
+    'PLUS TV': ['여행','맛집','일상','카메라','에세이'],
+    '지식한입': ['심리학','습관','뇌과학','생산성','집중'],
+    'ITSUB잇섭': ['갤럭시','아이폰','스마트폰','가젯','리뷰','폴더블'],
+  };
+
+  // ── 1. Channel Bars ──
+  function renderBars() {
+    const el = document.getElementById('channel-bars');
+    const sorted = Object.entries(channelData).sort((a,b) => b[1].count - a[1].count).slice(0,8);
+    const max = sorted[0][1].count;
+    el.innerHTML = sorted.map(([name, d], i) =>
+      `<div class="bar-row">
+        <span class="bar-label" title="${name}">${name}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${(d.count/max)*100}%;background:${barColors[i]};${d.count>2?'':'padding:0;display:flex;align-items:center;justify-content:center;color:transparent;'}">${d.count > 2 ? d.count : ''}</div>
+        </div>
+        <span class="bar-count">${d.count}</span>
+      </div>`
+    ).join('');
+  }
+
+  // ── 2. Donut ──
+  function renderDonut() {
+    const canvas = document.getElementById('donut-canvas');
+    const ctx = canvas.getContext('2d');
+    const W = 100, H = 100, cx = 50, cy = 50, R = 42, inner = 26;
+    const catTotals = {};
+    Object.values(channelData).forEach(d => Object.entries(d.cats).forEach(([c,n]) => { catTotals[c]=(catTotals[c]||0)+n; }));
+    const total = Object.values(catTotals).reduce((a,b)=>a+b,0);
+    const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+
+    document.getElementById('cat-legend').innerHTML = sorted.map(([c,n]) =>
+      `<div class="cat-row"><span class="cat-dot" style="background:${catColors[c]||'#888'}"></span><span class="cat-name">${c}</span><span class="cat-pct">${Math.round(n/total*100)}%</span></div>`
+    ).join('');
+
+    let start = -Math.PI/2;
+    ctx.clearRect(0,0,W,H);
+    sorted.forEach(([c,n]) => {
+      const a = (n/total)*Math.PI*2;
+      ctx.beginPath(); ctx.arc(cx,cy,R,start,start+a); ctx.arc(cx,cy,inner,start+a,start,true); ctx.closePath();
+      ctx.fillStyle = catColors[c]||'#888'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      start += a;
+    });
+    ctx.fillStyle = '#121212'; ctx.font = 'bold 16px Outfit, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(total, cx, cy);
+  }
+
+  // ── 3. Force Graph ──
+  function renderGraph() {
+    const canvas = document.getElementById('graph-canvas');
+    const wrap = document.getElementById('graph-wrap');
+    canvas.width = wrap.clientWidth * 2; canvas.height = 460 * 2;
+    canvas.style.width = wrap.clientWidth+'px'; canvas.style.height = '460px';
+    const ctx = canvas.getContext('2d'); ctx.scale(2,2);
+    const W = wrap.clientWidth, H = 460;
+
+    const allKeys = [...new Set(Object.values(keywordSets).flat())];
+    const kwCount = {};
+    Object.values(keywordSets).forEach(k => k.forEach(w => { kwCount[w]=(kwCount[w]||0)+1; }));
+    const kwCat = {};
+    Object.entries(keywordSets).forEach(([ch,ks])=>{
+      const mc = Object.keys(channelData[ch]?.cats||{})[0]||'기타';
+      ks.forEach(k=>{if(!kwCat[k])kwCat[k]=mc;});
+    });
+
+    const linkMap = {};
+    Object.values(keywordSets).forEach(ks => {
+      for(let i=0;i<ks.length;i++) for(let j=i+1;j<ks.length;j++) {
+        const k=[ks[i],ks[j]].sort().join('__'); linkMap[k]=(linkMap[k]||0)+1;
+      }
+    });
+
+    const nodes = allKeys.map(k => ({id:k,group:kwCat[k]||'기타',r:5+(kwCount[k]||1)*3,x:W*(0.15+Math.random()*0.7),y:H*(0.1+Math.random()*0.8),vx:0,vy:0}));
+    const nodeMap = {}; nodes.forEach(n=>nodeMap[n.id]=n);
+    const links = Object.entries(linkMap).filter(([_,v])=>v>=1).map(([k,v])=>{const[s,t]=k.split('__');return{s:nodeMap[s],t:nodeMap[t],v};});
+
+    let dragNode=null, offX=0, offY=0, panX=0, panY=0, isPan=false, lmx=0, lmy=0;
+
+    canvas.onmousedown = e => {
+      const r = canvas.getBoundingClientRect();
+      const mx = (e.clientX-r.left)*(W/r.width)-panX, my = (e.clientY-r.top)*(H/r.height)-panY;
+      let closest=null, md=20;
+      nodes.forEach(n=>{const d=Math.sqrt((mx-n.x)**2+(my-n.y)**2);if(d<md){md=d;closest=n;}});
+      if(closest){dragNode=closest;offX=mx-closest.x;offY=my-closest.y;closest.fx=closest.x;closest.fy=closest.y;return;}
+      isPan=true;lmx=e.clientX;lmy=e.clientY;
+    };
+    canvas.onmousemove = e => {
+      if(dragNode){const r=canvas.getBoundingClientRect();const mx=(e.clientX-r.left)*(W/r.width)-panX,my=(e.clientY-r.top)*(H/r.height)-panY;dragNode.fx=mx-offX;dragNode.fy=my-offY;}
+      if(isPan){panX+=(e.clientX-lmx)*(W/canvas.getBoundingClientRect().width);panY+=(e.clientY-lmy)*(H/canvas.getBoundingClientRect().height);lmx=e.clientX;lmy=e.clientY;}
+    };
+    canvas.onmouseup = () => {if(dragNode){dragNode.fx=null;dragNode.fy=null;dragNode=null;}isPan=false;};
+    canvas.onmouseleave = () => {if(dragNode){dragNode.fx=null;dragNode.fy=null;dragNode=null;}isPan=false;};
+
+    function sim() {
+      nodes.forEach(n => {
+        if(n.fx!==undefined){n.x=n.fx;n.y=n.fy;n.vx=0;n.vy=0;return;}
+        let fx=0,fy=0;
+        nodes.forEach(o=>{if(n===o)return;const dx=n.x-o.x,dy=n.y-o.y,d=Math.sqrt(dx*dx+dy*dy)||1;fx+=dx/d*600/(d*d);fy+=dy/d*600/(d*d);});
+        links.forEach(l=>{if(l.s===n||l.t===n){const o=l.s===n?l.t:l.s;fx+=(o.x-n.x)*0.005;fy+=(o.y-n.y)*0.005;}});
+        n.vx=(n.vx+fx)*0.8;n.vy=(n.vy+fy)*0.8;
+        n.x+=n.vx;n.y+=n.vy;
+        n.x=Math.max(30,Math.min(W-30,n.x));n.y=Math.max(30,Math.min(H-30,n.y));
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,W,H);
+      ctx.save(); ctx.translate(panX,panY);
+      ctx.strokeStyle='rgba(180,180,190,0.35)';
+      links.forEach(l=>{ctx.beginPath();ctx.moveTo(l.s.x,l.s.y);ctx.lineTo(l.t.x,l.t.y);ctx.lineWidth=Math.min(2.5,l.v*0.6);ctx.stroke();});
+      ctx.textAlign='center';ctx.textBaseline='bottom';
+      nodes.forEach(n=>{ctx.font=`${Math.max(8,n.r*0.55)}px Outfit,sans-serif`;ctx.fillStyle='#121212';ctx.fillText(n.id,n.x,n.y-n.r-3);});
+      nodes.forEach(n=>{ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=catColors[n.group]||'#888';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();});
+      ctx.restore();
+      requestAnimationFrame(()=>{sim();draw();});
+    }
+
+    document.getElementById('graph-legend').innerHTML = [...new Set(nodes.map(n=>n.group))].map(c=>
+      `<span class="legend-item"><span class="legend-dot" style="background:${catColors[c]||'#888'}"></span>${c}</span>`
+    ).join('');
+    draw();
+  }
+
+  // ── 4. Hot Keywords ──
+  function renderHot() {
+    const el = document.getElementById('hot-keywords');
+    const sorted = Object.entries(keywordSets).flatMap(([_,ks])=>ks)
+      .reduce((a,k)=>{a[k]=(a[k]||0)+1;return a;},{});
+    const top = Object.entries(sorted).sort((a,b)=>b[1]-a[1]).slice(0,12);
+    el.innerHTML = top.map(([k,c]) =>
+      `<span class="hot-tag">${k} <span class="count">${c}</span></span>`
+    ).join('');
+  }
+
+  // ── 5. Channel Similarity ──
+  function renderSim() {
+    const el = document.getElementById('ch-sim');
+    const chs = Object.keys(channelData);
+    const sims = [];
+    for(let i=0;i<chs.length;i++) for(let j=i+1;j<chs.length;j++) {
+      const a = keywordSets[chs[i]]||[], b = keywordSets[chs[j]]||[];
+      const inter = a.filter(k=>b.includes(k)).length;
+      const union = new Set([...a,...b]).size;
+      const score = union ? inter/union : 0;
+      if(score > 0.15) sims.push({a:chs[i],b:chs[j],score});
+    }
+    sims.sort((a,b)=>b.score-a.score);
+    el.innerHTML = sims.slice(0,5).map(s =>
+      `<div class="ch-sim-row">
+        <div class="ch-sim-pair">${s.a}<br><span class="sim">${s.b}</span></div>
+        <div class="ch-sim-bar"><div class="ch-sim-fill" style="width:${s.score*100}%"></div></div>
+      </div>`
+    ).join('');
+  }
+
+  // ── 6. Matrix ──
+  function renderMatrix() {
+    const el = document.getElementById('matrix');
+    const allCats = [...new Set(Object.values(channelData).flatMap(d=>Object.keys(d.cats)))];
+    const chs = Object.keys(channelData);
+    el.innerHTML = `
+      <div class="matrix-row matrix-header" style="margin-bottom:2px;">
+        <span class="matrix-ch" style="font-size:9px;">채널</span>
+        <div class="matrix-dots">${allCats.map(c=>`<span class="matrix-dot" style="background:${catColors[c]||'#888'};width:auto;padding:0 6px;">${c.slice(0,2)}</span>`).join('')}</div>
+      </div>
+      ${chs.map(ch=>`<div class="matrix-row"><span class="matrix-ch" title="${ch}">${ch}</span><div class="matrix-dots">${allCats.map(c=>channelData[ch].cats[c]?`<span class="matrix-dot" style="background:${catColors[c]||'#888'}">${channelData[ch].cats[c]}</span>`:`<span class="matrix-dot empty">·</span>`).join('')}</div></div>`).join('')}
+    `;
+  }
+
+  window.addEventListener('DOMContentLoaded', ()=>{
+    renderBars(); renderDonut(); renderGraph();
+    renderHot(); renderSim(); renderMatrix();
+  });
+</script>
+</body>
+</html>
