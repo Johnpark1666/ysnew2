@@ -605,17 +605,43 @@ export function renderConnect(container, { allData, githubData }) {
     if (!v) return;
     const dc = document.getElementById('cn-yt-detail-content');
     if (!dc) return;
-    dc.innerHTML = `<div style="padding:14px;">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;font-size:10px;font-weight:700;color:var(--accent);" onclick="cnShowChVids('${(v.ChannelName||'').replace(/'/g, "\\'")}')">← ${v.ChannelName||''} 목록</div>
-      <div style="width:100%;height:90px;background:var(--bg);border:var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;">${v.Image_URL ? `<img src="${v.Image_URL}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentNode.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;\\'>🎬</div>'">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;">🎬</div>'}</div>
-      <div style="font-size:13px;font-weight:800;margin-bottom:2px;line-height:1.3;">${v.Title||''}</div>
-      <div style="font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">${v.ChannelName||''} · ${v.PublishDate||''}</div>
-      <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
-        ${v.Category ? `<span class="hot-tag" style="font-size:8px;padding:2px 6px;background:${CAT_COLORS[v.Category]||'#888'};color:white;border-color:transparent;">${v.Category}</span>` : ''}
+    const imgHtml = v.Image_URL
+      ? `<img src="${v.Image_URL}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${v.VideoURL||'#'}','_blank')" onerror="this.outerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--bg);border:1px solid var(--border);border-radius:10px;\'>🎬</div>'">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--bg);border:1px solid var(--border);border-radius:10px;">🎬</div>`;
+    const isFav = isTrue(v.Favorite);
+    const isRead = isTrue(v.Read);
+    dc.innerHTML = `<div style="padding:16px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;cursor:pointer;font-size:11px;font-weight:700;color:var(--accent);" onclick="cnShowChVids('${(v.ChannelName||'').replace(/'/g,"\\'")}')">← ${v.ChannelName||''} 목록</div>
+      <div style="width:100%;height:140px;margin-bottom:14px;">${imgHtml}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        <a href="${v.VideoURL||'#'}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:#ff0000;color:white;text-decoration:none;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;">▶ YouTube</a>
+        <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:${isRead?'#059669':'white'};color:${isRead?'white':'var(--text-primary)'};border:2px solid ${isRead?'#059669':'var(--border)'};padding:8px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="cnMarkReadFromConnect('${v.ID}')">✓ ${isRead?'읽음':'읽음 처리'}</button>
+        <button style="width:40px;display:flex;align-items:center;justify-content:center;background:${isFav?'rgba(251,191,36,0.2)':'white'};border:2px solid ${isFav?'#d97706':'var(--border)'};border-radius:8px;font-size:16px;cursor:pointer;" onclick="cnFavFromConnect('${v.ID}')">${isFav?'★':'☆'}</button>
       </div>
-      <div style="height:1px;background:#e2e2e8;margin:8px 0;"></div>
-      <div style="font-size:10px;color:var(--text-dim);font-weight:500;line-height:1.6;">${v.Summary ? (v.Summary.length > 200 ? v.Summary.slice(0,200)+'...' : v.Summary) : '요약 없음'}</div>
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px;line-height:1.4;">${v.Title||''}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">${v.ChannelName||''} · ${(v.PublishDate||'').substring(0,10)}</div>
+      ${v.Category ? `<div style="display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;"><span class="hot-tag" style="font-size:9px;padding:3px 8px;background:${CAT_COLORS[v.Category]||'#888'};color:white;border-color:transparent;">${v.Category}</span></div>` : ''}
+      <div style="height:1px;background:var(--border);margin:12px 0;"></div>
+      <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(99,102,241,0.2);color:#4f46e5;">📄</span>요약 (Summary)</div><div class="cn-dsec-b">${v.Summary||'내용 없음'}</div></div>
+      <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(34,211,238,0.2);color:#0891b2;">📊</span>분석 (Analysis)</div><div class="cn-dsec-b">${v.Analysis||'내용 없음'}</div></div>
+      <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(52,211,153,0.2);color:#059669;">💡</span>인사이트 (Insights)</div><div class="cn-dsec-b">${v.Insights||'내용 없음'}</div></div>
+      ${v.Implications ? `<div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(217,119,6,0.2);color:#d97706;">🔮</span>시사점 (Implications)</div><div class="cn-dsec-b">${v.Implications}</div></div>` : ''}
     </div>`;
+    // 저장소에 현재 항목 저장 (읽음/즐겨찾기 콜백용)
+    window._cnCurrentVid = v;
+  };
+  };
+  window.cnMarkReadFromConnect = function(id) {
+    const item = allData.find(d => String(d.ID) === String(id));
+    if (item) { item.Read = true; window._cnCurrentVid = item; }
+    const btn = event?.target?.closest?.('button');
+    if (btn) { btn.style.background='#059669'; btn.style.color='white'; btn.style.borderColor='#059669'; btn.innerHTML='✓ 읽음'; }
+  };
+  window.cnFavFromConnect = function(id) {
+    const item = allData.find(d => String(d.ID) === String(id));
+    if (item) { item.Favorite = !isTrue(item.Favorite); window._cnCurrentVid = item; }
+    const btn = event?.target?.closest?.('button');
+    if (btn) { const f = isTrue(item?.Favorite); btn.style.background=f?'rgba(251,191,36,0.2)':'white'; btn.style.borderColor=f?'#d97706':'var(--border)'; btn.innerHTML=f?'★':'☆'; }
   };
   window.cnHideYtDetail = function() {
     const ec = document.getElementById('cn-yt-empty'), dc = document.getElementById('cn-yt-detail-content');
@@ -693,16 +719,22 @@ export function renderConnect(container, { allData, githubData }) {
     if (!item) return;
     const ec = document.getElementById('cn-gh-empty'), dc = document.getElementById('cn-gh-detail-content');
     if (ec) ec.style.display='none'; if (dc) { dc.style.display='block';
-      dc.innerHTML = `<div style="padding:14px;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;font-size:10px;font-weight:700;color:var(--accent);" onclick="cnHideGhDetail()">← 목록으로</div>
-        <div style="width:100%;height:80px;background:var(--bg);border:var(--border);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:24px;">${item.Image_URL ? `<img src="${item.Image_URL}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentNode.innerHTML='📦'">` : '📦'}</div>
-        <div style="font-size:13px;font-weight:800;margin:8px 0 2px;">${item.Title||''}</div>
-        <div style="font-size:10px;color:var(--text-dim);font-weight:500;margin-bottom:6px;">${(item.Summary||'').slice(0,100)}</div>
-        <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">${String(item.Keywords||'').split(',').slice(0,5).map(k=>k.trim()).filter(Boolean).map(k =>
-          `<span class="hot-tag" style="font-size:8px;padding:2px 8px;background:${langColor(k)};color:white;border-color:transparent;">${k}</span>`
-        ).join('')}</div>
-        <div style="height:1px;background:#e2e2e8;margin:8px 0;"></div>
-        <div style="font-size:10px;color:var(--text-dim);font-weight:500;line-height:1.6;">${item.Analysis||'분석 정보가 없습니다.'}</div>
+      const kwHtml = String(item.Keywords||'').split(',').map(k=>k.trim()).filter(Boolean).slice(0,8).map(k =>
+        `<span class="hot-tag" style="font-size:9px;padding:3px 8px;background:${langColor(k)};color:white;border-color:transparent;">${k}</span>`
+      ).join('');
+      const imgHtml = item.Image_URL
+        ? `<img src="${item.Image_URL}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--bg);border-radius:10px;\'>📦</div>'">`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--bg);border-radius:10px;">📦</div>`;
+      dc.innerHTML = `<div style="padding:16px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;cursor:pointer;font-size:11px;font-weight:700;color:var(--accent);" onclick="cnHideGhDetail()">← 목록으로</div>
+        <div style="width:100%;height:100px;margin-bottom:14px;">${imgHtml}</div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:4px;">${item.Title||''}</div>
+        <div style="font-size:11px;color:var(--text-secondary);font-weight:500;margin-bottom:10px;">${(item.Summary||'').substring(0,120)}</div>
+        ${kwHtml ? `<div style="display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;">${kwHtml}</div>` : ''}
+        <div style="height:1px;background:var(--border);margin:12px 0;"></div>
+        <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(99,102,241,0.2);color:#4f46e5;">📄</span>요약 (Summary)</div><div class="cn-dsec-b">${item.Summary||'내용 없음'}</div></div>
+        <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(52,211,153,0.2);color:#059669;">💡</span>인사이트 (Insights)</div><div class="cn-dsec-b">${item.Insights||'내용 없음'}</div></div>
+        <div class="cn-detail-section"><div class="cn-dsec-h"><span class="cn-dsec-i" style="background:rgba(34,211,238,0.2);color:#0891b2;">📊</span>분석 (Analysis)</div><div class="cn-dsec-b">${item.Analysis||'분석 정보가 없습니다.'}</div></div>
       </div>`;
     }
   };
