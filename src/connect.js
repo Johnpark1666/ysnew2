@@ -176,6 +176,11 @@ export function renderConnect(container, { allData, githubData }) {
             </div>
 
             <div class="card">
+              <div class="card-h"><span class="card-h-icon">💛</span> 채널별 즐겨찾기 비율 <span class="badge">인사이트</span></div>
+              <div class="card-b"><div class="bar-list" id="cn-fav-ratio"></div></div>
+            </div>
+
+            <div class="card">
               <div class="card-h"><span class="card-h-icon">★</span> 즐겨찾기 분석 <span class="badge" style="background:#e8590c;">Fav</span></div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
                 <div class="card-b" style="border-right:var(--border);">
@@ -360,6 +365,29 @@ export function renderConnect(container, { allData, githubData }) {
         `<span class="hot-tag" style="font-size:8px;padding:3px 8px;" onclick="cnShowChVids('${ch.replace(/'/g, "\\'")}')">${ch} <span class="count">${c}</span></span>`
       ).join('');
     }
+  }
+
+  // ── 채널별 즐겨찾기 비율 ──
+  function renderChFavRatio() {
+    const el = document.getElementById('cn-fav-ratio');
+    if (!el) return;
+    const ratios = sortedChs.map(([name, d]) => {
+      const total = d.count;
+      const fav = d.favCount || 0;
+      return { name, ratio: total > 0 ? fav / total : 0, fav, total };
+    }).filter(r => r.total >= 2).sort((a, b) => b.ratio - a.ratio);
+    if (ratios.length === 0) { el.innerHTML = '<div style="padding:12px;text-align:center;font-size:10px;color:var(--text-dim);">즐겨찾기 데이터가 충분하지 않습니다</div>'; return; }
+    const maxRatio = Math.max(ratios[0].ratio, 0.01);
+    el.innerHTML = ratios.slice(0, 10).map(r => {
+      const pct = Math.round(r.ratio * 100);
+      const barW = (r.ratio / maxRatio) * 100;
+      const color = r.ratio >= 0.3 ? '#059669' : r.ratio >= 0.15 ? '#d97706' : '#dc2626';
+      return `<div class="bar-row" style="cursor:pointer;" onclick="cnShowChVids('${r.name.replace(/'/g, "\\'")}')">
+        <span class="bar-label" style="width:80px;font-size:10px;">${r.name}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${barW}%;background:${color};font-size:9px;">${pct}%</div></div>
+        <span style="font-size:9px;color:var(--text-dim);font-weight:600;margin-left:6px;flex-shrink:0;">${r.fav}/${r.total}</span>
+      </div>`;
+    }).join('');
   }
 
   // ── 네트워크 그래프 (YouTube) ──
@@ -864,6 +892,7 @@ export function renderConnect(container, { allData, githubData }) {
   renderDonut();
   renderHot();
   renderFav();
+  renderChFavRatio();
   renderYtGraph();
   renderGh();
 
