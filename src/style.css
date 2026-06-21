@@ -784,6 +784,14 @@ body {
   display: block;
 }
 
+.channel-avatar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
 .list-row-title {
   font-size: 18px;
   font-weight: 800;

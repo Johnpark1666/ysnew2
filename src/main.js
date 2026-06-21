@@ -1657,10 +1657,14 @@ function renderChannelList() {
   grid.className = "vertical-list-mode";
 
   const channelMap = {};
+  const channelAvatarMap = {};
   allData.filter(item => !isTrue(item.Read)).forEach(item => {
     const ch = String(item.ChannelName || "알 수 없음").trim();
     if (!channelMap[ch]) channelMap[ch] = { count: 0 };
     channelMap[ch].count++;
+    if (!channelAvatarMap[ch] && item.ChannelAvatar) {
+      channelAvatarMap[ch] = item.ChannelAvatar;
+    }
   });
 
   const channelList = Object.keys(channelMap).sort((a,b) => channelMap[b].count - channelMap[a].count);
@@ -1684,6 +1688,11 @@ function renderChannelList() {
     
     card.innerHTML = `
       <div class="list-row-left">
+        <div class="list-row-icon">
+          ${channelAvatarMap[ch]
+            ? `<img src="${channelAvatarMap[ch]}" alt="${ch}" class="channel-avatar-icon">`
+            : `<span style="font-size:18px;">📺</span>`}
+        </div>
         <div class="list-row-title">${ch}</div>
       </div>
       <div class="list-row-right">
