@@ -711,7 +711,7 @@ function renderNetworkPlaceholder() {
       <div class="empty-icon" style="font-size:48px;color:var(--text-muted);margin-bottom:16px;">
         <i class="ph ph-globe"></i>
       </div>
-      <div class="empty-title" style="font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;">네트워크</div>
+      <div class="empty-title" style="font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;">커넥트</div>
       <div class="empty-description" style="margin-top:8px;font-size:14px;color:var(--text-muted);font-weight:500;">준비 중인 탭입니다</div>
     </div>
   `;
