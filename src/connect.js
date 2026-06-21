@@ -77,6 +77,20 @@ export function renderConnect(container, { allData, githubData }) {
     });
   });
 
+  // ── 실제 통계 계산 (플레이스홀더 제거) ──
+  const ytUnreadPct = ytItems.length > 0
+    ? Math.round(ytItems.filter(i => !isTrue(i.Read)).length / ytItems.length * 100) + '%'
+    : '0%';
+  const ghAnalyzed = ghItems.filter(i => String(i.Summary || '').trim().length > 0).length;
+  const now = new Date();
+  const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+  const ghNewThisWeek = ghItems.filter(i => {
+    const ds = String(i.PublishDate || '').substring(0, 10);
+    if (!ds) return false;
+    const d = new Date(ds);
+    return !isNaN(d) && d >= weekAgo;
+  }).length;
+
   // ── HTML 빌드 ──
   container.innerHTML = `
     <div class="connect-wrap">
@@ -90,7 +104,7 @@ export function renderConnect(container, { allData, githubData }) {
         <div class="connect-stats card">
           <div class="stats-row-4">
             <div class="stat-item"><div class="stat-num accent">${sortedChs.length}</div><div class="stat-label">구독 채널</div></div>
-            <div class="stat-item"><div class="stat-num" style="color:#b45309;">TODO%</div><div class="stat-label">안읽음 비율</div></div>
+            <div class="stat-item"><div class="stat-num" style="color:#b45309;">${ytUnreadPct}</div><div class="stat-label">안읽음 비율</div></div>
             <div class="stat-item"><div class="stat-num" style="color:#e8590c;">${ytItems.filter(i=>isTrue(i.Favorite)).length}</div><div class="stat-label">★ 즐겨찾기</div></div>
             <div class="stat-item"><div class="stat-num accent">${Object.keys(kwCount).length}</div><div class="stat-label">주요 키워드</div></div>
           </div>
@@ -167,9 +181,9 @@ export function renderConnect(container, { allData, githubData }) {
         <div class="connect-stats card">
           <div class="stats-row-4">
             <div class="stat-item"><div class="stat-num accent">${ghItems.length}</div><div class="stat-label">트렌딩 저장소</div></div>
-            <div class="stat-item"><div class="stat-num" style="color:#0d7a6a;">TODO</div><div class="stat-label">분석 완료</div></div>
+            <div class="stat-item"><div class="stat-num" style="color:#0d7a6a;">${ghAnalyzed}</div><div class="stat-label">분석 완료</div></div>
             <div class="stat-item"><div class="stat-num" style="color:#6d28d9;">${Object.keys(ghLangs).length + Object.keys(ghTopics).length}</div><div class="stat-label">주요 토픽</div></div>
-            <div class="stat-item"><div class="stat-num accent">0</div><div class="stat-label">이번주 신규</div></div>
+            <div class="stat-item"><div class="stat-num accent">${ghNewThisWeek}</div><div class="stat-label">이번주 신규</div></div>
           </div>
         </div>
 
