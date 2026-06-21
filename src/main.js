@@ -499,7 +499,9 @@ function renderGrid(append = false, startIndex = 0) {
   }
 
   if (currentTab === 'network') {
-    renderConnect(document.getElementById('card-grid'), { allData, githubData });
+    const grid = document.getElementById('card-grid');
+    grid.className = '';
+    renderConnect(grid, { allData, githubData });
     updateFloatingToolbar();
     return;
   }
