@@ -1139,7 +1139,7 @@ body {
   font-size: 13px;
 }
 
-.section-content strong {
+.section-content strong, .section-content b {
   font-weight: 700;
 }
 
@@ -1147,22 +1147,22 @@ body {
 /* Summary (요약) — Teal */
 #m-summary h3 { background: #0f766e; }
 #m-summary li { border-left-color: #0f766e; }
-#m-summary strong { color: #0f766e; }
+#m-summary strong, #m-summary b { color: #0f766e; }
 
 /* Analysis (분석) — Violet */
 #m-analysis h3 { background: #6d28d9; }
 #m-analysis li { border-left-color: #6d28d9; }
-#m-analysis strong { color: #6d28d9; }
+#m-analysis strong, #m-analysis b { color: #6d28d9; }
 
 /* Insights (인사이트) — Amber */
 #m-insights h3 { background: #b45309; }
 #m-insights li { border-left-color: #b45309; }
-#m-insights strong { color: #b45309; }
+#m-insights strong, #m-insights b { color: #b45309; }
 
 /* Implications (시사점) — Emerald */
 #m-implications h3 { background: #059669; }
 #m-implications li { border-left-color: #059669; }
-#m-implications strong { color: #059669; }
+#m-implications strong, #m-implications b { color: #059669; }
 
 .section-content a {
   color: var(--accent-primary);
