@@ -34,10 +34,13 @@ export function renderConnect(container, { allData, githubData }) {
     const ch = String(item.ChannelName || '알 수 없음').trim();
     const cat = String(item.Category || '기타').trim();
     const kws = String(item.Keywords || '').split(',').map(k => k.trim()).filter(Boolean);
-    if (!chData[ch]) chData[ch] = { count: 0, cats: {}, kw: [] };
+    if (!chData[ch]) chData[ch] = { count: 0, cats: {}, kw: [], avatar: '' };
     chData[ch].count++;
     if (cat) chData[ch].cats[cat] = (chData[ch].cats[cat] || 0) + 1;
     kws.forEach(k => { if (!chData[ch].kw.includes(k)) chData[ch].kw.push(k); });
+    // 실제 채널 아바타 저장 (처음 발견된 유효한 URL 우선)
+    const av = String(item.ChannelAvatar || '').trim();
+    if (av && !chData[ch].avatar) chData[ch].avatar = av;
     // Fav stats
     if (isTrue(item.Favorite)) {
       if (!chData[ch].favCount) chData[ch].favCount = 0;
@@ -242,7 +245,7 @@ export function renderConnect(container, { allData, githubData }) {
     const max = topChs[0]?.[1]?.count || 1;
     el.innerHTML = topChs.map(([name, d], i) =>
       `<div class="bar-row" onclick="cnShowChVids('${name.replace(/'/g, "\\'")}')">
-        <img src="https://ui-avatars.com/api?name=${encodeURIComponent(name)}&background=${hashColor(name).replace('#','')}&color=fff&size=32&bold=true" class="ch-avatar-img" alt="">
+        <img src="${d.avatar ? d.avatar : 'https://ui-avatars.com/api?name='+encodeURIComponent(name)+'&background='+hashColor(name).replace('#','')+'&color=fff&size=32&bold=true'}" class="ch-avatar-img" alt="" onerror="this.src='https://ui-avatars.com/api?name=${encodeURIComponent(name)}&background=${hashColor(name).replace('#','')}&color=fff&size=32&bold=true'">
         <span class="bar-label">${name}</span>
         <div class="bar-track"><div class="bar-fill" style="width:${(d.count/max)*100}%;background:${BAR_COLORS[i%BAR_COLORS.length]};">${d.count > 2 ? d.count : ''}</div></div>
         <span class="bar-count">${d.count}</span>
