@@ -204,7 +204,7 @@ export function renderConnect(container, { allData, githubData }) {
             </div>
 
             <div class="card">
-              <div class="card-h"><span class="card-h-icon">🔥</span> 트렌딩 저장소 <span class="badge">오늘</span></div>
+              <div class="card-h"><span class="card-h-icon">🔥</span> 트렌딩 저장소 <span class="badge">${new Date().toISOString().slice(0,10).replace(/-/g,'.')}</span></div>
               <div class="card-b"><div id="cn-gh-repos"></div></div>
             </div>
 
@@ -617,6 +617,46 @@ export function renderConnect(container, { allData, githubData }) {
         `<div class="bar-row" style="cursor:default;"><span class="bar-label" style="width:70px;">${l}</span>
           <div class="bar-track"><div class="bar-fill" style="width:${(n/max)*100}%;background:${GH_LANG_COLORS[l]||'#888'};">${n}</div></div></div>`
       ).join('');
+    }
+
+    // 별점 TOP (PublishDate 기준 최신순)
+    const sEl = document.getElementById('cn-gh-stars');
+    if (sEl) {
+      const sorted = [...ghItems].sort((a,b) => String(b.PublishDate||'').localeCompare(String(a.PublishDate||'')));
+      sEl.innerHTML = sorted.slice(0,5).map(item =>
+        `<div class="bar-row" style="cursor:pointer;" onclick="cnShowGhDetail(${ghItems.indexOf(item)})">
+          <div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.Title||'알 수 없음'}</div>
+          <div style="font-size:9px;color:var(--text-dim);font-weight:500;">${item.PublishDate||''}</div></div>
+          <span style="font-size:9px;font-weight:700;color:var(--accent);flex-shrink:0;">${String(item.Keywords||'').split(',').length} topics</span>
+        </div>`
+      ).join('');
+    }
+
+    // GitHub 그래프 (언어별 막대 차트)
+    const gCanvas = document.getElementById('cn-gh-graph-canvas');
+    const gWrap = document.getElementById('cn-gh-graph-wrap');
+    const gHint = document.getElementById('cn-gh-graph-hint');
+    if (gCanvas && gWrap && gWrap.clientWidth > 0) {
+      gCanvas.width = gWrap.clientWidth * 2; gCanvas.height = 200 * 2;
+      gCanvas.style.width = gWrap.clientWidth+'px'; gCanvas.style.height = '200px';
+      const gctx = gCanvas.getContext('2d'); gctx.scale(2,2);
+      gctx.clearRect(0,0,gWrap.clientWidth,200);
+      const langSorted = Object.entries(ghLangs).sort((a,b)=>b[1]-a[1]);
+      if (langSorted.length > 0) {
+        const max = langSorted[0][1]; const barW = Math.min(30, (gWrap.clientWidth-40)/Math.max(langSorted.length,1));
+        langSorted.forEach(([l,n], i) => {
+          const x = 20 + i*(barW+4); const h = (n/max)*150; const y = 200 - 20 - h;
+          gctx.fillStyle = GH_LANG_COLORS[l]||'#888';
+          gctx.beginPath(); gctx.roundRect(x,y,Math.max(barW,8),h,4); gctx.fill();
+          gctx.fillStyle = '#475569'; gctx.font = '9px Outfit,sans-serif'; gctx.textAlign='center';
+          gctx.fillText(l.slice(0,6), x+Math.max(barW,8)/2, 200-6);
+          gctx.fillStyle = '#0f172a'; gctx.font = 'bold 10px Outfit,sans-serif';
+          gctx.fillText(n, x+Math.max(barW,8)/2, y-4);
+        });
+        if (gHint) gHint.textContent = '언어별 저장소 수';
+      } else {
+        if (gHint) gHint.textContent = '키워드 데이터가 없습니다';
+      }
     }
   }
 
