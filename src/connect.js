@@ -690,32 +690,145 @@ export function renderConnect(container, { allData, githubData }) {
       ).join('');
     }
 
-    // GitHub 그래프 (언어별 막대 차트)
-    const gCanvas = document.getElementById('cn-gh-graph-canvas');
-    const gWrap = document.getElementById('cn-gh-graph-wrap');
-    const gHint = document.getElementById('cn-gh-graph-hint');
-    if (gCanvas && gWrap && gWrap.clientWidth > 0) {
-      gCanvas.width = gWrap.clientWidth * 2; gCanvas.height = 200 * 2;
-      gCanvas.style.width = gWrap.clientWidth+'px'; gCanvas.style.height = '200px';
-      const gctx = gCanvas.getContext('2d'); gctx.scale(2,2);
-      gctx.clearRect(0,0,gWrap.clientWidth,200);
-      const langSorted = Object.entries(ghLangs).sort((a,b)=>b[1]-a[1]);
-      if (langSorted.length > 0) {
-        const max = langSorted[0][1]; const barW = Math.min(30, (gWrap.clientWidth-40)/Math.max(langSorted.length,1));
-        langSorted.forEach(([l,n], i) => {
-          const x = 20 + i*(barW+4); const h = (n/max)*150; const y = 200 - 20 - h;
-          gctx.fillStyle = GH_LANG_COLORS_NORM[l]||'#888';
-          gctx.beginPath(); gctx.roundRect(x,y,Math.max(barW,8),h,4); gctx.fill();
-          gctx.fillStyle = '#475569'; gctx.font = '9px Outfit,sans-serif'; gctx.textAlign='center';
-          gctx.fillText(l.slice(0,6), x+Math.max(barW,8)/2, 200-6);
-          gctx.fillStyle = '#0f172a'; gctx.font = 'bold 10px Outfit,sans-serif';
-          gctx.fillText(n, x+Math.max(barW,8)/2, y-4);
-        });
-        if (gHint) gHint.textContent = '언어별 저장소 수';
-      } else {
-        if (gHint) gHint.textContent = '키워드 데이터가 없습니다';
-      }
+    // GitHub 네트워크 그래프 (force-directed)
+    const ghGraphCanvas = document.getElementById('cn-gh-graph-canvas');
+    const ghGraphWrap = document.getElementById('cn-gh-graph-wrap');
+    const ghGraphHint = document.getElementById('cn-gh-graph-hint');
+    const ghGraphLegend = document.getElementById('cn-gh-graph-legend');
+    if (!ghGraphCanvas || !ghGraphWrap || ghGraphWrap.clientWidth === 0) return;
+    ghGraphCanvas.width = ghGraphWrap.clientWidth * 2; ghGraphCanvas.height = 380 * 2;
+    ghGraphCanvas.style.width = ghGraphWrap.clientWidth+'px'; ghGraphCanvas.style.height = '380px';
+    const ghctx = ghGraphCanvas.getContext('2d'); ghctx.scale(2,2);
+    const GW = ghGraphWrap.clientWidth, GH = 380;
+    const gcx = GW*0.5, gcy = GH*0.5;
+
+    // Extract repos + their languages and topics
+    const ghRepos = ghItems.slice(0,20).map((item, i) => {
+      const kws = String(item.Keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+      return { id: item.Title||'repo-'+i, item, langs: kws.filter(k => detectLang(k)), topics: kws.filter(k => !detectLang(k)) };
+    });
+    const allGhLangs = [...new Set(ghRepos.flatMap(r => r.langs))];
+    const allGhTopics = [...new Set(ghRepos.flatMap(r => r.topics))].slice(0,30);
+
+    // Nodes: languages (center), repos (mid), topics (outer)
+    const glNodes = allGhLangs.map((l, i) => ({ id: l, type: 'lang', r: 16,
+      x: gcx + Math.cos(i/allGhLangs.length*Math.PI*2)*GW*0.12 + (Math.random()-0.5)*6,
+      y: gcy + Math.sin(i/allGhLangs.length*Math.PI*2)*GW*0.12 + (Math.random()-0.5)*6, vx:0, vy:0 }));
+    const grNodes = ghRepos.map((r, i) => ({ id: r.id, type: 'repo', group: r.langs[0]||'기타', r: 8 + r.langs.length*2,
+      x: gcx + Math.cos(i/ghRepos.length*Math.PI*2)*GW*0.28 + (Math.random()-0.5)*10,
+      y: gcy + Math.sin(i/ghRepos.length*Math.PI*2)*GW*0.28 + (Math.random()-0.5)*10, vx:0, vy:0 }));
+    const gtNodes = allGhTopics.map((t, i) => ({ id: t, type: 'topic', r: 5,
+      x: gcx + Math.cos(i/allGhTopics.length*Math.PI*2)*GW*0.42 + (Math.random()-0.5)*16,
+      y: gcy + Math.sin(i/allGhTopics.length*Math.PI*2)*GW*0.42 + (Math.random()-0.5)*16, vx:0, vy:0 }));
+    const allGNodes = [...glNodes, ...grNodes, ...gtNodes];
+    const gNodeMap = {}; allGNodes.forEach(n => gNodeMap[n.id] = n);
+
+    // Build links: repo ↔ lang, repo ↔ topic
+    const gLinks = [];
+    ghRepos.forEach(r => {
+      r.langs.forEach(l => { if (gNodeMap[r.id] && gNodeMap[l]) gLinks.push({ s: gNodeMap[r.id], t: gNodeMap[l], v: 2 }); });
+      r.topics.forEach(t => { if (gNodeMap[r.id] && gNodeMap[t]) gLinks.push({ s: gNodeMap[r.id], t: gNodeMap[t], v: 1 }); });
+    });
+
+    if (allGNodes.length === 0) {
+      if (ghGraphHint) ghGraphHint.textContent = '연결망 데이터가 부족합니다';
+      return;
     }
+
+    let gDragNode=null, gOffX=0, gOffY=0, gPanX=0, gPanY=0, gIsPan=false, gLmx=0, gLmy=0, gSc=1.0;
+    const gSen = 180;
+    function gm2w(e) { const r=ghGraphCanvas.getBoundingClientRect(); return {x:((e.clientX-r.left)*(GW/r.width)-gPanX)/gSc, y:((e.clientY-r.top)*(GH/r.height)-gPanY)/gSc}; }
+
+    ghGraphCanvas.onwheel = e => {
+      e.preventDefault();
+      const r=ghGraphCanvas.getBoundingClientRect();
+      const mx=(e.clientX-r.left)*(GW/r.width), my=(e.clientY-r.top)*(GH/r.height);
+      const f=e.deltaY<0?1.12:0.88, ns=Math.max(0.2,Math.min(5,gSc*f));
+      gPanX=mx-(mx-gPanX)*(ns/gSc); gPanY=my-(my-gPanY)*(ns/gSc); gSc=ns;
+      if (ghGraphHint) ghGraphHint.textContent='🔍 '+Math.round(gSc*100)+'% · 휠 확대축소 · 저장소/언어 클릭';
+    };
+    ghGraphCanvas.onmousedown = e => {
+      const w=gm2w(e); let c=null, md=20;
+      allGNodes.forEach(n=>{const d=Math.sqrt((w.x-n.x)**2+(w.y-n.y)**2);if(d<md){md=d;c=n;}});
+      if(c){gDragNode=c;gOffX=w.x-c.x;gOffY=w.y-c.y;c.fx=c.x;c.fy=c.y;return;}
+      gIsPan=true;gLmx=e.clientX;gLmy=e.clientY;
+    };
+    ghGraphCanvas.onmousemove = e => {
+      if(gDragNode){const w=gm2w(e);gDragNode.fx=w.x-gOffX;gDragNode.fy=w.y-gOffY;}
+      if(gIsPan){gPanX+=(e.clientX-gLmx)*(GW/ghGraphCanvas.getBoundingClientRect().width);gPanY+=(e.clientY-gLmy)*(GH/ghGraphCanvas.getBoundingClientRect().height);gLmx=e.clientX;gLmy=e.clientY;}
+    };
+    ghGraphCanvas.onmouseup = () => {
+      if(gDragNode){
+        if(Math.abs(gDragNode.fx-gDragNode.x)<3) {
+          const idx = ghRepos.findIndex(r => r.id === gDragNode.id);
+          if (idx >= 0) cnShowGhDetail(ghItems.indexOf(ghRepos[idx].item));
+        }
+        gDragNode.fx=null; gDragNode.fy=null; gDragNode=null;
+      }
+      gIsPan=false;
+    };
+    ghGraphCanvas.onmouseleave = () => {if(gDragNode){gDragNode.fx=null;gDragNode.fy=null;gDragNode=null;}gIsPan=false;};
+
+    // Legend
+    if (ghGraphLegend) {
+      const gLangColors = allGhLangs.map(l => `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;font-size:9px;font-weight:700;"><span style="width:8px;height:8px;border-radius:50%;background:${GH_LANG_COLORS_NORM[l]||'#888'};display:inline-block;"></span>${l}</span>`).join('');
+      const gTopicTags = allGhTopics.slice(0,10).map(t => `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;font-size:9px;font-weight:600;color:#475569;">#${t}</span>`).join('');
+      ghGraphLegend.innerHTML = `<div style="padding:6px 10px;font-size:9px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;"><span style="font-weight:800;margin-right:4px;">●언어</span>${gLangColors}<span style="font-weight:800;margin:0 4px;">■저장소</span><span style="font-weight:800;margin:0 4px;">●토픽</span>${gTopicTags}</div>`;
+    }
+
+    function gsim() {
+      allGNodes.forEach(n => {
+        if(n.fx!==undefined){n.x=n.fx;n.y=n.fy;n.vx=0;n.vy=0;return;}
+        let fx=0,fy=0;
+        allGNodes.forEach(o => {
+          if(n===o) return;
+          const dx=n.x-o.x, dy=n.y-o.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+          fx += dx/d*gSen/(d*d); fy += dy/d*gSen/(d*d);
+        });
+        gLinks.forEach(l => {
+          if(l.s===n||l.t===n){const o=l.s===n?l.t:l.s;const s=l.v===2?0.02:0.012;fx += (o.x-n.x)*s; fy += (o.y-n.y)*s;}
+        });
+        // Centering force
+        fx += (gcx-n.x)*0.002; fy += (gcy-n.y)*0.002;
+        n.vx=(n.vx+fx)*0.85; n.vy=(n.vy+fy)*0.85;
+        n.x+=n.vx; n.y+=n.vy;
+        n.x=Math.max(20,Math.min(GW-20,n.x)); n.y=Math.max(20,Math.min(GH-20,n.y));
+      });
+    }
+    function gdraw() {
+      ghctx.clearRect(0,0,GW,GH);
+      ghctx.save(); ghctx.translate(gPanX,gPanY); ghctx.scale(gSc,gSc);
+      gLinks.forEach(l => {
+        ghctx.globalAlpha=0.2; ghctx.strokeStyle='rgba(120,120,140,0.4)'; ghctx.lineWidth=Math.min(1.5,l.v*0.3);
+        ghctx.beginPath(); ghctx.moveTo(l.s.x,l.s.y); ghctx.lineTo(l.t.x,l.t.y); ghctx.stroke();
+      });
+      ghctx.globalAlpha=1;
+      allGNodes.forEach(n => {
+        const r = n.r;
+        if (n.type==='lang') {
+          ghctx.beginPath(); ghctx.arc(n.x,n.y,r,0,Math.PI*2);
+          ghctx.fillStyle=GH_LANG_COLORS_NORM[n.id]||'#888'; ghctx.fill();
+          ghctx.strokeStyle='#fff'; ghctx.lineWidth=2; ghctx.stroke();
+          ghctx.font='bold 10px Outfit,sans-serif'; ghctx.textAlign='center'; ghctx.textBaseline='middle'; ghctx.fillStyle='#fff';
+          ghctx.fillText(n.id.slice(0,4), n.x, n.y);
+        } else if (n.type==='repo') {
+          const s=r*1.3;
+          ghctx.fillStyle='#4f46e5'; ghctx.beginPath(); ghctx.roundRect(n.x-s,n.y-s,s*2,s*2,4); ghctx.fill();
+          ghctx.strokeStyle='#fff'; ghctx.lineWidth=1.5; ghctx.stroke();
+          ghctx.font='bold 7px Outfit,sans-serif'; ghctx.textAlign='center'; ghctx.textBaseline='bottom';
+          ghctx.fillStyle='#fff'; ghctx.fillText(n.id.length>12?n.id.slice(0,10)+'…':n.id, n.x, n.y+s+2);
+        } else {
+          ghctx.beginPath(); ghctx.arc(n.x,n.y,r,0,Math.PI*2);
+          ghctx.fillStyle='#94a3b8'; ghctx.fill();
+          ghctx.strokeStyle='#fff'; ghctx.lineWidth=1; ghctx.stroke();
+          ghctx.font='7px Outfit,sans-serif'; ghctx.textAlign='center'; ghctx.textBaseline='top';
+          ghctx.fillStyle='#475569'; ghctx.fillText(n.id.length>10?n.id.slice(0,8)+'…':n.id, n.x, n.y+r+2);
+        }
+      });
+      ghctx.restore();
+      requestAnimationFrame(()=>{gsim();gdraw();});
+    }
+    gdraw();
   }
 
   window.cnShowGhDetail = function(idx) {
