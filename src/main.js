@@ -646,7 +646,19 @@ function getMixTypeColor(type) {
   if (t.includes('PDF')) return '#dc2626';
   if (t.includes('DOC') || t.includes('DOCX')) return '#2563eb';
   if (t.includes('VIDEO')) return '#ea580c';
+  if (t.includes('NOTE')) return '#059669';
   return '#4f46e5';
+}
+// 믹스 유형별 한글 레이블
+function getMixTypeLabel(type) {
+  const t = (type || '').toUpperCase();
+  if (t === 'AUDIO') return '🎙️ 팟캐스트';
+  if (t.includes('HTML') || t.includes('MAP')) return '🧠 마인드맵';
+  if (t.includes('PDF')) return '📑 슬라이드';
+  if (t.includes('DOC') || t.includes('DOCX')) return '📄 문서';
+  if (t.includes('VIDEO')) return '🎬 영상';
+  if (t.includes('NOTE')) return '📝 노트';
+  return '📋 자료';
 }
 
 function renderMixGrid() {
@@ -696,7 +708,7 @@ function renderMixGrid() {
         <!-- 유형 알약 태그 -->
         <span style="position:absolute;top:10px;left:10px;z-index:2;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.03em;display:flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,0,0,0.15);
           background:${getMixTypeColor(item.type)};color:white;">
-          <i class="ph ${typeIcon}" style="font-size:12px;"></i> ${(item.type||'').toUpperCase()}
+          <i class="ph ${typeIcon}" style="font-size:12px;"></i> ${getMixTypeLabel(item.type)}
         </span>
         ${imgUrl ? `<img src="${imgUrl}" alt="${item.title}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
         <div class="mix-fallback-icon" style="display: ${imgUrl ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; height:100%; font-size: 40px; color: var(--accent-primary); position: absolute; top:0; left:0; background: var(--bg-card-hover);">
@@ -706,7 +718,7 @@ function renderMixGrid() {
       <div class="card-content">
         <div class="channel-info">
           <div class="channel-details">
-            <div class="channel-name" style="color:var(--accent-primary)">NotebookLM ${item.type}</div>
+            <div class="channel-name" style="color:var(--accent-primary)">${getMixTypeLabel(item.type)}</div>
             <div class="video-date">${timestampStr}</div>
           </div>
         </div>
