@@ -9,10 +9,28 @@ const CAT_COLORS = {
   '자기계발':'#0f766e','창업/사업':'#047857','엔터테인먼트':'#0891b2','라이프스타일':'#a16207',
 };
 const BAR_COLORS = ['#4f46e5','#6d28d9','#0d7a6a','#b45309','#d97706','#0891b2','#047857','#9333ea','#0f766e','#a16207'];
-const GH_LANG_COLORS = {
-  'Python':'#3572A5','TypeScript':'#3178C6','JavaScript':'#f7df1e','Rust':'#dea584',
-  'Go':'#00ADD8','Swift':'#F05138','Kotlin':'#A97BFF','C++':'#f34b7d','Java':'#b07219','Ruby':'#701516',
+// 언어 색상 매핑 (소문자 키, #접두어/대소문자 무시)
+const GH_LANG_COLORS_NORM = {
+  'python':'#3572A5','typescript':'#3178C6','javascript':'#f7df1e','rust':'#dea584',
+  'go':'#00ADD8','swift':'#F05138','kotlin':'#A97BFF','c++':'#f34b7d','java':'#b07219','ruby':'#701516',
+  'c':'#555555','c#':'#178600','css':'#563d7c','scss':'#c6538c','html':'#e34c26','shell':'#89e051',
+  'bash':'#89e051','powershell':'#012456','php':'#4F5D95','perl':'#0298c3','lua':'#000080',
+  'r':'#198ce7','matlab':'#e16737','scala':'#c22d40','dart':'#00B4AB','flutter':'#02569B',
+  'elixir':'#6e4a7e','haskell':'#5e5086','clojure':'#db5855','erlang':'#b83998',
+  'graphql':'#e10098','json':'#292929','yaml':'#cb171e','markdown':'#083fa1',
+  'dockerfile':'#384d54','makefile':'#427819','cmake':'#da3434',
+  'objective-c':'#438eff','objective-c++':'#6866fb','vue':'#41b883','svelte':'#ff3e00',
+  'solidity':'#363636','zig':'#ec915c','nim':'#ffc200','crystal':'#000100',
 };
+// 키워드 정규화 + 언어 감지 헬퍼
+function detectLang(kw) {
+  const clean = kw.replace(/^#/, '').trim().toLowerCase();
+  return GH_LANG_COLORS_NORM[clean] ? clean : null;
+}
+function langColor(kw) {
+  const lang = detectLang(kw);
+  return lang ? GH_LANG_COLORS_NORM[lang] : '#888';
+}
 const AVATAR_PALETTE = ['#e8590c','#6d28d9','#0d7a6a','#b45309','#0891b2','#047857','#9333ea','#d97706','#0f766e','#a16207','#be123c'];
 
 function hashColor(name) {
@@ -83,7 +101,8 @@ export function renderConnect(container, { allData, githubData }) {
     const title = String(item.Title || '');
     const kws = String(item.Keywords || '').split(',').map(k => k.trim()).filter(Boolean);
     kws.forEach(k => {
-      if (GH_LANG_COLORS[k]) ghLangs[k] = (ghLangs[k]||0) + 1;
+      const lang = detectLang(k);
+      if (lang) ghLangs[lang] = (ghLangs[lang]||0) + 1;
       else ghTopics[k] = (ghTopics[k]||0) + 1;
     });
   });
@@ -612,7 +631,7 @@ export function renderConnect(container, { allData, githubData }) {
           <div class="repo-card-name">${item.Title||'알 수 없음'}</div>
           <div class="repo-card-desc">${(item.Summary||'').slice(0,60)}</div>
           <div class="repo-card-meta">${String(item.Keywords||'').split(',').slice(0,2).map(k=>k.trim()).filter(Boolean).map(k =>
-            `<span style="display:flex;align-items:center;gap:3px;"><span class="gh-lang-dot" style="background:${GH_LANG_COLORS[k]||'#888'}"></span>${k}</span>`
+            `<span style="display:flex;align-items:center;gap:3px;"><span class="gh-lang-dot" style="background:${langColor(k)}"></span>${k}</span>`
           ).join('')}</div>
         </div>`
       ).join('');
@@ -624,7 +643,7 @@ export function renderConnect(container, { allData, githubData }) {
       const max = sorted[0][1];
       lEl.innerHTML = sorted.map(([l,n]) =>
         `<div class="bar-row" style="cursor:default;"><span class="bar-label" style="width:70px;">${l}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${(n/max)*100}%;background:${GH_LANG_COLORS[l]||'#888'};">${n}</div></div></div>`
+          <div class="bar-track"><div class="bar-fill" style="width:${(n/max)*100}%;background:${GH_LANG_COLORS_NORM[l]||'#888'};">${n}</div></div></div>`
       ).join('');
     }
 
@@ -655,7 +674,7 @@ export function renderConnect(container, { allData, githubData }) {
         const max = langSorted[0][1]; const barW = Math.min(30, (gWrap.clientWidth-40)/Math.max(langSorted.length,1));
         langSorted.forEach(([l,n], i) => {
           const x = 20 + i*(barW+4); const h = (n/max)*150; const y = 200 - 20 - h;
-          gctx.fillStyle = GH_LANG_COLORS[l]||'#888';
+          gctx.fillStyle = GH_LANG_COLORS_NORM[l]||'#888';
           gctx.beginPath(); gctx.roundRect(x,y,Math.max(barW,8),h,4); gctx.fill();
           gctx.fillStyle = '#475569'; gctx.font = '9px Outfit,sans-serif'; gctx.textAlign='center';
           gctx.fillText(l.slice(0,6), x+Math.max(barW,8)/2, 200-6);
@@ -680,7 +699,7 @@ export function renderConnect(container, { allData, githubData }) {
         <div style="font-size:13px;font-weight:800;margin:8px 0 2px;">${item.Title||''}</div>
         <div style="font-size:10px;color:var(--text-dim);font-weight:500;margin-bottom:6px;">${(item.Summary||'').slice(0,100)}</div>
         <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">${String(item.Keywords||'').split(',').slice(0,5).map(k=>k.trim()).filter(Boolean).map(k =>
-          `<span class="hot-tag" style="font-size:8px;padding:2px 8px;background:${GH_LANG_COLORS[k]||'#888'};color:white;border-color:transparent;">${k}</span>`
+          `<span class="hot-tag" style="font-size:8px;padding:2px 8px;background:${langColor(k)};color:white;border-color:transparent;">${k}</span>`
         ).join('')}</div>
         <div style="height:1px;background:#e2e2e8;margin:8px 0;"></div>
         <div style="font-size:10px;color:var(--text-dim);font-weight:500;line-height:1.6;">${item.Analysis||'분석 정보가 없습니다.'}</div>
