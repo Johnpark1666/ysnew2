@@ -1,6 +1,14 @@
 import './style.css'
 import { marked } from 'marked';
 import { renderConnect } from './connect.js';
+import { createClient } from '@supabase/supabase-js';
+
+// ── Supabase 설정 ──
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
 // 마크다운 파싱 헬퍼 (테이블을 컨테이너로 감싸 브루탈리즘 스타일 및 가로 스크롤 적용)
 function renderMarkdown(text) {
@@ -11,19 +19,8 @@ function renderMarkdown(text) {
     .replace(/<\/table>/g, '</table></div>');
 }
 
-// [설정] 서비스 URL 및 시트 정보
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxBCnqHFxCM5UzknZ0tixYjtcjX0YRWK8N2tArYNmx5emY67HkCVlvBnXsehh72bi-bbg/exec';
-const SPREADSHEET_ID = '1ou-Nz0NNChhH4HZ3lq-MwnbuRacbY7MF8IzCya5Ndcg';
-const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-
-// [YouTube API 설정]
-const YT_CLIENT_ID = '53823290193-nu4v4dg1lub94d9g4kc0ffaji53ap033.apps.googleusercontent.com'; // 발급받은 클라이언트 ID를 여기에 넣으세요
-const YT_PLAYLIST_ID = 'PLQ6Ij6whruQwDSnFFMEto9zWkNm4hJWDL';
-let ytAccessToken = '';
-let ytTokenClient;
-let ytPendingVideoId = null;
-let ytPendingBtn = null;
-let ytPendingRowId = null;
+// [설정] 이미지 URL 기본값
+const FALLBACK_IMG = 'https://placehold.co/640x360/1e1e2a/ffffff?text=No+Image';
 
 let allData = [];
 let briefingData = []; // !!BRIEFING_LATEST!! 데이터를 따로 저장
@@ -58,7 +55,6 @@ let currentFilteredCount = 0; // 캐싱된 필터 결과 수 (스크롤 시 O(1)
 window.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupEventListeners();
-  initYouTubeAuth();
   initCanvasControllers();
   initRightPaneResizers();
   window.addEventListener('resize', updateFloatingToolbar);
@@ -66,47 +62,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (container) container.classList.add('tab-unread');
 });
 
-function initYouTubeAuth() {
-  // google 객체가 없으면 500ms 후 재시도 (라이브 환경 로드 타이밍 대응)
-  if (typeof google === 'undefined' || !google.accounts) {
-    setTimeout(initYouTubeAuth, 500);
-    return;
-  }
-
-  try {
-    ytTokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: YT_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/youtube.force-ssl',
-      callback: async (response) => {
-        if (response.access_token) {
-          ytAccessToken = response.access_token;
-          console.log('YouTube Access Token 획득 성공');
-          if (ytPendingVideoId) {
-            await executeAddToYouTube(ytPendingVideoId, ytPendingBtn, ytPendingRowId);
-            ytPendingVideoId = null;
-            ytPendingBtn = null;
-            ytPendingRowId = null;
-          }
-        }
-      },
-    });
-    console.log('YouTube Auth Client Initialized');
-  } catch (e) {
-    console.error('YouTube Auth Init Error:', e);
-  }
-}
-
-// 구글 응답 데이터(JSON)만 추출하는 성능 최적화 헬퍼 함수 (정규식 제거)
-function parseGvizJson(text) {
-  const startIdx = text.indexOf('(');
-  const endIdx = text.lastIndexOf(')');
-  if (startIdx === -1 || endIdx === -1) {
-    throw new Error("구글 시트 연동 실패: 데이터 형식이 올바르지 않습니다.");
-  }
-  const jsonStr = text.slice(startIdx + 1, endIdx);
-  return JSON.parse(jsonStr);
-}
-
+// ── Supabase 데이터 로드 ──
 async function fetchData() {
   const loader = document.getElementById('loader');
   loader.style.display = 'block';
@@ -114,105 +70,93 @@ async function fetchData() {
   document.getElementById('card-grid').innerHTML = '';
 
   try {
-    // 1~3. 구글 시트 데이터를 병렬(Parallel)로 동시에 가져오고 텍스트 변환까지 일괄 병렬 처리 (네트워크 병목 최소화)
-    const [text, mixText, githubText] = await Promise.all([
-      fetch(`${GVIZ_URL}&t=${Date.now()}`).then(r => r.text()),
-      fetch(`${GVIZ_URL}&sheet=NotebookLM_Mix&t=${Date.now()}`).then(r => r.text()),
-      fetch(`${GVIZ_URL}&sheet=github&t=${Date.now()}`).then(r => r.text())
-    ]);
+    if (!supabase) throw new Error('Supabase 클라이언트가 초기화되지 않았습니다.');
 
-    // 구글 응답 데이터(JSON)만 추출 (정규식 대신 indexOf/slice를 통해 프리징 최소화)
-    const obj = parseGvizJson(text);
-    const table = obj.table;
-    const rows = table.rows;
-    // 헤더(컬럼 레이블) 추출 (양끝 공백 트리밍 적용)
-    const cols = table.cols.map(c => (c.label || "").trim());
+    // 1. videos 테이블 (main)
+    const { data: videos, error: vErr } = await supabase
+      .from('videos')
+      .select('*')
+      .order('publish_date', { ascending: false });
 
-    // 2. 데이터를 앱용 객체 배열로 변환
-    const rawData = rows.map((row, index) => {
-      let item = { rowIndex: index + 2 };
-      row.c.forEach((cell, i) => {
-        const header = cols[i];
-        if (header) {
-          item[header] = cell ? (cell.v ?? "") : "";
-          if (typeof item[header] === 'string' && item[header].startsWith('Date(')) {
-            const parts = item[header].replace(/Date\(|\)/g, '').split(',');
-            const y = parts[0];
-            const m = String(parseInt(parts[1]) + 1).padStart(2, '0');
-            const d = String(parseInt(parts[2])).padStart(2, '0');
-            item[header] = `${y}-${m}-${d}`;
-          }
-        }
-      });
-      return item;
-    });
+    if (vErr) throw new Error(`videos 조회 실패: ${vErr.message}`);
 
-    // !!BRIEFING_LATEST!! 데이터만 따로 필터링
-    briefingData = rawData.filter(d => {
-      const id = String(d.ID || d.id || d.Id || d['아이디'] || "").trim();
+    // !!BRIEFING_LATEST!! 분리
+    briefingData = videos.filter(d => {
+      const id = String(d.id || '').trim();
       return id === "!!BRIEFING_LATEST!!";
     });
 
-    // 일반 카드용 데이터 (그리드 표시용)
-    allData = rawData.filter(d => {
-      const id = String(d.ID || d.id || d.Id || d['아이디'] || "").trim();
+    // 일반 카드용 데이터
+    allData = videos.filter(d => {
+      const id = String(d.id || '').trim();
       return id !== "" && id !== "!!BRIEFING_LATEST!!";
+    }).map(mapVideoRow);
+
+    // 2. github_repos 테이블
+    const { data: repos, error: gErr } = await supabase
+      .from('github_repos')
+      .select('*')
+      .order('publish_date', { ascending: false });
+
+    if (gErr) throw new Error(`github_repos 조회 실패: ${gErr.message}`);
+
+    githubData = (repos || [])
+      .filter(d => String(d.id || '').trim() !== '')
+      .map(mapVideoRow);
+
+    // 3. notebooklm_mixes 테이블
+    const { data: mixes, error: mErr } = await supabase
+      .from('notebooklm_mixes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (mErr) throw new Error(`notebooklm_mixes 조회 실패: ${mErr.message}`);
+
+    mixData = (mixes || []).reverse().map(function(m) {
+      return {
+        id: 'mix_' + m.id,
+        timestamp: m.created_at,
+        type: m.type,
+        url: m.url,
+        sourceIds: m.source_ids,
+        title: m.title
+      };
     });
 
-    // 3. NotebookLM_Mix 시트 데이터 처리
-    try {
-      const mixObj = parseGvizJson(mixText);
-      const mixRows = mixObj.table.rows;
-      mixData = mixRows.map((row, index) => {
-        return {
-          id: `mix_${index}`,
-          timestamp: row.c[0] ? row.c[0].v : "",
-          type: row.c[1] ? row.c[1].v : "",
-          url: row.c[2] ? row.c[2].v : "",
-          sourceIds: row.c[3] ? row.c[3].v : "",
-          title: row.c[4] ? row.c[4].v : ""
-        };
-      }).reverse(); // 최신순으로 정렬
-    } catch (e) {
-      console.warn("NotebookLM_Mix 데이터 파싱 경고:", e);
-    }
-
-    // 4. github 시트 데이터 처리
-    try {
-      const githubObj = parseGvizJson(githubText);
-      const githubRows = githubObj.table.rows;
-      const githubCols = githubObj.table.cols.map(c => (c.label || "").trim());
-      githubData = githubRows.map((row, index) => {
-        let item = { rowIndex: index + 2 };
-        row.c.forEach((cell, i) => {
-          const header = githubCols[i];
-          if (header) {
-            item[header] = cell ? (cell.v ?? "") : "";
-            if (typeof item[header] === 'string' && item[header].startsWith('Date(')) {
-              const parts = item[header].replace(/Date\(|\)/g, '').split(',');
-              const y = parts[0];
-              const m = String(parseInt(parts[1]) + 1).padStart(2, '0');
-              const d = String(parseInt(parts[2])).padStart(2, '0');
-              item[header] = `${y}-${m}-${d}`;
-            }
-          }
-        });
-        return item;
-      });
-      githubData = githubData.filter(d => {
-        const id = String(d.ID || d.id || d.Id || d['아이디'] || "").trim();
-        return id !== "";
-      });
-    } catch (e) {
-      console.warn("github 데이터 파싱 경고:", e);
-    }
-
-    console.log('실시간 연동 성공:', allData.length, '개의 행, Mix 데이터:', mixData.length, '개, GitHub 데이터:', githubData.length, '개');
+    console.log('실시간 연동 성공:', allData.length, '개의 영상, Mix 데이터:', mixData.length, '개, GitHub 데이터:', githubData.length, '개');
     onDataLoaded();
 
   } catch (error) {
     onLoadError(error);
   }
+}
+
+// Supabase DB 컬럼명 → 프론트엔드 호환 컬럼명 매핑
+function mapVideoRow(dbRow) {
+  return {
+    rowIndex: dbRow._row || 0,
+    ID: dbRow.id || '',
+    Title: dbRow.title || '',
+    ChannelName: dbRow.channel_name || '',
+    VideoURL: dbRow.video_url || '',
+    PublishDate: dbRow.publish_date || '',
+    Duration: dbRow.duration || '',
+    ProcessDate: dbRow.processed_at || '',
+    Read: dbRow.read || false,
+    Favorite: dbRow.favorite || false,
+    Summary: dbRow.summary || '',
+    Insights: dbRow.insights || '',
+    Implications: dbRow.implications || '',
+    Keywords: dbRow.keywords || '',
+    Analysis: dbRow.analysis || '',
+    Transcript: dbRow.transcript || '',
+    ShowTranscript: dbRow.show_transcript || false,
+    Image_URL: dbRow.image_url || '',
+    Plus_Key: dbRow.plus_key || '',
+    Category: dbRow.category || '',
+    Model: dbRow.model || '',
+    Timeline: dbRow.timeline || '',
+  };
 }
 
 function onDataLoaded() {
@@ -1154,7 +1098,7 @@ function openMixDetail(item) {
           iconClass = 'ph ph-tree-structure';
           typeLabel = '마인드맵';
           if (fileId) {
-            previewUrl = `${GAS_API_URL}?id=${fileId}`;
+            previewUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
             isGoogleDrive = true;
           }
         } else {
@@ -1332,15 +1276,11 @@ window.handleMarkRead = async (id, btn, event) => {
     }
   }
 
-  // 2. 비동기 백그라운드 호출
+  // 2. 비동기 백그라운드 호출 (Supabase)
   const isGitHub = githubData.some(d => String(d.ID) === String(id));
-  const params = { action: 'markAsRead', id: id };
-  if (isGitHub) params.sheet = 'github';
 
-  callGAS(params).then(res => {
-    if (!res || res.status !== 'success') {
-      throw new Error('GAS API returned error status');
-    }
+  supabaseMarkRead(id, isGitHub).then(success => {
+    if (!success) throw new Error('Supabase markRead failed');
   }).catch(e => {
     console.error('읽음 처리 동기화 실패, 롤백 실행:', e);
     // 3. 실패 시 롤백
@@ -1404,22 +1344,12 @@ window.handleToggleFav = async (id, btn, event) => {
     if (currentDetailId === String(id)) closeDetail();
   }
 
-  // 2. 비동기 호출
+  // 2. 비동기 호출 (Supabase)
   const isGitHub = githubData.some(d => String(d.ID) === String(id));
-  const params = {
-    action: 'toggleFavorite',
-    id: id,
-    currentStatus: isTrue(originalFavState)
-  };
-  if (isGitHub) params.sheet = 'github';
 
-  callGAS(params).then(res => {
-    if (res && res.status === 'success') {
-      item.Favorite = res.result;
-      updateStats();
-    } else {
-      throw new Error('GAS API returned error status');
-    }
+  supabaseToggleFav(id, isTrue(originalFavState), isGitHub).then(newStatus => {
+    item.Favorite = newStatus;
+    updateStats();
   }).catch(e => {
     console.error('즐겨찾기 토글 동기화 실패, 롤백 실행:', e);
     // 3. 실패 시 롤백
@@ -1441,99 +1371,33 @@ window.handleToggleFav = async (id, btn, event) => {
   });
 };
 
-async function callGAS(params) {
-  const response = await fetch(GAS_API_URL, {
-    method: 'POST',
-    body: JSON.stringify(params)
-  });
-  return await response.json();
+// ── Supabase write-back ──
+async function supabaseMarkRead(id, isGitHub = false) {
+  if (!supabase) return false;
+  const table = isGitHub ? 'github_repos' : 'videos';
+  const { error } = await supabase.from(table).update({ read: true }).eq('id', id);
+  if (error) console.error('Supabase markRead error:', error.message);
+  return !error;
 }
 
-window.handleWatchLater = async (id, btn, event) => {
-  if (event) event.stopPropagation();
-  
-  if (!ytTokenClient) {
-    initYouTubeAuth(); // 미초기화 시 재시도
-    if (!ytTokenClient) {
-      alert('Google 인증 모듈이 준비 중입니다. 잠시 후 다시 클릭해주세요.');
-      return;
-    }
-  }
-
-  const item = allData.find(d => String(d.ID) === String(id));
-  if (!item) return;
-
-  const vId = extractVideoId(item.VideoURL || item.link || item.Video_URL);
-  if (!vId) {
-    alert('비디오 ID를 추출할 수 없습니다.');
-    return;
-  }
-
-  if (!ytAccessToken) {
-    ytPendingVideoId = vId;
-    ytPendingBtn = btn;
-    ytPendingRowId = id;
-    ytTokenClient.requestAccessToken({ prompt: 'select_account' });
-    return;
-  }
-
-  await executeAddToYouTube(vId, btn, id);
-};
-
-async function executeAddToYouTube(vId, btn, rowId) {
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="ph ph-arrows-clockwise ph-spin"></i> 추가 중...';
-  }
-
-  try {
-    const res = await fetch('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ytAccessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        snippet: {
-          playlistId: YT_PLAYLIST_ID,
-          resourceId: { kind: 'youtube#video', videoId: vId }
-        }
-      })
-    });
-
-    if (res.ok) {
-      if (btn) {
-        btn.classList.add('success');
-        btn.innerHTML = '<i class="ph ph-list-checks"></i> 추가 완료';
-      }
-      // 시트 업데이트 (GAS)
-      await callGAS({ action: 'markAsWatchLater', id: rowId });
-      const item = allData.find(d => String(d.ID) === String(rowId));
-      if (item) item.WatchLater = true;
-    } else {
-      const errorData = await res.json();
-      console.error('YT API Error:', errorData);
-      if (res.status === 401) {
-        ytAccessToken = '';
-        alert('인증이 만료되었습니다. 다시 시도해주세요.');
-      } else {
-        alert('추가 실패: ' + (errorData.error.message || '알 수 없는 오류'));
-      }
-    }
-  } catch (e) {
-    console.error('YT API Fetch Error:', e);
-    alert('추가 중 오류가 발생했습니다.');
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+async function supabaseToggleFav(id, currentStatus, isGitHub = false) {
+  if (!supabase) return false;
+  const table = isGitHub ? 'github_repos' : 'videos';
+  const newStatus = !currentStatus;
+  const { error } = await supabase.from(table).update({ favorite: newStatus }).eq('id', id);
+  if (error) console.error('Supabase toggleFav error:', error.message);
+  return !error ? newStatus : currentStatus;
 }
 
-function extractVideoId(url) {
-  if (!url) return null;
-  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[7].length == 11) ? match[7] : null;
+async function supabaseBatchMarkRead(ids, isGitHub = false) {
+  if (!supabase || !ids || ids.length === 0) return 0;
+  const table = isGitHub ? 'github_repos' : 'videos';
+  const { error } = await supabase.from(table).update({ read: true }).in('id', ids);
+  if (error) console.error('Supabase batchMarkRead error:', error.message);
+  return !error ? ids.length : 0;
 }
+
+// ── GAS를 Supabase로 교체 ──
 
 function handleSwipe() {
   const diff = touchStartX - touchEndX;
@@ -1628,15 +1492,11 @@ async function handleMarkSelectedRead() {
   updateStats();
   toggleSelectionMode(false); // 선택 모드 종료 및 새로고침
 
-  // 2. 비동기 배치 호출
-  const params = { action: 'batchMarkAsRead', ids: idsToProcess };
-  if (currentTab === 'github') params.sheet = 'github';
+  // 2. 비동기 배치 호출 (Supabase)
+  const isGitHub = currentTab === 'github';
 
-  callGAS(params).then(res => {
-    if (!res || res.status !== 'success') {
-      throw new Error('GAS API returned error status');
-    }
-    console.log('일괄 읽음 동기화 완료:', res.result, '개 업데이트됨');
+  supabaseBatchMarkRead(idsToProcess, isGitHub).then(count => {
+    console.log('일괄 읽음 동기화 완료:', count, '개 업데이트됨');
   }).catch(e => {
     console.error('일괄 읽음 동기화 실패, 롤백 실행:', e);
     // 3. 실패 시 롤백
