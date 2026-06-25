@@ -63,7 +63,8 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Supabase 데이터 로드 (최적화) ──
-const LIGHT_FIELDS = 'id,title,channel_name,channel_avatar,video_url,publish_date,duration,processed_at,read,favorite,image_url,plus_key,category,keywords,timeline,summary,created_at';
+const VIDEO_FIELDS = 'id,title,channel_name,channel_avatar,video_url,publish_date,duration,processed_at,read,favorite,image_url,plus_key,category,keywords,timeline,summary,created_at';
+const REPO_FIELDS = 'id,title,channel_name,video_url,publish_date,duration,processed_at,read,favorite,image_url,plus_key,category,keywords,summary,created_at';
 const CACHE_KEY = 'ysnew2_cache_v1';
 const CACHE_TTL = 5 * 60 * 1000; // 5분
 
@@ -72,10 +73,11 @@ async function fetchData() {
   loader.style.display = 'block';
   loader.innerHTML = '<div class="loader-spinner"></div><div class="loader-text">최신 데이터를 불러오는 중...</div>';
   document.getElementById('card-grid').innerHTML = '';
+  let cached = null;
 
   try {
     // 1. 캐시 먼저 표시
-    const cached = loadCache();
+    cached = loadCache();
     if (cached) {
       allData = cached.allData;
       githubData = cached.githubData;
@@ -88,8 +90,8 @@ async function fetchData() {
 
     // 2. 3개 테이블 병렬 쿼리 + 경량 필드만
     const [vResult, gResult, mResult] = await Promise.all([
-      supabase.from('videos').select(LIGHT_FIELDS).order('publish_date', { ascending: false }),
-      supabase.from('github_repos').select(LIGHT_FIELDS).order('publish_date', { ascending: false }),
+      supabase.from('videos').select(VIDEO_FIELDS).order('publish_date', { ascending: false }),
+      supabase.from('github_repos').select(REPO_FIELDS).order('publish_date', { ascending: false }),
       supabase.from('notebooklm_mixes').select('id,created_at,type,url,source_ids,title').order('created_at', { ascending: false })
     ]);
 

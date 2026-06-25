@@ -1,3 +1,9 @@
 node_modules
 dist
 .DS_Store
+.env
+.env.*
+scripts/fetch_channel_avatars.py
+scripts/fetch_avatars_reliable.py
+scripts/add_channel_avatar_column.py
+check_bundle*.py
