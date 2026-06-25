@@ -168,7 +168,7 @@ export function renderConnect(container, { allData, githubData }) {
                 <div class="card-h"><span class="card-h-icon">🏷️</span> 카테고리 분포</div>
                 <div class="card-b">
                   <div class="donut-wrap">
-                    <canvas id="cn-donut" width="80" height="80"></canvas>
+                    <canvas id="cn-donut"></canvas>
                     <div id="cn-cat-legend" class="cat-legend"></div>
                   </div>
                 </div>
@@ -286,12 +286,20 @@ export function renderConnect(container, { allData, githubData }) {
     ).join('');
   }
 
-  // Donut
+  // Donut (동적 크기)
   function renderDonut() {
     const canvas = document.getElementById('cn-donut');
     if (!canvas) return;
+    const wrap = canvas.closest('.donut-wrap');
+    if (!wrap) return;
+    const availW = Math.min(wrap.clientWidth - 16, 200); // legend takes some space
+    const size = Math.max(100, Math.min(availW, 180));
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr; canvas.height = size * dpr;
+    canvas.style.width = size + 'px'; canvas.style.height = size + 'px';
     const ctx = canvas.getContext('2d');
-    const W=80,H=80,cx=40,cy=40,R=35,inner=22;
+    ctx.scale(dpr, dpr);
+    const cx=size/2,cy=size/2,R=size*0.42,inner=size*0.26;
     const totals = {};
     Object.values(chData).forEach(d => Object.entries(d.cats).forEach(([c,n]) => { totals[c]=(totals[c]||0)+n; }));
     const total = Object.values(totals).reduce((a,b)=>a+b,0);
@@ -300,14 +308,14 @@ export function renderConnect(container, { allData, githubData }) {
       `<div class="cat-row"><span class="cat-dot" style="background:${CAT_COLORS[c]||'#888'}"></span><span class="cat-name">${c}</span><span class="cat-pct">${Math.round(n/total*100)}%</span></div>`
     ).join('');
     let start = -Math.PI/2;
-    ctx.clearRect(0,0,W,H);
+    ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
     sorted.forEach(([c,n]) => {
       const a = (n/total)*Math.PI*2;
       ctx.beginPath(); ctx.arc(cx,cy,R,start,start+a); ctx.arc(cx,cy,inner,start+a,start,true); ctx.closePath();
-      ctx.fillStyle = CAT_COLORS[c]||'#888'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = CAT_COLORS[c]||'#888'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, size/50); ctx.stroke();
       start += a;
     });
-    ctx.fillStyle = '#121212'; ctx.font = 'bold 12px Outfit, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#121212'; ctx.font = `bold ${Math.max(10, size*0.15)}px Outfit, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(total, cx, cy);
   }
 
