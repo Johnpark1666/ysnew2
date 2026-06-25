@@ -183,6 +183,13 @@ function isTrue(value) {
   return String(value).toUpperCase() === "TRUE";
 }
 
+// YouTube URL → Video ID 추출
+function extractVideoId(url) {
+  if (!url) return '';
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : (url.length === 11 ? url : '');
+}
+
 function setupEventListeners() {
   document.getElementById('tab-unread').onclick = () => switchTab('unread');
   document.getElementById('tab-favorite').onclick = () => switchTab('favorite');
@@ -1659,7 +1666,7 @@ function openSublist(type, key) {
       openDetail(item.id || item.ID);
     };
     
-    let videoId = extractVideoId(item.URL || item['URL'] || "");
+    let videoId = extractVideoId(item.VideoURL || item.URL || "");
     const thumb = item.Image_URL || item['썸네일'] || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : 'icons8-youtube-16.png');
     
     const isFav = isTrue(item.Favorite);
