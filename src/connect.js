@@ -405,27 +405,35 @@ export function renderConnect(container, { allData, githubData }) {
     const ctx = canvas.getContext('2d'); ctx.scale(2,2);
     const W = wrap.clientWidth, H = 380;
 
-    // Build nodes — Obsidian-style 동심원 방사형 배치
+    // Build nodes
     const cx = W * 0.5, cy = H * 0.5;
-    const catNodes = allCats.map((c, i) => ({ id: c, type: 'category', group: c, r: 12,
-      x: cx + Math.cos(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*8,
-      y: cy + Math.sin(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*8, vx:0, vy:0 }));
-    const chNodes = sortedChs.slice(0,12).map(([ch], i) => ({ id: ch, type: 'channel', group: chPriCat[ch]||'기타', r: 6 + (chData[ch].count)*0.5,
-      x: cx + Math.cos(i/12*Math.PI*2)*W*0.30 + (Math.random()-0.5)*12,
-      y: cy + Math.sin(i/12*Math.PI*2)*W*0.30 + (Math.random()-0.5)*12, vx:0, vy:0 }));
-    const kwNodes = allKws.slice(0,40).map((k, i) => ({ id: k, type: 'keyword', group: kwCat[k]||'기타', r: 3 + (kwCount[k]||1)*2,
-      x: cx + Math.cos(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*20,
-      y: cy + Math.sin(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*20, vx:0, vy:0 }));
+    const catNodes = allCats.map((c, i) => ({ id: c, type: 'category', group: c, r: 14,
+      x: cx + Math.cos(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*6,
+      y: cy + Math.sin(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*6, vx:0, vy:0 }));
+    const topChs12 = sortedChs.slice(0,12);
+    const chNodes = topChs12.map(([ch], i) => ({ id: ch, type: 'channel', group: chPriCat[ch]||'기타', r: Math.max(5, Math.min(14, 5 + (chData[ch].count)*0.4)),
+      x: cx + Math.cos(i/12*Math.PI*2)*W*0.28 + (Math.random()-0.5)*8,
+      y: cy + Math.sin(i/12*Math.PI*2)*W*0.28 + (Math.random()-0.5)*8, vx:0, vy:0 }));
+    const topKws40 = allKws.slice(0,40);
+    const kwNodes = topKws40.map((k, i) => ({ id: k, type: 'keyword', group: kwCat[k]||'기타', r: Math.max(3, Math.min(10, 3 + (kwCount[k]||1)*1.2)),
+      x: cx + Math.cos(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*15,
+      y: cy + Math.sin(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*15, vx:0, vy:0 }));
 
     const nodes = [...catNodes, ...chNodes, ...kwNodes];
     const nodeMap = {}; nodes.forEach(n => nodeMap[n.id] = n);
 
     // Build links
     const links = [];
-    sortedChs.slice(0,12).forEach(([ch]) => {
+    const linkWeight = {}; // id -> weight sum
+    function addLink(s, t, w, type) {
+      const key = [s.id, t.id].sort().join('__');
+      if (!linkWeight[key]) { linkWeight[key] = 0; links.push({ s, t, type }); }
+      linkWeight[key] += w;
+    }
+    topChs12.forEach(([ch]) => {
       const d = chData[ch];
-      Object.keys(d.cats).forEach(c => { if (nodeMap[ch] && nodeMap[c]) links.push({ s: nodeMap[c], t: nodeMap[ch], v: 2, type: 'cat-ch' }); });
-      d.kw.forEach(k => { if (nodeMap[ch] && nodeMap[k]) links.push({ s: nodeMap[ch], t: nodeMap[k], v: 1, type: 'ch-kw' }); });
+      Object.keys(d.cats).forEach(c => { if (nodeMap[ch] && nodeMap[c]) addLink(nodeMap[c], nodeMap[ch], 3, 'cat-ch'); });
+      d.kw.forEach(k => { if (nodeMap[ch] && nodeMap[k]) addLink(nodeMap[ch], nodeMap[k], 1, 'ch-kw'); });
     });
     const kwLinks = {};
     Object.values(chData).forEach(d => {
@@ -435,7 +443,7 @@ export function renderConnect(container, { allData, githubData }) {
     });
     Object.entries(kwLinks).filter(([_,v])=>v>=2).forEach(([k,v]) => {
       const [s,t] = k.split('__');
-      if (nodeMap[s] && nodeMap[t]) links.push({ s: nodeMap[s], t: nodeMap[t], v, type: 'kw-kw' });
+      if (nodeMap[s] && nodeMap[t]) addLink(nodeMap[s], nodeMap[t], v, 'kw-kw');
     });
 
     if (nodes.length === 0) return;
@@ -459,7 +467,7 @@ export function renderConnect(container, { allData, githubData }) {
 
     function getOrb(n, focus, idx, total) {
       const a = (idx/total)*Math.PI*2 - Math.PI/2;
-      const d = 65 + n.r*2.5 + (total>8?20:0);
+      const d = 55 + n.r*2;
       return { x: focus.x + Math.cos(a)*d, y: focus.y + Math.sin(a)*d };
     }
 
@@ -474,7 +482,7 @@ export function renderConnect(container, { allData, githubData }) {
     };
     canvas.onmousedown = e => {
       const w=m2w(e); let c=null, md=25;
-      nodes.forEach(n=>{const d=Math.sqrt((w.x-n.x)**2+(w.y-n.y)**2);if(d<md){md=d;c=n;}});
+      nodes.forEach(n=>{if(!isVis(n))return;const d=Math.sqrt((w.x-n.x)**2+(w.y-n.y)**2);if(d<md){md=d;c=n;}});
       if(c){dragNode=c;offX=w.x-c.x;offY=w.y-c.y;c.fx=c.x;c.fy=c.y;return;}
       isPan=true;lmx=e.clientX;lmy=e.clientY;
     };
@@ -488,7 +496,7 @@ export function renderConnect(container, { allData, githubData }) {
           if (selNode === dragNode) { selNode=null; focusMode=false; document.getElementById('cn-graph-hint').textContent='🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭'; }
           else {
             selNode = dragNode; focusMode = true;
-            document.getElementById('cn-graph-hint').textContent=`🔍 포커스: ${selNode.id} · 다시 클릭 시 해제`;
+            document.getElementById('cn-graph-hint').textContent=`🔍 포커스: ${selNode.id}`;
             if (selNode.type === 'category') cnShowCatVids(selNode.id);
             else if (selNode.type === 'channel') cnShowChVids(selNode.id);
             else cnShowKwVids(selNode.id);
@@ -509,7 +517,7 @@ export function renderConnect(container, { allData, githubData }) {
     function updateLegend() {
       document.getElementById('cn-graph-legend').innerHTML =
         `<span class="legend-toggle ${showCats?'active':''}" onclick="cnToggleType('c')">●카테고리</span>` +
-        allCats.slice(0,6).map(c => `<span class="legend-item"><span class="legend-dot" style="background:${CAT_COLORS[c]||'#888'}"></span>${c}</span>`).join('') +
+        allCats.slice(0,6).map(c => `<span class="legend-item"><span class="legend-dot" style="background:${CAT_COLORS[c]||'#888'};"></span>${c}</span>`).join('') +
         `<span class="legend-toggle ${showChs?'active':''}" onclick="cnToggleType('h')" style="margin-left:4px;">■채널</span>` +
         `<span class="legend-toggle ${showKws?'active':''}" onclick="cnToggleType('k')" style="margin-left:4px;">●키워드</span>`;
     }
@@ -525,19 +533,19 @@ export function renderConnect(container, { allData, githubData }) {
           fx += dx/d*r/(d*d); fy += dy/d*r/(d*d);
         });
         links.forEach(l => {
-          if(l.s===n||l.t===n){const o=l.s===n?l.t:l.s;const s=l.type==='cat-ch'?0.015:l.type==='ch-kw'?0.01:0.006;fx += (o.x-n.x)*s; fy += (o.y-n.y)*s;}
+          if(l.s===n||l.t===n){const o=l.s===n?l.t:l.s;const s=l.type==='cat-ch'?0.025:l.type==='ch-kw'?0.015:0.008;fx += (o.x-n.x)*s; fy += (o.y-n.y)*s;}
         });
         if (focusMode && selNode) {
           const con = getCon(selNode), isC=con.has(n.id), isS=n===selNode;
-          const cx=(W/2-panX)/sc, cy=(H/2-panY)/sc;
-          if (isS) { fx += (cx-n.x)*0.03; fy += (cy-n.y)*0.03; n.vx*=0.9; n.vy*=0.9; }
+          const cx2=(W/2-panX)/sc, cy2=(H/2-panY)/sc;
+          if (isS) { fx += (cx2-n.x)*0.03; fy += (cy2-n.y)*0.03; n.vx*=0.9; n.vy*=0.9; }
           else if (isC) {
             const cn = nodes.filter(c => con.has(c.id) && c !== selNode);
             const idx = cn.indexOf(n), orb = getOrb(n, selNode, idx, cn.length);
             const st = n.type==='category'?0.04:n.type==='channel'?0.03:0.02;
             fx += (orb.x-n.x)*st; fy += (orb.y-n.y)*st;
           } else {
-            const dx=n.x-cx, dy=n.y-cy, d=Math.sqrt(dx*dx+dy*dy)||1;
+            const dx=n.x-cx2, dy=n.y-cy2, d=Math.sqrt(dx*dx+dy*dy)||1;
             const pf = sensitivity*3/(d*d); fx += dx/d*Math.min(pf,8); fy += dy/d*Math.min(pf,8);
           }
         }
@@ -547,20 +555,31 @@ export function renderConnect(container, { allData, githubData }) {
       });
     }
 
+    // ── Pre-stabilize: run simulation 120 iterations before first draw ──
+    for (let i = 0; i < 120; i++) sim();
+
+    // ── Track max link weight for proportional rendering ──
+    const maxLinkW = Math.max(1, ...links.map(l => linkWeight[[l.s.id, l.t.id].sort().join('__')] || 1));
+
     function draw() {
       ctx.clearRect(0,0,W,H);
       ctx.save(); ctx.translate(panX,panY); ctx.scale(sc,sc);
       const con = selNode ? getCon(selNode) : null;
+
+      // ── Draw edges with proper visibility ──
       links.forEach(l => {
         if (!isVis(l.s)||!isVis(l.t)) return;
         const isCon = con && con.has(l.s.id) && con.has(l.t.id);
         const isSel = selNode && (l.s===selNode||l.t===selNode);
-        ctx.globalAlpha = (!selNode||isCon) ? (isSel?0.8:0.25) : 0.05;
-        ctx.strokeStyle = isSel ? '#4f46e5' : 'rgba(120,120,140,0.4)';
-        ctx.lineWidth = isSel ? 2.5 : Math.min(1.5, l.v*0.3);
+        const w = linkWeight[[l.s.id, l.t.id].sort().join('__')] || 1;
+        ctx.globalAlpha = selNode ? (isSel ? 0.9 : (isCon ? 0.6 : 0.08)) : 0.4;
+        ctx.strokeStyle = isSel ? '#4f46e5' : 'rgba(120,120,160,0.5)';
+        ctx.lineWidth = isSel ? Math.max(2, w/maxLinkW*4) : Math.max(1, w/maxLinkW*2.5);
         ctx.beginPath(); ctx.moveTo(l.s.x,l.s.y); ctx.lineTo(l.t.x,l.t.y); ctx.stroke();
       });
       ctx.globalAlpha = 1;
+
+      // ── Draw nodes ──
       nodes.forEach(n => {
         if (!isVis(n)) return;
         const isSel=n===selNode, isCon=con&&con.has(n.id), faded=selNode&&!isSel&&!isCon;
@@ -573,13 +592,13 @@ export function renderConnect(container, { allData, githubData }) {
           ctx.font=`bold ${Math.max(7,r*0.45)}px Outfit,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#fff';
           ctx.fillText(n.id.slice(0,4), n.x, n.y);
         } else if (n.type==='channel') {
-          const s=r*1.5, cx=n.x, cy=n.y;
+          const s=r*1.5, cx2=n.x, cy2=n.y;
           ctx.fillStyle=CAT_COLORS[n.group]||'#888';
-          ctx.beginPath(); ctx.moveTo(cx-s+3,cy-s); ctx.lineTo(cx+s-3,cy-s);
-          ctx.quadraticCurveTo(cx+s,cy-s,cx+s,cy-s+3);
-          ctx.lineTo(cx+s,cy+s-3); ctx.quadraticCurveTo(cx+s,cy+s,cx+s-3,cy+s);
-          ctx.lineTo(cx-s+3,cy+s); ctx.quadraticCurveTo(cx-s,cy+s,cx-s,cy+s-3);
-          ctx.lineTo(cx-s,cy-s+3); ctx.quadraticCurveTo(cx-s,cy-s,cx-s+3,cy-s);
+          ctx.beginPath(); ctx.moveTo(cx2-s+3,cy2-s); ctx.lineTo(cx2+s-3,cy2-s);
+          ctx.quadraticCurveTo(cx2+s,cy2-s,cx2+s,cy2-s+3);
+          ctx.lineTo(cx2+s,cy2+s-3); ctx.quadraticCurveTo(cx2+s,cy2+s,cx2+s-3,cy2+s);
+          ctx.lineTo(cx2-s+3,cy2+s); ctx.quadraticCurveTo(cx2-s,cy2+s,cx2-s,cy2+s-3);
+          ctx.lineTo(cx2-s,cy2-s+3); ctx.quadraticCurveTo(cx2-s,cy2-s,cx2-s+3,cy2-s);
           ctx.closePath(); ctx.fill();
           ctx.strokeStyle=isSel?'#121212':'#fff'; ctx.lineWidth=isSel?3.5:1.5; ctx.stroke();
           ctx.font=`bold ${Math.max(6,r*0.4)}px Outfit,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#fff';
