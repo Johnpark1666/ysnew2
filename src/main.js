@@ -138,6 +138,7 @@ function mapVideoRow(dbRow) {
     ID: dbRow.id || '',
     Title: dbRow.title || '',
     ChannelName: dbRow.channel_name || '',
+    ChannelAvatar: dbRow.channel_avatar || '',
     VideoURL: dbRow.video_url || '',
     PublishDate: dbRow.publish_date || '',
     Duration: dbRow.duration || '',
