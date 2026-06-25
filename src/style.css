@@ -794,6 +794,25 @@ body {
   display: block;
 }
 
+/* 즐겨찾기 비율 아바타 */
+.cn-fav-ratio-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+.cn-fav-ratio-avatar--fallback {
+  line-height: 20px;
+  text-align: center;
+}
+
 .list-row-title {
   font-size: 18px;
   font-weight: 800;

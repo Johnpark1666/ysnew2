@@ -383,7 +383,7 @@ export function renderConnect(container, { allData, githubData }) {
     const ratios = sortedChs.map(([name, d]) => {
       const total = d.count;
       const fav = d.favCount || 0;
-      return { name, ratio: total > 0 ? fav / total : 0, fav, total };
+      return { name, ratio: total > 0 ? fav / total : 0, fav, total, avatar: d.avatar || '' };
     }).filter(r => r.total >= 2).sort((a, b) => b.ratio - a.ratio);
     if (ratios.length === 0) { el.innerHTML = '<div style="padding:12px;text-align:center;font-size:10px;color:var(--text-dim);">즐겨찾기 데이터가 충분하지 않습니다</div>'; return; }
     const maxRatio = Math.max(ratios[0].ratio, 0.01);
@@ -391,8 +391,12 @@ export function renderConnect(container, { allData, githubData }) {
       const pct = Math.round(r.ratio * 100);
       const barW = (r.ratio / maxRatio) * 100;
       const color = r.ratio >= 0.3 ? '#059669' : r.ratio >= 0.15 ? '#d97706' : '#dc2626';
+      const avHtml = r.avatar
+        ? `<img src="${r.avatar}" class="cn-fav-ratio-avatar">`
+        : `<span class="cn-fav-ratio-avatar cn-fav-ratio-avatar--fallback" style="background:${hashColor(r.name)}">${r.name[0]}</span>`;
       return `<div class="bar-row" style="cursor:pointer;" onclick="cnShowChVids('${r.name.replace(/'/g, "\\'")}')">
-        <span class="bar-label" style="width:80px;font-size:10px;">${r.name}</span>
+        ${avHtml}
+        <span class="bar-label" style="width:76px;font-size:10px;">${r.name}</span>
         <div class="bar-track"><div class="bar-fill" style="width:${barW}%;background:${color};font-size:9px;">${pct}%</div></div>
         <span style="font-size:9px;color:var(--text-dim);font-weight:600;margin-left:6px;flex-shrink:0;">${r.fav}/${r.total}</span>
       </div>`;
