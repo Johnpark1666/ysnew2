@@ -62,79 +62,75 @@ window.addEventListener('DOMContentLoaded', () => {
   if (container) container.classList.add('tab-unread');
 });
 
-// ── Supabase 데이터 로드 ──
+// ── Supabase 데이터 로드 (최적화) ──
+const LIGHT_FIELDS = 'id,title,channel_name,channel_avatar,video_url,publish_date,duration,processed_at,read,favorite,image_url,plus_key,category,keywords,timeline,summary,created_at';
+const CACHE_KEY = 'ysnew2_cache_v1';
+const CACHE_TTL = 5 * 60 * 1000; // 5분
+
 async function fetchData() {
   const loader = document.getElementById('loader');
   loader.style.display = 'block';
-  loader.innerHTML = '<div class="loader-spinner"></div><div class="loader-text">최신 데이터를 실시간으로 가져오는 중...</div>';
+  loader.innerHTML = '<div class="loader-spinner"></div><div class="loader-text">최신 데이터를 불러오는 중...</div>';
   document.getElementById('card-grid').innerHTML = '';
 
   try {
+    // 1. 캐시 먼저 표시
+    const cached = loadCache();
+    if (cached) {
+      allData = cached.allData;
+      githubData = cached.githubData;
+      mixData = cached.mixData;
+      onDataLoaded();
+      loader.innerHTML = '<div class="loader-spinner"></div><div class="loader-text">실시간 업데이트 확인 중...</div>';
+    }
+
     if (!supabase) throw new Error('Supabase 클라이언트가 초기화되지 않았습니다.');
 
-    // 1. videos 테이블 (main)
-    const { data: videos, error: vErr } = await supabase
-      .from('videos')
-      .select('*')
-      .order('publish_date', { ascending: false });
+    // 2. 3개 테이블 병렬 쿼리 + 경량 필드만
+    const [vResult, gResult, mResult] = await Promise.all([
+      supabase.from('videos').select(LIGHT_FIELDS).order('publish_date', { ascending: false }),
+      supabase.from('github_repos').select(LIGHT_FIELDS).order('publish_date', { ascending: false }),
+      supabase.from('notebooklm_mixes').select('id,created_at,type,url,source_ids,title').order('created_at', { ascending: false })
+    ]);
 
-    if (vErr) throw new Error(`videos 조회 실패: ${vErr.message}`);
+    if (vResult.error) throw new Error(`videos 조회 실패: ${vResult.error.message}`);
+    if (gResult.error) throw new Error(`github_repos 조회 실패: ${gResult.error.message}`);
+    if (mResult.error) throw new Error(`notebooklm_mixes 조회 실패: ${mResult.error.message}`);
 
-    // !!BRIEFING_LATEST!! 분리
-    briefingData = videos.filter(d => {
-      const id = String(d.id || '').trim();
-      return id === "!!BRIEFING_LATEST!!";
-    });
-
-    // 일반 카드용 데이터
-    allData = videos.filter(d => {
+    // 3. 데이터 가공
+    briefingData = vResult.data.filter(d => String(d.id || '').trim() === "!!BRIEFING_LATEST!!");
+    allData = vResult.data.filter(d => {
       const id = String(d.id || '').trim();
       return id !== "" && id !== "!!BRIEFING_LATEST!!";
-    }).map(mapVideoRow);
+    }).map(mapVideoRowLight);
 
-    // 2. github_repos 테이블
-    const { data: repos, error: gErr } = await supabase
-      .from('github_repos')
-      .select('*')
-      .order('publish_date', { ascending: false });
+    githubData = (gResult.data || []).filter(d => String(d.id || '').trim() !== '').map(mapVideoRowLight);
 
-    if (gErr) throw new Error(`github_repos 조회 실패: ${gErr.message}`);
+    mixData = (mResult.data || []).map(m => ({
+      id: 'mix_' + m.id,
+      timestamp: m.created_at,
+      type: m.type,
+      url: m.url,
+      sourceIds: m.source_ids,
+      title: m.title
+    }));
 
-    githubData = (repos || [])
-      .filter(d => String(d.id || '').trim() !== '')
-      .map(mapVideoRow);
+    console.log('실시간 연동:', allData.length, '영상, Mix:', mixData.length, '개, GitHub:', githubData.length, '개');
 
-    // 3. notebooklm_mixes 테이블
-    const { data: mixes, error: mErr } = await supabase
-      .from('notebooklm_mixes')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // 4. 캐시 저장 (로컬에 저장)
+    saveCache({ allData, githubData, mixData, timestamp: Date.now() });
 
-    if (mErr) throw new Error(`notebooklm_mixes 조회 실패: ${mErr.message}`);
-
-    mixData = (mixes || []).reverse().map(function(m) {
-      return {
-        id: 'mix_' + m.id,
-        timestamp: m.created_at,
-        type: m.type,
-        url: m.url,
-        sourceIds: m.source_ids,
-        title: m.title
-      };
-    });
-
-    console.log('실시간 연동 성공:', allData.length, '개의 영상, Mix 데이터:', mixData.length, '개, GitHub 데이터:', githubData.length, '개');
     onDataLoaded();
 
   } catch (error) {
-    onLoadError(error);
+    if (!cached) onLoadError(error);
+    else console.warn('새로고침 실패, 캐시 데이터 사용 중:', error.message);
   }
 }
 
-// Supabase DB 컬럼명 → 프론트엔드 호환 컬럼명 매핑
-function mapVideoRow(dbRow) {
+// 경량 매핑 (무거운 필드 제외)
+function mapVideoRowLight(dbRow) {
   return {
-    rowIndex: dbRow._row || 0,
     ID: dbRow.id || '',
     Title: dbRow.title || '',
     ChannelName: dbRow.channel_name || '',
@@ -146,18 +142,51 @@ function mapVideoRow(dbRow) {
     Read: dbRow.read || false,
     Favorite: dbRow.favorite || false,
     Summary: dbRow.summary || '',
-    Insights: dbRow.insights || '',
-    Implications: dbRow.implications || '',
-    Keywords: dbRow.keywords || '',
-    Analysis: dbRow.analysis || '',
-    Transcript: dbRow.transcript || '',
-    ShowTranscript: dbRow.show_transcript || false,
     Image_URL: dbRow.image_url || '',
     Plus_Key: dbRow.plus_key || '',
     Category: dbRow.category || '',
-    Model: dbRow.model || '',
+    Keywords: dbRow.keywords || '',
     Timeline: dbRow.timeline || '',
   };
+}
+
+// 지연 로딩: 상세 패널 열릴 때 무거운 필드 fetch
+const _detailCache = {};
+async function lazyLoadDetail(id) {
+  if (_detailCache[id]) return _detailCache[id];
+  const { data, error } = await supabase
+    .from('videos')
+    .select('summary,insights,implications,analysis,transcript,show_transcript')
+    .eq('id', id)
+    .single();
+  if (!error && data) {
+    _detailCache[id] = data;
+    return data;
+  }
+  // Fallback: github
+  const { data: gData } = await supabase
+    .from('github_repos')
+    .select('summary,insights,implications,analysis')
+    .eq('id', id)
+    .single();
+  if (gData) _detailCache[id] = gData;
+  return gData || {};
+}
+// Connect 탭에서 접근할 수 있도록 전역 노출
+window.lazyLoadDetail = lazyLoadDetail;
+
+// 캐시 helpers
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (Date.now() - c.timestamp > CACHE_TTL) return null;
+    return c;
+  } catch { return null; }
+}
+function saveCache(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
 }
 
 function onDataLoaded() {
@@ -820,10 +849,19 @@ function openDetail(id, keepMixActive = false) {
     const mLink = document.getElementById('m-link');
     mLink.href = item.VideoURL;
 
-    document.getElementById('m-summary').innerHTML = renderMarkdown(item.Summary);
-    document.getElementById('m-analysis').innerHTML = renderMarkdown(item.Analysis);
-    document.getElementById('m-insights').innerHTML = renderMarkdown(item.Insights);
-    document.getElementById('m-implications').innerHTML = renderMarkdown(item.Implications);
+    // 경량 필드는 즉시 표시, 무거운 필드는 지연 로딩
+    document.getElementById('m-summary').innerHTML = '<div class="loading-pulse" style="height:60px;border-radius:6px;background:var(--bg-card-hover);"></div>';
+    document.getElementById('m-analysis').innerHTML = '<div class="loading-pulse" style="height:40px;border-radius:6px;background:var(--bg-card-hover);"></div>';
+    document.getElementById('m-insights').innerHTML = '<div class="loading-pulse" style="height:40px;border-radius:6px;background:var(--bg-card-hover);"></div>';
+    document.getElementById('m-implications').innerHTML = '<div class="loading-pulse" style="height:30px;border-radius:6px;background:var(--bg-card-hover);"></div>';
+
+    lazyLoadDetail(item.ID).then(detail => {
+      if (!detail) return;
+      document.getElementById('m-summary').innerHTML = renderMarkdown(detail.summary || '내용 없음');
+      document.getElementById('m-analysis').innerHTML = renderMarkdown(detail.analysis || '내용 없음');
+      document.getElementById('m-insights').innerHTML = renderMarkdown(detail.insights || '내용 없음');
+      document.getElementById('m-implications').innerHTML = renderMarkdown(detail.implications || '');
+    });
 
     // Render timeline accordions
     renderTimeline(item.Timeline || item.timeline, videoId);

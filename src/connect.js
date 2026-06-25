@@ -612,6 +612,17 @@ export function renderConnect(container, { allData, githubData }) {
     </div>`;
     // 저장소에 현재 항목 저장 (읽음/즐겨찾기 콜백용)
     window._cnCurrentVid = v;
+    // 지연 로딩: Analysis/Insights/Implications (없으면 lazyLoadDetail로 fetch)
+    if (!v.Analysis && !v.Insights && typeof window.lazyLoadDetail === 'function') {
+      window.lazyLoadDetail(v.ID).then(detail => {
+        const aid = document.getElementById('cn-analysis-section')?.querySelector('.cn-dsec-b');
+        const iid = document.getElementById('cn-insights-section')?.querySelector('.cn-dsec-b');
+        const iid2 = document.getElementById('cn-implications-section')?.querySelector('.cn-dsec-b');
+        if (aid && detail.analysis) aid.innerHTML = detail.analysis;
+        if (iid && detail.insights) iid.innerHTML = detail.insights;
+        if (iid2 && detail.implications) iid2.innerHTML = detail.implications;
+      });
+    }
   };
   function renderCnTimeline(timelineStr, videoUrl) {
     if (!timelineStr) return '';
