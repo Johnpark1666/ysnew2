@@ -1758,7 +1758,7 @@ body {
 }
 
 .connect-grid {
-  display: grid; grid-template-columns: 1fr 470px; gap: 14px;
+  display: grid; grid-template-columns: 1fr 655px; gap: 14px;
 }
 
 .connect-left { min-width: 0; }
