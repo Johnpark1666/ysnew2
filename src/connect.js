@@ -2,6 +2,7 @@
  * Connect Tab — 네트워크 그래프 + 연결 인사이트
  * imports: main.js의 allData, githubData 활용
  */
+import { Network, DataSet } from 'vis-network/standalone';
 
 // ─── 컬러 팔레트 ───
 const CAT_COLORS = {
@@ -147,8 +148,8 @@ export function renderConnect(container, { allData, githubData }) {
               <div class="card-h"><span class="card-h-icon">🕸️</span> 키워드 연결망 <span class="badge">노드 클릭</span></div>
               <div class="card-b slim">
                 <div class="graph-wrap" id="cn-graph-wrap">
-                  <canvas id="cn-graph-canvas"></canvas>
-                  <div class="graph-hint" id="cn-graph-hint">🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭</div>
+                  <div id="cn-graph-vis" style="width:100%;height:380px;"></div>
+                  <div class="graph-hint" id="cn-graph-hint">🕸️ 드래그 · 확대 · 노드 클릭</div>
                 </div>
               </div>
               <div class="graph-legend" id="cn-graph-legend"></div>
@@ -398,234 +399,156 @@ export function renderConnect(container, { allData, githubData }) {
     }).join('');
   }
 
-  // ── 네트워크 그래프 (YouTube) ──
+  // ── 네트워크 그래프 (YouTube) — vis-network ──
   let graphRunning = false;
   function renderYtGraph() {
     if (graphRunning) return;
     graphRunning = true;
     setTimeout(() => { graphRunning = false; }, 500);
 
-    const canvas = document.getElementById('cn-graph-canvas');
-    const wrap = document.getElementById('cn-graph-wrap');
-    if (!canvas || !wrap || wrap.clientWidth === 0) return;
-    canvas.width = wrap.clientWidth * 2; canvas.height = 380 * 2;
-    canvas.style.width = wrap.clientWidth+'px'; canvas.style.height = '380px';
-    const ctx = canvas.getContext('2d'); ctx.scale(2,2);
-    const W = wrap.clientWidth, H = 380;
+    const container = document.getElementById('cn-graph-vis');
+    const hint = document.getElementById('cn-graph-hint');
+    if (!container || container.clientWidth === 0) return;
 
     // Build nodes
-    const cx = W * 0.5, cy = H * 0.5;
-    const catNodes = allCats.map((c, i) => ({ id: c, type: 'category', group: c, r: 14,
-      x: cx + Math.cos(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*6,
-      y: cy + Math.sin(i/allCats.length*Math.PI*2)*W*0.12 + (Math.random()-0.5)*6, vx:0, vy:0 }));
-    const topChs12 = sortedChs.slice(0,12);
-    const chNodes = topChs12.map(([ch], i) => ({ id: ch, type: 'channel', group: chPriCat[ch]||'기타', r: Math.max(5, Math.min(14, 5 + (chData[ch].count)*0.4)),
-      x: cx + Math.cos(i/12*Math.PI*2)*W*0.28 + (Math.random()-0.5)*8,
-      y: cy + Math.sin(i/12*Math.PI*2)*W*0.28 + (Math.random()-0.5)*8, vx:0, vy:0 }));
-    const topKws40 = allKws.slice(0,40);
-    const kwNodes = topKws40.map((k, i) => ({ id: k, type: 'keyword', group: kwCat[k]||'기타', r: Math.max(3, Math.min(10, 3 + (kwCount[k]||1)*1.2)),
-      x: cx + Math.cos(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*15,
-      y: cy + Math.sin(i/40*Math.PI*2)*W*0.44 + (Math.random()-0.5)*15, vx:0, vy:0 }));
+    const catNodes = allCats.map((c, i) => ({
+      id: 'cat_'+c, label: c, group: 'category',
+      color: CAT_COLORS[c]||'#888',
+      shape: 'dot', size: 18,
+      title: c, borderWidth: 2,
+      borderWidthSelected: 4
+    }));
+    const chNodes = sortedChs.slice(0,12).map(([ch], i) => ({
+      id: 'ch_'+ch, label: ch.length > 10 ? ch.slice(0,8)+'…' : ch,
+      group: 'channel',
+      color: CAT_COLORS[chPriCat[ch]||'기타']||'#888',
+      shape: 'box', size: 10 + Math.min(chData[ch].count, 10),
+      title: `${ch}\n${chData[ch].count} videos`,
+      borderWidth: 2, borderWidthSelected: 4,
+      font: { size: 9 }
+    }));
+    const kwNodes = allKws.slice(0,40).map((k, i) => ({
+      id: 'kw_'+k, label: k.length > 8 ? k.slice(0,6)+'…' : k,
+      group: 'keyword',
+      color: CAT_COLORS[kwCat[k]||'기타']||'#888',
+      shape: 'dot', size: 4 + Math.min(kwCount[k]||1, 8),
+      title: `${k} (${kwCount[k]||1})`,
+      font: { size: 7, color: '#888' }
+    }));
 
     const nodes = [...catNodes, ...chNodes, ...kwNodes];
-    const nodeMap = {}; nodes.forEach(n => nodeMap[n.id] = n);
 
-    // Build links
-    const links = [];
-    const linkWeight = {}; // id -> weight sum
-    function addLink(s, t, w, type) {
-      const key = [s.id, t.id].sort().join('__');
-      if (!linkWeight[key]) { linkWeight[key] = 0; links.push({ s, t, type }); }
-      linkWeight[key] += w;
+    // Build links (deduplicated with weight)
+    const edgeMap = {};
+    function addEdge(from, to, w) {
+      const key = [from, to].sort().join('__');
+      edgeMap[key] = (edgeMap[key]||0) + w;
     }
-    topChs12.forEach(([ch]) => {
+    sortedChs.slice(0,12).forEach(([ch]) => {
       const d = chData[ch];
-      Object.keys(d.cats).forEach(c => { if (nodeMap[ch] && nodeMap[c]) addLink(nodeMap[c], nodeMap[ch], 3, 'cat-ch'); });
-      d.kw.forEach(k => { if (nodeMap[ch] && nodeMap[k]) addLink(nodeMap[ch], nodeMap[k], 1, 'ch-kw'); });
+      Object.keys(d.cats).forEach(c => addEdge('ch_'+ch, 'cat_'+c, 3));
+      d.kw.forEach(k => addEdge('ch_'+ch, 'kw_'+k, 1));
     });
-    const kwLinks = {};
     Object.values(chData).forEach(d => {
       for(let i=0;i<d.kw.length;i++) for(let j=i+1;j<d.kw.length;j++) {
-        const k=[d.kw[i],d.kw[j]].sort().join('__'); kwLinks[k]=(kwLinks[k]||0)+1;
+        addEdge('kw_'+d.kw[i], 'kw_'+d.kw[j], 1);
       }
     });
-    Object.entries(kwLinks).filter(([_,v])=>v>=2).forEach(([k,v]) => {
-      const [s,t] = k.split('__');
-      if (nodeMap[s] && nodeMap[t]) addLink(nodeMap[s], nodeMap[t], v, 'kw-kw');
+    const maxW = Math.max(1, ...Object.values(edgeMap));
+    const edges = Object.entries(edgeMap).map(([key, w]) => {
+      const [from, to] = key.split('__');
+      return { from, to, width: Math.max(0.5, w/maxW*4), color: { color: 'rgba(120,120,160,0.4)', highlight: '#4f46e5', hover: '#4f46e5' }, smooth: false };
     });
 
     if (nodes.length === 0) return;
 
-    const sensitivity = 200;
-    let dragNode=null, offX=0, offY=0, panX=0, panY=0, isPan=false, lmx=0, lmy=0, sc=1.0;
-    let selNode = null, focusMode = false;
-    let showCats = true, showChs = true, showKws = true;
+    const visData = { nodes: new DataSet(nodes), edges: new DataSet(edges) };
 
-    function isVis(n) {
-      return (n.type==='category'&&showCats)||(n.type==='channel'&&showChs)||(n.type==='keyword'&&showKws);
-    }
-
-    function m2w(e) { const r=canvas.getBoundingClientRect(); return {x:((e.clientX-r.left)*(W/r.width)-panX)/sc, y:((e.clientY-r.top)*(H/r.height)-panY)/sc}; }
-
-    function getCon(node) {
-      const s = new Set([node.id]);
-      links.forEach(l => { if (l.s === node) s.add(l.t.id); if (l.t === node) s.add(l.s.id); });
-      return s;
-    }
-
-    function getOrb(n, focus, idx, total) {
-      const a = (idx/total)*Math.PI*2 - Math.PI/2;
-      const d = 55 + n.r*2;
-      return { x: focus.x + Math.cos(a)*d, y: focus.y + Math.sin(a)*d };
-    }
-
-    // Events
-    canvas.onwheel = e => {
-      e.preventDefault();
-      const r=canvas.getBoundingClientRect();
-      const mx=(e.clientX-r.left)*(W/r.width), my=(e.clientY-r.top)*(H/r.height);
-      const f=e.deltaY<0?1.12:0.88, ns=Math.max(0.2,Math.min(5,sc*f));
-      panX=mx-(mx-panX)*(ns/sc); panY=my-(my-panY)*(ns/sc); sc=ns;
-      document.getElementById('cn-graph-hint').textContent=`🔍 ${Math.round(sc*100)}% · 휠 확대축소 · 드래그 · 노드 클릭`;
+    const options = {
+      nodes: {
+        scaling: { label: { enabled: false } },
+        font: { face: 'Outfit, sans-serif' }
+      },
+      edges: {
+        smooth: false,
+        color: { inherit: false }
+      },
+      physics: {
+        enabled: true,
+        solver: 'barnesHut',
+        barnesHut: { gravitationalConstant: -3000, centralGravity: 0.3, springLength: 120, springConstant: 0.04, damping: 0.09 },
+        stabilization: { iterations: 100 }
+      },
+      interaction: {
+        hover: true, tooltipDelay: 100,
+        navigationButtons: false,
+        keyboard: false
+      },
+      groups: {
+        category: { shape: 'dot', size: 18, borderWidth: 2 },
+        channel: { shape: 'box', borderWidth: 2 },
+        keyword: { shape: 'dot', size: 6, borderWidth: 1 }
+      }
     };
-    canvas.onmousedown = e => {
-      const w=m2w(e); let c=null, md=25;
-      nodes.forEach(n=>{if(!isVis(n))return;const d=Math.sqrt((w.x-n.x)**2+(w.y-n.y)**2);if(d<md){md=d;c=n;}});
-      if(c){dragNode=c;offX=w.x-c.x;offY=w.y-c.y;c.fx=c.x;c.fy=c.y;return;}
-      isPan=true;lmx=e.clientX;lmy=e.clientY;
-    };
-    canvas.onmousemove = e => {
-      if(dragNode){const w=m2w(e);dragNode.fx=w.x-offX;dragNode.fy=w.y-offY;}
-      if(isPan){panX+=(e.clientX-lmx)*(W/canvas.getBoundingClientRect().width);panY+=(e.clientY-lmy)*(H/canvas.getBoundingClientRect().height);lmx=e.clientX;lmy=e.clientY;}
-    };
-    canvas.onmouseup = () => {
-      if(dragNode){
-        if(Math.abs(dragNode.fx-dragNode.x)<3) {
-          if (selNode === dragNode) { selNode=null; focusMode=false; document.getElementById('cn-graph-hint').textContent='🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭'; }
-          else {
-            selNode = dragNode; focusMode = true;
-            document.getElementById('cn-graph-hint').textContent=`🔍 포커스: ${selNode.id}`;
-            if (selNode.type === 'category') cnShowCatVids(selNode.id);
-            else if (selNode.type === 'channel') cnShowChVids(selNode.id);
-            else cnShowKwVids(selNode.id);
-          }
-        }
-        dragNode.fx=null; dragNode.fy=null; dragNode=null;
-      } else { selNode=null; focusMode=false; document.getElementById('cn-graph-hint').textContent='🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭'; }
-      isPan=false;
-    };
-    canvas.onmouseleave = () => {if(dragNode){dragNode.fx=null;dragNode.fy=null;dragNode=null;}isPan=false;};
 
+    const network = new Network(container, visData, options);
+
+    network.on('click', function(params) {
+      if (params.nodes.length === 0) return;
+      const id = params.nodes[0];
+      // Parse original identifier from vis-node id
+      let origId, type;
+      if (id.startsWith('cat_')) { origId = id.slice(4); type = 'category'; }
+      else if (id.startsWith('ch_')) { origId = id.slice(3); type = 'channel'; }
+      else if (id.startsWith('kw_')) { origId = id.slice(3); type = 'keyword'; }
+      if (!origId) return;
+      
+      hint.textContent = `🔍 ${origId}`;
+      if (type === 'category') cnShowCatVids(origId);
+      else if (type === 'channel') cnShowChVids(origId);
+      else cnShowKwVids(origId);
+    });
+
+    network.on('deselectNode', function() {
+      hint.textContent = '🕸️ 드래그 · 확대 · 노드 클릭';
+    });
+
+    // Legend toggles
     window.cnToggleType = function(type) {
-      if (type==='c') showCats=!showCats; else if (type==='h') showChs=!showChs; else if (type==='k') showKws=!showKws;
-      if (selNode && !isVis(selNode)) { selNode=null; focusMode=false; document.getElementById('cn-graph-hint').textContent='🔍 100% · 휠 확대축소 · 드래그 · 노드 클릭'; }
+      const updates = [];
+      if (type === 'c') {
+        nodes.forEach(n => { if (n.group === 'category') updates.push({ id: n.id, hidden: !visData.nodes.get(n.id)?.hidden }); });
+      } else if (type === 'h') {
+        nodes.forEach(n => { if (n.group === 'channel') updates.push({ id: n.id, hidden: !visData.nodes.get(n.id)?.hidden }); });
+      } else if (type === 'k') {
+        nodes.forEach(n => { if (n.group === 'keyword') updates.push({ id: n.id, hidden: !visData.nodes.get(n.id)?.hidden }); });
+      }
+      visData.nodes.update(updates);
       updateLegend();
     };
 
     function updateLegend() {
+      const catVis = nodes.filter(n => n.group === 'category').every(n => !visData.nodes.get(n.id)?.hidden);
+      const chVis = nodes.filter(n => n.group === 'channel').every(n => !visData.nodes.get(n.id)?.hidden);
+      const kwVis = nodes.filter(n => n.group === 'keyword').every(n => !visData.nodes.get(n.id)?.hidden);
       document.getElementById('cn-graph-legend').innerHTML =
-        `<span class="legend-toggle ${showCats?'active':''}" onclick="cnToggleType('c')">●카테고리</span>` +
+        `<span class="legend-toggle ${catVis?'active':''}" onclick="cnToggleType('c')">●카테고리</span>` +
         allCats.slice(0,6).map(c => `<span class="legend-item"><span class="legend-dot" style="background:${CAT_COLORS[c]||'#888'};"></span>${c}</span>`).join('') +
-        `<span class="legend-toggle ${showChs?'active':''}" onclick="cnToggleType('h')" style="margin-left:4px;">■채널</span>` +
-        `<span class="legend-toggle ${showKws?'active':''}" onclick="cnToggleType('k')" style="margin-left:4px;">●키워드</span>`;
+        `<span class="legend-toggle ${chVis?'active':''}" onclick="cnToggleType('h')" style="margin-left:4px;">■채널</span>` +
+        `<span class="legend-toggle ${kwVis?'active':''}" onclick="cnToggleType('k')" style="margin-left:4px;">●키워드</span>`;
     }
 
-    function sim() {
-      nodes.forEach(n => {
-        if(n.fx!==undefined){n.x=n.fx;n.y=n.fy;n.vx=0;n.vy=0;return;}
-        let fx=0,fy=0;
-        nodes.forEach(o => {
-          if(n===o) return;
-          const dx=n.x-o.x, dy=n.y-o.y, d=Math.sqrt(dx*dx+dy*dy)||1;
-          const r = (n.type==='category'||o.type==='category') ? sensitivity*1.5 : sensitivity;
-          fx += dx/d*r/(d*d); fy += dy/d*r/(d*d);
-        });
-        links.forEach(l => {
-          if(l.s===n||l.t===n){const o=l.s===n?l.t:l.s;const s=l.type==='cat-ch'?0.025:l.type==='ch-kw'?0.015:0.008;fx += (o.x-n.x)*s; fy += (o.y-n.y)*s;}
-        });
-        if (focusMode && selNode) {
-          const con = getCon(selNode), isC=con.has(n.id), isS=n===selNode;
-          const cx2=(W/2-panX)/sc, cy2=(H/2-panY)/sc;
-          if (isS) { fx += (cx2-n.x)*0.03; fy += (cy2-n.y)*0.03; n.vx*=0.9; n.vy*=0.9; }
-          else if (isC) {
-            const cn = nodes.filter(c => con.has(c.id) && c !== selNode);
-            const idx = cn.indexOf(n), orb = getOrb(n, selNode, idx, cn.length);
-            const st = n.type==='category'?0.04:n.type==='channel'?0.03:0.02;
-            fx += (orb.x-n.x)*st; fy += (orb.y-n.y)*st;
-          } else {
-            const dx=n.x-cx2, dy=n.y-cy2, d=Math.sqrt(dx*dx+dy*dy)||1;
-            const pf = sensitivity*3/(d*d); fx += dx/d*Math.min(pf,8); fy += dy/d*Math.min(pf,8);
-          }
-        }
-        n.vx=(n.vx+fx)*0.85; n.vy=(n.vy+fy)*0.85;
-        n.x+=n.vx; n.y+=n.vy;
-        n.x=Math.max(20,Math.min(W-20,n.x)); n.y=Math.max(20,Math.min(H-20,n.y));
-      });
-    }
-
-    // ── Pre-stabilize: run simulation 120 iterations before first draw ──
-    for (let i = 0; i < 120; i++) sim();
-
-    // ── Track max link weight for proportional rendering ──
-    const maxLinkW = Math.max(1, ...links.map(l => linkWeight[[l.s.id, l.t.id].sort().join('__')] || 1));
-
-    function draw() {
-      ctx.clearRect(0,0,W,H);
-      ctx.save(); ctx.translate(panX,panY); ctx.scale(sc,sc);
-      const con = selNode ? getCon(selNode) : null;
-
-      // ── Draw edges with proper visibility ──
-      links.forEach(l => {
-        if (!isVis(l.s)||!isVis(l.t)) return;
-        const isCon = con && con.has(l.s.id) && con.has(l.t.id);
-        const isSel = selNode && (l.s===selNode||l.t===selNode);
-        const w = linkWeight[[l.s.id, l.t.id].sort().join('__')] || 1;
-        ctx.globalAlpha = selNode ? (isSel ? 0.9 : (isCon ? 0.6 : 0.08)) : 0.4;
-        ctx.strokeStyle = isSel ? '#4f46e5' : 'rgba(120,120,160,0.5)';
-        ctx.lineWidth = isSel ? Math.max(2, w/maxLinkW*4) : Math.max(1, w/maxLinkW*2.5);
-        ctx.beginPath(); ctx.moveTo(l.s.x,l.s.y); ctx.lineTo(l.t.x,l.t.y); ctx.stroke();
-      });
-      ctx.globalAlpha = 1;
-
-      // ── Draw nodes ──
-      nodes.forEach(n => {
-        if (!isVis(n)) return;
-        const isSel=n===selNode, isCon=con&&con.has(n.id), faded=selNode&&!isSel&&!isCon;
-        ctx.globalAlpha = faded?0.2:1;
-        const r = isSel ? n.r*1.5 : n.r;
-        if (n.type==='category') {
-          ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
-          ctx.fillStyle=CAT_COLORS[n.group]||'#888'; ctx.fill();
-          ctx.strokeStyle=isSel?'#121212':'#fff'; ctx.lineWidth=isSel?4:2; ctx.stroke();
-          ctx.font=`bold ${Math.max(7,r*0.45)}px Outfit,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#fff';
-          ctx.fillText(n.id.slice(0,4), n.x, n.y);
-        } else if (n.type==='channel') {
-          const s=r*1.5, cx2=n.x, cy2=n.y;
-          ctx.fillStyle=CAT_COLORS[n.group]||'#888';
-          ctx.beginPath(); ctx.moveTo(cx2-s+3,cy2-s); ctx.lineTo(cx2+s-3,cy2-s);
-          ctx.quadraticCurveTo(cx2+s,cy2-s,cx2+s,cy2-s+3);
-          ctx.lineTo(cx2+s,cy2+s-3); ctx.quadraticCurveTo(cx2+s,cy2+s,cx2+s-3,cy2+s);
-          ctx.lineTo(cx2-s+3,cy2+s); ctx.quadraticCurveTo(cx2-s,cy2+s,cx2-s,cy2+s-3);
-          ctx.lineTo(cx2-s,cy2-s+3); ctx.quadraticCurveTo(cx2-s,cy2-s,cx2-s+3,cy2-s);
-          ctx.closePath(); ctx.fill();
-          ctx.strokeStyle=isSel?'#121212':'#fff'; ctx.lineWidth=isSel?3.5:1.5; ctx.stroke();
-          ctx.font=`bold ${Math.max(6,r*0.4)}px Outfit,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#fff';
-          ctx.fillText(n.id.length>8?n.id.slice(0,6)+'…':n.id, n.x, n.y);
-        } else {
-          ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
-          ctx.fillStyle=CAT_COLORS[n.group]||'#888'; ctx.fill();
-          ctx.strokeStyle=isSel?'#121212':'#fff'; ctx.lineWidth=isSel?3.5:1.5; ctx.stroke();
-          ctx.font=`${Math.max(6,r*0.4)}px Outfit,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='top';
-          ctx.fillStyle=faded?'rgba(0,0,0,0.2)':'#121212';
-          ctx.fillText(n.id, n.x, n.y+r+2);
-        }
-        ctx.globalAlpha=1;
-      });
-      ctx.restore();
-      requestAnimationFrame(()=>{sim();draw();});
-    }
-    updateLegend();
-    draw();
+    // Initial legend
+    const allCatsFilter = allCats;
+    const catVis = true, chVis = true, kwVis = true;
+    document.getElementById('cn-graph-legend').innerHTML =
+      `<span class="legend-toggle active" onclick="cnToggleType('c')">●카테고리</span>` +
+      allCatsFilter.slice(0,6).map(c => `<span class="legend-item"><span class="legend-dot" style="background:${CAT_COLORS[c]||'#888'};"></span>${c}</span>`).join('') +
+      `<span class="legend-toggle active" onclick="cnToggleType('h')" style="margin-left:4px;">■채널</span>` +
+      `<span class="legend-toggle active" onclick="cnToggleType('k')" style="margin-left:4px;">●키워드</span>`;
+    
+    // Store network for cleanup
+    window._cnYtNet = network;
   }
 
   // ── 상세 패널 함수들 ──

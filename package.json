@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
-    "marked": "^18.0.5"
+    "marked": "^18.0.5",
+    "vis-network": "^10.1.0"
   }
 }
