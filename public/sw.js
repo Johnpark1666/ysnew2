@@ -1,11 +1,12 @@
 const CACHE_NAME = 'ysnew2-v1';
 
-// 캐싱할 정적 리소스 (필요 시 추가)
+// 캐싱할 정적 리소스
 const PRECACHE_URLS = [
   '/ysnew2/',
   '/ysnew2/index.html',
   '/ysnew2/manifest.json',
-  '/ysnew2/icon-app.png',
+  '/ysnew2/icon-app-192.png',
+  '/ysnew2/icon-app-512.png',
   '/ysnew2/vite.svg',
   '/ysnew2/icon/chat.png'
 ];
@@ -44,7 +45,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // 유효한 응답만 캐시 저장
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -54,7 +54,6 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // 오프라인 시 캐시 반환
         return caches.match(event.request);
       })
   );
