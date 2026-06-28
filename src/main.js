@@ -842,12 +842,15 @@ function openDetail(id, keepMixActive = false) {
     }
 
     const mAvatar = document.getElementById('m-channel-avatar');
-    if (mAvatar) {
+    const mAvatarFallback = document.getElementById('m-channel-avatar-fallback');
+    if (mAvatar && mAvatarFallback) {
       if (item.ChannelAvatar) {
         mAvatar.src = item.ChannelAvatar;
         mAvatar.style.display = '';
+        mAvatarFallback.textContent = '';
       } else {
         mAvatar.style.display = 'none';
+        mAvatarFallback.textContent = (item.ChannelName || '?')[0];
       }
     }
 
