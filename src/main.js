@@ -359,9 +359,6 @@ function updateStats() {
   const mixCountEl = document.getElementById('mix-count');
   if (mixCountEl) mixCountEl.textContent = mixData.length;
 
-  const networkCountEl = document.getElementById('network-count');
-  if (networkCountEl) networkCountEl.textContent = '0';
-
   const githubUnreadCount = githubData.filter(item => !isTrue(item.Read)).length;
   const githubCountEl = document.getElementById('github-count');
   if (githubCountEl) githubCountEl.textContent = githubUnreadCount;
@@ -1566,6 +1563,8 @@ function updateFloatingToolbar() {
   if (currentTab === 'category' && !currentCategory) {
     shouldHide = true;
   } else if (isMobile && (currentTab === 'channel' || currentTab === 'mix')) {
+    shouldHide = true;
+  } else if (currentTab === 'network') {
     shouldHide = true;
   }
 
