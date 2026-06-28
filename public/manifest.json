@@ -11,13 +11,13 @@
   "lang": "ko-KR",
   "icons": [
     {
-      "src": "/ysnew2/favicon.png",
+      "src": "/ysnew2/icon-app.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/ysnew2/favicon.png",
+      "src": "/ysnew2/icon-app.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

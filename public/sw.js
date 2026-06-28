@@ -5,7 +5,7 @@ const PRECACHE_URLS = [
   '/ysnew2/',
   '/ysnew2/index.html',
   '/ysnew2/manifest.json',
-  '/ysnew2/favicon.png',
+  '/ysnew2/icon-app.png',
   '/ysnew2/vite.svg',
   '/ysnew2/icon/chat.png'
 ];
