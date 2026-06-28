@@ -335,6 +335,18 @@ function setupEventListeners() {
   document.getElementById('detail-nav-prev').onclick = () => navigateDetail(-1);
   document.getElementById('detail-nav-next').onclick = () => navigateDetail(1);
 
+  // Scroll-to-top button (mobile)
+  const scrollTopBtn = document.getElementById('detail-scroll-top');
+  if (scrollTopBtn) {
+    scrollTopBtn.onclick = () => {
+      document.getElementById('pane-detail').scrollTop = 0;
+    };
+    document.getElementById('pane-detail').addEventListener('scroll', () => {
+      const scrollTop = document.getElementById('pane-detail').scrollTop;
+      scrollTopBtn.classList.toggle('visible', scrollTop > 200);
+    }, { passive: true });
+  }
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDetail();
   });
@@ -827,6 +839,16 @@ function openDetail(id, keepMixActive = false) {
     const mChannel = document.getElementById('m-channel');
     if (mChannel) {
       mChannel.innerText = item.ChannelName || '알 수 없는 채널';
+    }
+
+    const mAvatar = document.getElementById('m-channel-avatar');
+    if (mAvatar) {
+      if (item.ChannelAvatar) {
+        mAvatar.src = item.ChannelAvatar;
+        mAvatar.style.display = '';
+      } else {
+        mAvatar.style.display = 'none';
+      }
     }
 
     const videoId = String(item.ID || item.id || '').trim();

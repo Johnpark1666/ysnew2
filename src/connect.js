@@ -293,8 +293,8 @@ export function renderConnect(container, { allData, githubData }) {
     if (!canvas) return;
     const wrap = canvas.closest('.donut-wrap');
     if (!wrap) return;
-    const availW = Math.min(wrap.clientWidth - 16, 200); // legend takes some space
-    const size = Math.max(100, Math.min(availW, 180));
+    const availW = Math.min(wrap.clientWidth - 8, 220); // legend is now below
+    const size = Math.max(100, Math.min(availW, 200));
     const dpr = window.devicePixelRatio || 1;
     canvas.width = size * dpr; canvas.height = size * dpr;
     canvas.style.width = size + 'px'; canvas.style.height = size + 'px';

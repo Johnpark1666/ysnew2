@@ -143,6 +143,7 @@
         <div class="modal-header">
           <div class="modal-header-content" style="flex: 1; min-width: 0;">
             <div class="modal-meta-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+              <img id="m-channel-avatar" class="channel-avatar-detail" src="" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;">
               <span id="m-channel" style="font-weight: 800; color: var(--accent-primary); font-size: 13px; text-transform: uppercase;">채널명</span>
               <span style="color: var(--text-muted); font-size: 11px;">|</span>
               <div id="m-date" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); font-weight: 700;">
@@ -158,6 +159,24 @@
             </button>
           </div>
         </div>
+        <!-- Action buttons inside sticky header — always visible on mobile while scrolling -->
+        <div class="modal-actions-video">
+          <a id="m-link" href="#" target="_blank" class="btn-youtube">
+            <i class="ph-fill ph-play-circle"></i>
+            YouTube<span class="desktop-only">에서 보기</span>
+          </a>
+          <button id="m-btn-read" class="btn-mark-read">
+            <i class="ph ph-check-circle"></i>
+            읽음<span class="desktop-only"> 처리</span>
+          </button>
+          <button id="m-btn-wl" class="btn-watch-later">
+            <i class="ph ph-list-plus"></i>
+            보관함<span class="desktop-only"> 추가</span>
+          </button>
+          <button id="m-btn-fav" class="btn-favorite">
+            <i class="ph ph-star"></i>
+          </button>
+        </div>
       </div>
 
       <div class="modal-body">
@@ -172,24 +191,6 @@
               <span class="section-title">주요 타임라인 (Timeline)</span>
             </div>
             <div id="m-timeline" class="section-content timeline-container" style="padding: 16px 20px; max-height: 250px; overflow-y: auto;">내용 없음</div>
-          </div>
-
-          <div class="modal-actions-video">
-            <a id="m-link" href="#" target="_blank" class="btn-youtube">
-              <i class="ph-fill ph-play-circle"></i>
-              YouTube에서 보기
-            </a>
-            <button id="m-btn-read" class="btn-mark-read">
-              <i class="ph ph-check-circle"></i>
-              읽음
-            </button>
-            <button id="m-btn-wl" class="btn-watch-later">
-              <i class="ph ph-list-plus"></i>
-              보관함 추가
-            </button>
-            <button id="m-btn-fav" class="btn-favorite">
-              <i class="ph ph-star"></i>
-            </button>
           </div>
         </div>
 
@@ -233,6 +234,11 @@
           <div id="m-implications" class="section-content">내용 없음</div>
         </div>
       </div>
+
+      <!-- Scroll to top button (mobile) -->
+      <button class="detail-scroll-top" id="detail-scroll-top" aria-label="맨 위로">
+        <i class="ph ph-arrow-up"></i>
+      </button>
 
       <!-- Mobile nav buttons: semi-circle prev/next (mobile only) -->
       <button class="detail-nav-btn detail-nav-prev" id="detail-nav-prev" aria-label="이전 영상">
