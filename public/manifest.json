@@ -1,0 +1,26 @@
+{
+  "name": "인사이트 클리핑",
+  "short_name": "클리핑",
+  "description": "YouTube 요약 및 인사이트 클리핑 서비스",
+  "start_url": "/ysnew2/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "scope": "/ysnew2/",
+  "lang": "ko-KR",
+  "icons": [
+    {
+      "src": "/ysnew2/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ysnew2/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
