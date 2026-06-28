@@ -31,8 +31,6 @@ let currentTab = 'unread';
 let currentCategory = null;
 let currentChannel = null; // 현재 선택된 카테고리 (null이면 전체 카테고리 목록 표시)
 let currentDetailId = null;
-let touchStartX = 0;
-let touchEndX = 0;
 
 // [Multi-Select State]
 let isSelectionMode = false;
@@ -333,16 +331,9 @@ function setupEventListeners() {
     }
   };
 
-  // Swipe Detection
-  const detailPane = document.getElementById('pane-detail');
-  detailPane.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-  }, { passive: true });
-
-  detailPane.addEventListener('touchend', e => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-  }, { passive: true });
+  // Detail Navigation (mobile buttons)
+  document.getElementById('detail-nav-prev').onclick = () => navigateDetail(-1);
+  document.getElementById('detail-nav-next').onclick = () => navigateDetail(1);
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDetail();
@@ -1447,19 +1438,13 @@ async function supabaseBatchMarkRead(ids, isGitHub = false) {
 
 // ── GAS를 Supabase로 교체 ──
 
-function handleSwipe() {
-  const diff = touchStartX - touchEndX;
-  if (Math.abs(diff) < 100) return;
-
+function navigateDetail(direction) {
   const filteredData = getFilteredData();
   const idx = filteredData.findIndex(d => String(d.ID) === currentDetailId);
   if (idx === -1) return;
-
-  if (diff > 0 && idx < filteredData.length - 1) {
-    openDetail(filteredData[idx + 1].ID);
-  } else if (diff < 0 && idx > 0) {
-    openDetail(filteredData[idx - 1].ID);
-  }
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= filteredData.length) return;
+  openDetail(filteredData[newIdx].ID);
 }
 
 

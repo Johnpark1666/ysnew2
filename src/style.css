@@ -1533,6 +1533,41 @@ body {
   #btn-mark-selected-read {
     white-space: nowrap !important;
   }
+
+  /* ── Detail navigation semi-circle buttons (mobile only) ── */
+  .detail-nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 400;
+    cursor: pointer;
+    border: none;
+    font-size: 22px;
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.06);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    transition: background 0.15s;
+    padding: 0;
+  }
+  .detail-nav-btn:active {
+    background: rgba(255,255,255,0.16);
+  }
+  .detail-nav-prev {
+    left: 0;
+    border-radius: 0 50% 50% 0;
+    padding-right: 5px;
+  }
+  .detail-nav-next {
+    right: 0;
+    border-radius: 50% 0 0 50%;
+    padding-left: 5px;
+  }
 }
 
 /* Compact screens and card adjustments */
@@ -1852,8 +1887,8 @@ body {
   flex-shrink: 0; border: 1px solid #121212; object-fit: cover;
 }
 
-.donut-wrap { display: flex; align-items: center; gap: 12px; }
-.cat-legend { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cat-legend { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .cat-row {
   display: flex; align-items: center; gap: 4px;
   font-size: 9px; font-weight: 700;
