@@ -1788,20 +1788,15 @@ function getDocumentPreviewUrl(url) {
 // Brutalist Visuals & HTML-in-Canvas Controller
 // ==========================================
 let mainCanvas, mainCtx;
-let bgCanvas, bgCtx;
 let canvasScrollY = 0;
 let isHtmlInCanvasActive = false;
 let canvasAnimationId = null;
-let bgParticles = [];
-
 function initCanvasControllers() {
   mainCanvas = document.getElementById('main-canvas');
-  bgCanvas = document.getElementById('bg-visual-canvas');
   
-  if (!mainCanvas || !bgCanvas) return;
+  if (!mainCanvas) return;
   
   mainCtx = mainCanvas.getContext('2d');
-  bgCtx = bgCanvas.getContext('2d');
   
   // Check browser support for drawElementImage (HTML-in-Canvas)
   // drawElementImage는 비표준 실험적 기능으로, 일부 브라우저에서 실행 중 오류(Uncaught TypeError)를 유발하여 화면이 굳는 원인이 되므로 false로 강제 설정해 안정적인 CSS Grid 뷰가 항상 쓰이도록 합니다.
@@ -1835,8 +1830,6 @@ function initCanvasControllers() {
     // Fallback: hide canvas, display grid as normal CSS Grid
     mainCanvas.style.display = 'none';
   }
-  
-  initBgAnimation();
 }
 
 function resizeMainCanvas() {
@@ -1986,65 +1979,6 @@ function requestCanvasPaint() {
   if (!canvasAnimationId) {
     drawMainCanvas();
   }
-}
-
-function initBgAnimation() {
-  const resizeBg = () => {
-    if (!bgCanvas) return;
-    const rect = bgCanvas.parentElement.getBoundingClientRect();
-    bgCanvas.width = rect.width;
-    bgCanvas.height = rect.height;
-  };
-  window.addEventListener('resize', resizeBg);
-  resizeBg();
-  
-  bgParticles = [];
-  for (let i = 0; i < 20; i++) {
-    bgParticles.push({
-      x: Math.random() * bgCanvas.width,
-      y: Math.random() * bgCanvas.height,
-      vx: (Math.random() - 0.5) * 0.6,
-      vy: (Math.random() - 0.5) * 0.6,
-      r: Math.random() * 2 + 1
-    });
-  }
-  
-  function draw() {
-    if (!bgCanvas || !bgCtx) return;
-    bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-    
-    // Draw web lines
-    bgCtx.strokeStyle = 'rgba(18, 18, 18, 0.04)';
-    bgCtx.lineWidth = 1;
-    for (let i = 0; i < bgParticles.length; i++) {
-      for (let j = i + 1; j < bgParticles.length; j++) {
-        const dist = Math.hypot(bgParticles[i].x - bgParticles[j].x, bgParticles[i].y - bgParticles[j].y);
-        if (dist < 100) {
-          bgCtx.beginPath();
-          bgCtx.moveTo(bgParticles[i].x, bgParticles[i].y);
-          bgCtx.lineTo(bgParticles[j].x, bgParticles[j].y);
-          bgCtx.stroke();
-        }
-      }
-    }
-    
-    // Draw particle nodes
-    bgCtx.fillStyle = 'rgba(18, 18, 18, 0.2)';
-    bgParticles.forEach(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      
-      if (p.x < 0 || p.x > bgCanvas.width) p.vx *= -1;
-      if (p.y < 0 || p.y > bgCanvas.height) p.vy *= -1;
-      
-      bgCtx.beginPath();
-      bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      bgCtx.fill();
-    });
-    
-    requestAnimationFrame(draw);
-  }
-  draw();
 }
 
 function updateLeftPanelDynamicData() {
