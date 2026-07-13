@@ -366,8 +366,7 @@ body {
   background: var(--bg-secondary);
 }
 
-.status-counter-box
-  position: absolute;
+.status-counter-box {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
